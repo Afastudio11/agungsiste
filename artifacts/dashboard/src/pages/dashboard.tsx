@@ -13,8 +13,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
@@ -30,78 +28,84 @@ import {
   ClipboardList,
   TrendingUp,
   TrendingDown,
-  ArrowUpRight,
   Download,
-  MoreHorizontal,
+  ArrowUpRight,
   MapPin,
+  Repeat2,
 } from "lucide-react";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(n: number) {
   return n.toLocaleString("id-ID");
 }
 
-function pct(val: number, prev: number) {
+function pctChange(val: number, prev: number) {
   if (!prev) return null;
   return (((val - prev) / prev) * 100).toFixed(1);
 }
 
-// ── Subcomponents ─────────────────────────────────────────────────────────────
+const DOW_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+// ─── Stat Card — accent-top style ─────────────────────────────────────────────
 
 function StatCard({
-  icon: Icon,
   label,
   value,
-  sub,
+  icon: Icon,
+  accent,
   trend,
-  iconBg,
 }: {
-  icon: any;
   label: string;
   value: number;
-  sub?: string;
+  icon: any;
+  accent: string;
   trend?: string | null;
-  iconBg: string;
 }) {
-  const positive = trend ? parseFloat(trend) >= 0 : null;
+  const up = trend ? parseFloat(trend) >= 0 : null;
   return (
-    <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
-        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconBg}`}>
-          <Icon className="h-4 w-4 text-white" />
-        </div>
+    <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-5 pt-5 pb-4 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+      {/* Colored top bar */}
+      <div className={`absolute inset-x-0 top-0 h-[3px] ${accent}`} />
+
+      <div className="flex items-start justify-between mb-3">
+        <p
+          className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400"
+        >
+          {label}
+        </p>
+        <Icon className="h-4 w-4 text-slate-300" strokeWidth={2} />
       </div>
-      <p className="mt-3 text-3xl font-bold text-slate-800">{fmt(value)}</p>
-      {sub && <p className="mt-0.5 text-xs text-slate-400">{sub}</p>}
+
+      <p
+        className="text-[32px] font-extrabold text-slate-900 leading-none"
+        style={{ letterSpacing: "-0.03em" }}
+      >
+        {fmt(value)}
+      </p>
+
       {trend !== undefined && trend !== null && (
-        <div className={`mt-2 flex items-center gap-1 text-xs font-medium ${positive ? "text-emerald-600" : "text-rose-500"}`}>
-          {positive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-          <span>{positive ? "+" : ""}{trend}% dari minggu lalu</span>
+        <div
+          className={`mt-2.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+            up
+              ? "bg-emerald-50 text-emerald-600"
+              : "bg-rose-50 text-rose-500"
+          }`}
+        >
+          {up ? (
+            <TrendingUp className="h-3 w-3" />
+          ) : (
+            <TrendingDown className="h-3 w-3" />
+          )}
+          {up ? "+" : ""}
+          {trend}% minggu lalu
         </div>
       )}
     </div>
   );
 }
 
-function SectionHeader({ title, sub }: { title: string; sub?: string }) {
-  return (
-    <div className="flex items-center justify-between mb-4">
-      <div>
-        <p className="text-sm font-semibold text-slate-700">{title}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
-      </div>
-      <button className="rounded-full p-1.5 hover:bg-slate-100 transition-colors">
-        <MoreHorizontal className="h-4 w-4 text-slate-400" />
-      </button>
-    </div>
-  );
-}
-
-const DOW_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
-
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [startDate, setStartDate] = useState("");
@@ -121,15 +125,17 @@ export default function DashboardPage() {
   const { data: eventsSummary } = useGetEventsSummary(params, {
     query: { queryKey: getGetEventsSummaryQueryKey(params) },
   });
-
-  // Segments (gender, province, dow) — direct fetch
   const { data: segments } = useQuery({
     queryKey: ["dashboard-segments"],
     queryFn: () => fetch("/api/dashboard/segments").then((r) => r.json()),
     staleTime: 60_000,
   });
 
-  // Day-of-week chart data
+  const areaData = (daily ?? []).slice(-60).map((d) => ({
+    date: d.date.slice(5),
+    count: d.count,
+  }));
+
   const dowData = useMemo(() => {
     const base = DOW_LABELS.map((label, i) => ({ label, count: 0, dow: i }));
     if (segments?.dow) {
@@ -139,237 +145,334 @@ export default function DashboardPage() {
     }
     return base;
   }, [segments]);
+  const maxDow = Math.max(...dowData.map((d) => d.count), 1);
+  const peakDay = dowData.reduce((mx, d) => (d.count > mx.count ? d : mx), dowData[0]);
 
-  // Multi-event rate
-  const multiEventRate = stats && stats.totalParticipants
+  const multiRate = stats?.totalParticipants
     ? Math.round((stats.multiEventParticipants / stats.totalParticipants) * 100)
     : 0;
 
-  // Area chart – last 60 days
-  const areaData = (daily ?? []).slice(-60).map((d) => ({
-    date: d.date.slice(5),
-    count: d.count,
-  }));
-
-  // Gender breakdown for segment bars
-  const genderData: { label: string; count: number; color: string }[] = useMemo(() => {
-    if (!segments?.gender) return [];
-    const colors = ["#3b82f6", "#ec4899", "#a78bfa"];
-    return segments.gender.map((g: { gender: string; count: number }, i: number) => ({
-      label: g.gender ?? "Tidak Diisi",
-      count: g.count,
-      color: colors[i] ?? "#94a3b8",
-    }));
+  const genderData = useMemo(() => {
+    const colors = ["#3b82f6", "#f472b6", "#a78bfa"];
+    return (segments?.gender ?? []).map(
+      (g: { gender: string; count: number }, i: number) => ({
+        label:
+          g.gender === "LAKI-LAKI"
+            ? "Laki-laki"
+            : g.gender === "PEREMPUAN"
+            ? "Perempuan"
+            : g.gender ?? "Lainnya",
+        count: g.count,
+        color: colors[i] ?? "#94a3b8",
+      })
+    );
   }, [segments]);
-  const totalGender = genderData.reduce((s, g) => s + g.count, 0);
+  const totalGender = genderData.reduce((s: number, g: any) => s + g.count, 0);
 
-  // Province breakdown
-  const provinceData: { label: string; count: number }[] = useMemo(() => {
-    if (!segments?.province) return [];
-    return segments.province.map((p: { province: string; count: number }) => ({
-      label: p.province,
-      count: p.count,
-    }));
-  }, [segments]);
-  const maxProvince = provinceData[0]?.count ?? 1;
+  const provinceData: { label: string; count: number }[] = useMemo(
+    () =>
+      (segments?.province ?? []).map((p: { province: string; count: number }) => ({
+        label: p.province,
+        count: p.count,
+      })),
+    [segments]
+  );
+  const maxProv = provinceData[0]?.count ?? 1;
 
-  // Trend
-  const recentTrend = pct(stats?.recentRegistrations ?? 0, stats?.prevWeekRegistrations ?? 0);
-
-  // Max dow for bar scaling
-  const maxDow = Math.max(...dowData.map((d) => d.count), 1);
+  const recentTrend = pctChange(
+    stats?.recentRegistrations ?? 0,
+    stats?.prevWeekRegistrations ?? 0
+  );
 
   return (
-    <Layout role="supervisor">
-      {/* Page header */}
-      <div className="flex items-center justify-between mb-6">
+    <Layout>
+      {/* ── Page header ─────────────────────────────────── */}
+      <div className="flex items-start justify-between mb-7">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Selamat datang kembali! Ini ringkasan hari ini.</p>
+          <h1
+            className="text-[26px] font-extrabold text-slate-900 leading-tight"
+            style={{ letterSpacing: "-0.03em" }}
+          >
+            Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-slate-400 font-medium">
+            Ringkasan data registrasi peserta event
+          </p>
         </div>
+
         <div className="flex items-center gap-2">
-          {/* Date range */}
           <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
             <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border-0 bg-transparent text-xs text-slate-600 focus:outline-none w-28"
+              className="border-0 bg-transparent text-[12px] text-slate-600 focus:outline-none w-28"
             />
-            <span className="text-slate-300">—</span>
+            <span className="text-slate-300 text-xs">—</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="border-0 bg-transparent text-xs text-slate-600 focus:outline-none w-28"
+              className="border-0 bg-transparent text-[12px] text-slate-600 focus:outline-none w-28"
             />
             {(startDate || endDate) && (
-              <button onClick={() => { setStartDate(""); setEndDate(""); }} className="ml-1 text-slate-400 hover:text-slate-600">✕</button>
+              <button
+                onClick={() => { setStartDate(""); setEndDate(""); }}
+                className="ml-1 text-slate-300 hover:text-slate-500 text-sm leading-none"
+              >
+                ✕
+              </button>
             )}
           </div>
-          <button className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors">
+
+          <button className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-[12px] font-bold text-white shadow-sm shadow-blue-200 hover:bg-blue-700 transition-colors">
             <Download className="h-3.5 w-3.5" />
             Export
           </button>
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4 mb-6">
+      {/* ── Stat cards ──────────────────────────────────── */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <StatCard
-          icon={Users}
           label="Total Peserta"
           value={stats?.totalParticipants ?? 0}
-          sub="NIK unik terdaftar"
-          iconBg="bg-blue-500"
+          icon={Users}
+          accent="bg-blue-500"
         />
         <StatCard
-          icon={CalendarDays}
           label="Total Event"
           value={stats?.totalEvents ?? 0}
-          sub="Event aktif"
-          iconBg="bg-violet-500"
+          icon={CalendarDays}
+          accent="bg-violet-500"
         />
         <StatCard
-          icon={ClipboardList}
           label="Total Registrasi"
           value={stats?.totalRegistrations ?? 0}
-          sub="Termasuk multi-event"
-          iconBg="bg-emerald-500"
+          icon={ClipboardList}
+          accent="bg-emerald-500"
         />
         <StatCard
-          icon={TrendingUp}
           label="7 Hari Terakhir"
           value={stats?.recentRegistrations ?? 0}
-          sub="Registrasi baru"
+          icon={TrendingUp}
+          accent="bg-amber-400"
           trend={recentTrend}
-          iconBg="bg-amber-500"
         />
       </div>
 
-      {/* Middle row: left (2/3) + right (1/3) */}
+      {/* ── Middle section ──────────────────────────────── */}
       <div className="grid grid-cols-3 gap-4 mb-4">
-        {/* LEFT — Area chart + segments */}
+
+        {/* Left — 2 columns */}
         <div className="col-span-2 space-y-4">
+
           {/* Area chart */}
-          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
-            <SectionHeader
-              title="Total Registrasi"
-              sub="60 hari terakhir"
-            />
-            <div className="flex items-end gap-3 mb-4">
-              <p className="text-4xl font-bold text-slate-800">{fmt(stats?.totalRegistrations ?? 0)}</p>
-              {recentTrend && (
-                <span className={`mb-1 flex items-center gap-1 text-sm font-semibold ${parseFloat(recentTrend) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                  <ArrowUpRight className="h-4 w-4" />
-                  {parseFloat(recentTrend) >= 0 ? "+" : ""}{recentTrend}%
-                  <span className="text-xs font-normal text-slate-400 ml-0.5">vs minggu lalu</span>
-                </span>
+          <div className="rounded-2xl bg-white border border-slate-100 px-6 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+            <div className="flex items-start justify-between mb-1">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400">
+                  Total Registrasi
+                </p>
+                <div className="flex items-baseline gap-3 mt-1">
+                  <span
+                    className="text-[36px] font-extrabold text-slate-900 leading-none"
+                    style={{ letterSpacing: "-0.04em" }}
+                  >
+                    {fmt(stats?.totalRegistrations ?? 0)}
+                  </span>
+                  {recentTrend && (
+                    <span
+                      className={`flex items-center gap-1 text-[13px] font-semibold ${
+                        parseFloat(recentTrend) >= 0
+                          ? "text-emerald-500"
+                          : "text-rose-500"
+                      }`}
+                    >
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                      {parseFloat(recentTrend) >= 0 ? "+" : ""}
+                      {recentTrend}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className="text-[11px] text-slate-400 font-medium mt-1">
+                60 hari terakhir
+              </span>
+            </div>
+
+            <div className="mt-4">
+              {areaData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={170}>
+                  <AreaChart data={areaData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.18} />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.01} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10, fill: "#cbd5e1", fontFamily: "Plus Jakarta Sans" }}
+                      tickLine={false}
+                      axisLine={false}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "#cbd5e1", fontFamily: "Plus Jakarta Sans" }}
+                      tickLine={false}
+                      axisLine={false}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        fontSize: 12,
+                        fontFamily: "Plus Jakarta Sans",
+                        borderRadius: 10,
+                        border: "1px solid #e2e8f0",
+                        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+                        padding: "8px 12px",
+                      }}
+                      formatter={(val) => [fmt(Number(val)), "Registrasi"]}
+                      labelFormatter={(l) => `Tgl: ${l}`}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      fill="url(#grad1)"
+                      dot={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-[170px] items-center justify-center text-sm text-slate-300">
+                  Belum ada data
+                </div>
               )}
             </div>
-            {areaData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={areaData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)" }}
-                    formatter={(val) => [fmt(Number(val)), "Registrasi"]}
-                    labelFormatter={(l) => `Tgl: ${l}`}
-                  />
-                  <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2.5} fill="url(#areaGrad)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-[180px] items-center justify-center text-sm text-slate-400">Belum ada data</div>
-            )}
           </div>
 
-          {/* Gender Segment Bars */}
-          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
-            <SectionHeader title="Komposisi Peserta" sub="Berdasarkan jenis kelamin" />
-            {genderData.length > 0 ? (
-              <div className="space-y-4">
-                <div className="flex gap-1 h-3 rounded-full overflow-hidden">
-                  {genderData.map((g) => (
+          {/* Gender segments */}
+          <div className="rounded-2xl bg-white border border-slate-100 px-6 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-4">
+              Komposisi Peserta
+            </p>
+            {genderData.length > 0 && (
+              <>
+                {/* Stacked bar */}
+                <div className="flex h-2.5 w-full overflow-hidden rounded-full gap-0.5 mb-4">
+                  {genderData.map((g: any) => (
                     <div
                       key={g.label}
-                      className="h-full rounded-full transition-all"
-                      style={{ width: `${(g.count / totalGender) * 100}%`, backgroundColor: g.color }}
+                      className="h-full first:rounded-l-full last:rounded-r-full transition-all"
+                      style={{
+                        width: `${(g.count / totalGender) * 100}%`,
+                        backgroundColor: g.color,
+                      }}
                     />
                   ))}
                 </div>
+
+                {/* Stat blocks */}
                 <div className="grid grid-cols-3 gap-3">
-                  {genderData.map((g) => (
-                    <div key={g.label} className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2.5">
-                      <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
-                      <div className="min-w-0">
-                        <p className="text-xs text-slate-400 truncate">{g.label === "LAKI-LAKI" ? "Laki-laki" : g.label === "PEREMPUAN" ? "Perempuan" : g.label}</p>
-                        <p className="text-sm font-bold text-slate-700">{fmt(g.count)}</p>
-                        <p className="text-xs text-slate-400">{Math.round((g.count / totalGender) * 100)}%</p>
+                  {genderData.map((g: any) => (
+                    <div
+                      key={g.label}
+                      className="rounded-xl bg-slate-50 px-4 py-3 border border-slate-100"
+                    >
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span
+                          className="inline-block h-2 w-2 rounded-full"
+                          style={{ backgroundColor: g.color }}
+                        />
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          {g.label}
+                        </span>
                       </div>
+                      <p
+                        className="text-[22px] font-extrabold text-slate-800"
+                        style={{ letterSpacing: "-0.03em" }}
+                      >
+                        {fmt(g.count)}
+                      </p>
+                      <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                        {Math.round((g.count / totalGender) * 100)}%
+                      </p>
                     </div>
                   ))}
                 </div>
-              </div>
-            ) : (
-              <div className="h-20 flex items-center justify-center text-sm text-slate-400">Memuat...</div>
+              </>
             )}
           </div>
         </div>
 
-        {/* RIGHT panel */}
+        {/* Right — 1 column */}
         <div className="col-span-1 space-y-4">
-          {/* Day-of-week bar chart */}
-          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
-            <SectionHeader title="Hari Paling Aktif" />
-            <div className="flex items-end gap-1 h-28 mt-2">
+
+          {/* Day-of-week */}
+          <div className="rounded-2xl bg-white border border-slate-100 px-5 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-4">
+              Hari Paling Aktif
+            </p>
+            <div className="flex items-end gap-1 h-24">
               {dowData.map((d) => {
-                const h = Math.round((d.count / maxDow) * 100);
-                const isMax = d.count === maxDow;
+                const pct = (d.count / maxDow) * 100;
+                const isMax = d.count === peakDay?.count && peakDay?.count > 0;
                 return (
-                  <div key={d.dow} className="flex flex-1 flex-col items-center gap-1">
+                  <div key={d.dow} className="flex flex-1 flex-col items-center gap-1.5">
                     <div
-                      className={`w-full rounded-t-md transition-all ${isMax ? "bg-blue-500" : "bg-slate-100"}`}
-                      style={{ height: `${Math.max(h, 8)}%` }}
+                      className={`w-full rounded-md transition-all ${
+                        isMax ? "bg-blue-500" : "bg-slate-100"
+                      }`}
+                      style={{ height: `${Math.max(pct, 8)}%` }}
                     />
-                    <span className={`text-[10px] font-medium ${isMax ? "text-blue-600" : "text-slate-400"}`}>{d.label}</span>
+                    <span
+                      className={`text-[10px] font-bold ${
+                        isMax ? "text-blue-600" : "text-slate-300"
+                      }`}
+                    >
+                      {d.label}
+                    </span>
                   </div>
                 );
               })}
             </div>
-            {dowData.length > 0 && (
-              <p className="mt-3 text-center text-xs text-slate-400">
-                Paling aktif: <span className="font-semibold text-slate-700">{DOW_LABELS[dowData.reduce((mx, d) => d.count > mx.count ? d : mx, dowData[0]).dow]}</span>
-              </p>
-            )}
+            <p className="mt-3 text-center text-[11px] text-slate-400 font-medium">
+              Paling aktif:{" "}
+              <span className="font-bold text-slate-700">
+                {peakDay ? DOW_LABELS[peakDay.dow] : "—"}
+              </span>{" "}
+              ({fmt(peakDay?.count ?? 0)} registrasi)
+            </p>
           </div>
 
-          {/* Multi-event rate gauge */}
-          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
-            <SectionHeader title="Multi-Event Rate" sub="Peserta ikut > 1 event" />
+          {/* Multi-event gauge */}
+          <div className="rounded-2xl bg-white border border-slate-100 px-5 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400">
+                Multi-Event Rate
+              </p>
+              <Repeat2 className="h-3.5 w-3.5 text-slate-300" />
+            </div>
+            <p className="text-[11px] text-slate-400 mb-3">
+              Peserta yang ikut &gt; 1 event
+            </p>
+
             <div className="relative flex justify-center">
-              <ResponsiveContainer width="100%" height={130}>
+              <ResponsiveContainer width="100%" height={110}>
                 <PieChart>
                   <Pie
-                    data={[
-                      { value: multiEventRate },
-                      { value: 100 - multiEventRate },
-                    ]}
+                    data={[{ value: multiRate }, { value: 100 - multiRate }]}
                     cx="50%"
-                    cy="85%"
+                    cy="90%"
                     startAngle={180}
                     endAngle={0}
-                    innerRadius={55}
-                    outerRadius={72}
+                    innerRadius={50}
+                    outerRadius={64}
                     dataKey="value"
                     strokeWidth={0}
                   >
@@ -378,31 +481,47 @@ export default function DashboardPage() {
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-center">
-                <p className="text-2xl font-bold text-slate-800">{multiEventRate}%</p>
-                <p className="text-[10px] text-slate-400">dari target</p>
+              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-center">
+                <p
+                  className="text-[26px] font-extrabold text-slate-900"
+                  style={{ letterSpacing: "-0.04em" }}
+                >
+                  {multiRate}%
+                </p>
               </div>
             </div>
-            <button className="mt-2 w-full text-xs font-medium text-blue-600 hover:underline">Lihat detail →</button>
+
+            <p className="mt-1 text-center text-[11px] text-slate-400 font-medium">
+              {fmt(stats?.multiEventParticipants ?? 0)} dari{" "}
+              {fmt(stats?.totalParticipants ?? 0)} peserta
+            </p>
           </div>
 
-          {/* Province top */}
-          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
-            <SectionHeader title="Provinsi Teratas" />
+          {/* Top provinces */}
+          <div className="rounded-2xl bg-white border border-slate-100 px-5 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-4">
+              Provinsi Teratas
+            </p>
             <div className="space-y-3">
-              {provinceData.slice(0, 5).map((p) => (
+              {provinceData.slice(0, 5).map((p, i) => (
                 <div key={p.label}>
                   <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="h-3 w-3 text-slate-400" />
-                      <span className="text-xs text-slate-600 truncate max-w-[120px]">{p.label}</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[11px] font-bold text-slate-300">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span className="text-[12px] font-semibold text-slate-600 truncate max-w-[110px]">
+                        {p.label}
+                      </span>
                     </div>
-                    <span className="text-xs font-bold text-slate-700">{fmt(p.count)}</span>
+                    <span className="text-[12px] font-bold text-slate-700 shrink-0 ml-2">
+                      {fmt(p.count)}
+                    </span>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-blue-400 transition-all"
-                      style={{ width: `${(p.count / maxProvince) * 100}%` }}
+                      className="h-full rounded-full bg-blue-400"
+                      style={{ width: `${(p.count / maxProv) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -412,71 +531,113 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Best events table */}
-      <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      {/* ── Events table ────────────────────────────────── */}
+      <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div>
-            <p className="text-sm font-semibold text-slate-700">Top Event</p>
-            <p className="text-xs text-slate-400 mt-0.5">Diurutkan berdasarkan jumlah peserta</p>
+            <p
+              className="text-[15px] font-extrabold text-slate-900"
+              style={{ letterSpacing: "-0.02em" }}
+            >
+              Top Event
+            </p>
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+              Diurutkan berdasarkan jumlah peserta terbanyak
+            </p>
           </div>
           <Link href="/events">
-            <span className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline cursor-pointer">
-              Lihat semua <ArrowUpRight className="h-3.5 w-3.5" />
+            <span className="flex items-center gap-1 text-[12px] font-bold text-blue-600 hover:text-blue-700 cursor-pointer">
+              Kelola semua <ArrowUpRight className="h-3.5 w-3.5" />
             </span>
           </Link>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">ID</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Nama Event</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Tanggal</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Lokasi</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">Peserta</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">Porsi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {eventsSummary && eventsSummary.length > 0 ? (() => {
-                const total = eventsSummary.reduce((s, e) => s + e.participantCount, 0);
-                return eventsSummary.slice(0, 10).map((ev, idx) => {
-                  const share = total ? Math.round((ev.participantCount / total) * 100) : 0;
-                  return (
-                    <tr key={ev.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-5 py-3.5 text-xs font-mono text-slate-400">#{String(idx + 1).padStart(3, "0")}</td>
-                      <td className="px-5 py-3.5">
-                        <Link href={`/events/${ev.id}`}>
-                          <span className="text-sm font-medium text-slate-700 hover:text-blue-600 cursor-pointer hover:underline">
-                            {ev.name}
-                          </span>
-                        </Link>
-                      </td>
-                      <td className="px-5 py-3.5 text-sm text-slate-500">{ev.eventDate}</td>
-                      <td className="px-5 py-3.5 text-sm text-slate-500 max-w-[160px] truncate">{ev.location ?? "-"}</td>
-                      <td className="px-5 py-3.5 text-right">
-                        <span className="text-sm font-bold text-slate-700">{fmt(ev.participantCount)}</span>
-                        <span className="text-xs text-slate-400 ml-1">peserta</span>
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
-                            <div className="h-full rounded-full bg-emerald-400" style={{ width: `${share}%` }} />
-                          </div>
-                          <span className="text-xs font-semibold text-slate-500 w-7 text-right">{share}%</span>
-                        </div>
-                      </td>
-                    </tr>
+
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-50 bg-slate-50/60">
+              {["#", "Nama Event", "Tanggal", "Lokasi", "Peserta", "Porsi"].map(
+                (h, i) => (
+                  <th
+                    key={h}
+                    className={`px-6 py-3 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 ${
+                      i >= 4 ? "text-right" : "text-left"
+                    }`}
+                  >
+                    {h}
+                  </th>
+                )
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {eventsSummary && eventsSummary.length > 0
+              ? (() => {
+                  const total = eventsSummary.reduce(
+                    (s, e) => s + e.participantCount,
+                    0
                   );
-                });
-              })() : (
+                  return eventsSummary.slice(0, 10).map((ev, idx) => {
+                    const share = total
+                      ? Math.round((ev.participantCount / total) * 100)
+                      : 0;
+                    return (
+                      <tr
+                        key={ev.id}
+                        className="group hover:bg-blue-50/30 transition-colors"
+                      >
+                        <td className="px-6 py-3.5 text-[11px] font-bold text-slate-300 font-mono">
+                          {String(idx + 1).padStart(2, "0")}
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <Link href={`/events/${ev.id}`}>
+                            <span className="text-[13px] font-semibold text-slate-700 hover:text-blue-600 cursor-pointer group-hover:underline underline-offset-2">
+                              {ev.name}
+                            </span>
+                          </Link>
+                        </td>
+                        <td className="px-6 py-3.5 text-[12px] font-medium text-slate-400">
+                          {ev.eventDate}
+                        </td>
+                        <td className="px-6 py-3.5 text-[12px] font-medium text-slate-400 max-w-[160px] truncate">
+                          {ev.location ?? "—"}
+                        </td>
+                        <td className="px-6 py-3.5 text-right">
+                          <span
+                            className="text-[15px] font-extrabold text-slate-800"
+                            style={{ letterSpacing: "-0.02em" }}
+                          >
+                            {fmt(ev.participantCount)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
+                              <div
+                                className="h-full rounded-full bg-blue-400"
+                                style={{ width: `${share}%` }}
+                              />
+                            </div>
+                            <span className="text-[11px] font-bold text-slate-400 w-7 text-right">
+                              {share}%
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()
+              : (
                 <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-sm text-slate-400">Belum ada data event</td>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center text-sm text-slate-300"
+                  >
+                    Belum ada data event
+                  </td>
                 </tr>
               )}
-            </tbody>
-          </table>
-        </div>
+          </tbody>
+        </table>
       </div>
     </Layout>
   );

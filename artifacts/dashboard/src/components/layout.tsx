@@ -7,7 +7,6 @@ import {
   ScanLine,
   Settings,
   HelpCircle,
-  ChevronRight,
 } from "lucide-react";
 
 interface LayoutProps {
@@ -31,33 +30,54 @@ export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
 
   return (
-    <div className="flex min-h-screen bg-[#f5f6fa]">
+    <div className="flex min-h-screen bg-slate-50/70">
       {/* Sidebar */}
-      <aside className="flex w-56 flex-col fixed inset-y-0 left-0 z-40 bg-white border-r border-slate-100 text-slate-700">
+      <aside className="flex w-[220px] flex-col fixed inset-y-0 left-0 z-40 bg-white border-r border-slate-100/80">
         {/* Logo */}
-        <div className="flex items-center gap-2.5 px-5 py-5 border-b border-slate-100">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500">
-            <ScanLine className="h-4 w-4 text-white" />
+        <div className="flex items-center gap-3 px-6 py-[22px]">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 shadow-sm shadow-blue-200">
+            <ScanLine className="h-[15px] w-[15px] text-white" strokeWidth={2.5} />
           </div>
-          <span className="text-sm font-bold tracking-wide text-slate-800">KTP Scan</span>
+          <span
+            className="text-[15px] font-bold tracking-tight text-slate-900"
+            style={{ letterSpacing: "-0.02em" }}
+          >
+            KTP Scan
+          </span>
         </div>
 
+        {/* Divider */}
+        <div className="mx-4 border-t border-slate-100" />
+
         {/* Main nav */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+        <nav className="flex-1 px-3 pt-4 space-y-0.5">
           {navMain.map(({ href, label, icon: Icon }) => {
             const active = location === href || location.startsWith(href + "/");
             return (
               <Link key={href} href={href}>
                 <div
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all cursor-pointer ${
+                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold transition-all duration-150 cursor-pointer ${
                     active
-                      ? "bg-blue-600 text-white shadow-sm"
+                      ? "bg-blue-50 text-blue-700"
                       : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
                   }`}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <div
+                    className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg transition-all ${
+                      active
+                        ? "bg-blue-100"
+                        : "bg-slate-100 group-hover:bg-slate-200"
+                    }`}
+                  >
+                    <Icon
+                      className={`h-[15px] w-[15px] ${active ? "text-blue-600" : "text-slate-500"}`}
+                      strokeWidth={active ? 2.5 : 2}
+                    />
+                  </div>
                   <span>{label}</span>
-                  {active && <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-60" />}
+                  {active && (
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-500" />
+                  )}
                 </div>
               </Link>
             );
@@ -68,8 +88,8 @@ export default function Layout({ children }: LayoutProps) {
         <div className="border-t border-slate-100 px-3 py-3 space-y-0.5">
           {navBottom.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href}>
-              <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all cursor-pointer">
-                <Icon className="h-4 w-4 shrink-0" />
+              <div className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all cursor-pointer">
+                <Icon className="h-[14px] w-[14px] shrink-0" strokeWidth={2} />
                 <span>{label}</span>
               </div>
             </Link>
@@ -78,8 +98,8 @@ export default function Layout({ children }: LayoutProps) {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 ml-56 min-h-screen flex flex-col">
-        <main className="flex-1 p-6">{children}</main>
+      <div className="flex-1 ml-[220px] min-h-screen">
+        <main className="p-7">{children}</main>
       </div>
     </div>
   );
