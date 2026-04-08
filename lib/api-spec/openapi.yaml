@@ -3,13 +3,22 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: KTP Dashboard API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: events
+    description: Event management
+  - name: participants
+    description: Participant management
+  - name: ktp
+    description: KTP scanning and extraction
+  - name: dashboard
+    description: Dashboard statistics
+
 paths:
   /healthz:
     get:
@@ -24,6 +33,312 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List all events
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Create a new event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventBody"
+      responses:
+        "201":
+          description: Created event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /events/{id}:
+    get:
+      operationId: getEvent
+      tags: [events]
+      summary: Get event by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          description: Not found
+    put:
+      operationId: updateEvent
+      tags: [events]
+      summary: Update an event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventBody"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    delete:
+      operationId: deleteEvent
+      tags: [events]
+      summary: Delete an event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /events/{id}/participants:
+    get:
+      operationId: listEventParticipants
+      tags: [participants]
+      summary: List participants of an event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of participants in this event
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventParticipant"
+
+  /participants:
+    get:
+      operationId: listParticipants
+      tags: [participants]
+      summary: List all unique participants (by NIK)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of participants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Participant"
+
+  /participants/{nik}:
+    get:
+      operationId: getParticipantByNik
+      tags: [participants]
+      summary: Get participant profile and event history
+      parameters:
+        - name: nik
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Participant profile with events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParticipantProfile"
+        "404":
+          description: Not found
+
+  /ktp/scan:
+    post:
+      operationId: scanKtp
+      tags: [ktp]
+      summary: Scan KTP image and extract data using AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScanKtpBody"
+      responses:
+        "200":
+          description: Extracted KTP data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KtpData"
+
+  /ktp/register:
+    post:
+      operationId: registerKtp
+      tags: [ktp]
+      summary: Register extracted KTP data to an event (no image stored)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterKtpBody"
+      responses:
+        "201":
+          description: Registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterKtpResult"
+        "409":
+          description: Duplicate - participant already registered for this event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DuplicateError"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get overall dashboard statistics
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/events-summary:
+    get:
+      operationId: getEventsSummary
+      tags: [dashboard]
+      summary: Get summary of events with participant counts
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Events summary
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventSummary"
+
+  /dashboard/daily-registrations:
+    get:
+      operationId: getDailyRegistrations
+      tags: [dashboard]
+      summary: Get daily registration counts for chart
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Daily registration data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyRegistration"
+
+  /dashboard/multi-event-participants:
+    get:
+      operationId: getMultiEventParticipants
+      tags: [dashboard]
+      summary: Get participants who joined multiple events
+      responses:
+        "200":
+          description: Multi-event participants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MultiEventParticipant"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +349,392 @@ components:
       required:
         - status
 
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        eventDate:
+          type: string
+        createdAt:
+          type: string
+        participantCount:
+          type: integer
+      required:
+        - id
+        - name
+        - eventDate
+        - createdAt
+        - participantCount
+
+    CreateEventBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        eventDate:
+          type: string
+      required:
+        - name
+        - eventDate
+
+    Participant:
+      type: object
+      properties:
+        nik:
+          type: string
+        fullName:
+          type: string
+        address:
+          type: string
+          nullable: true
+        birthPlace:
+          type: string
+          nullable: true
+        birthDate:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          nullable: true
+        religion:
+          type: string
+          nullable: true
+        maritalStatus:
+          type: string
+          nullable: true
+        occupation:
+          type: string
+          nullable: true
+        nationality:
+          type: string
+          nullable: true
+        eventCount:
+          type: integer
+        firstRegisteredAt:
+          type: string
+        lastRegisteredAt:
+          type: string
+      required:
+        - nik
+        - fullName
+        - eventCount
+        - firstRegisteredAt
+        - lastRegisteredAt
+
+    ParticipantProfile:
+      type: object
+      properties:
+        nik:
+          type: string
+        fullName:
+          type: string
+        address:
+          type: string
+          nullable: true
+        birthPlace:
+          type: string
+          nullable: true
+        birthDate:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          nullable: true
+        religion:
+          type: string
+          nullable: true
+        maritalStatus:
+          type: string
+          nullable: true
+        occupation:
+          type: string
+          nullable: true
+        nationality:
+          type: string
+          nullable: true
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+      required:
+        - nik
+        - fullName
+        - events
+
+    EventParticipant:
+      type: object
+      properties:
+        nik:
+          type: string
+        fullName:
+          type: string
+        address:
+          type: string
+          nullable: true
+        birthPlace:
+          type: string
+          nullable: true
+        birthDate:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          nullable: true
+        occupation:
+          type: string
+          nullable: true
+        registeredAt:
+          type: string
+        eventCount:
+          type: integer
+      required:
+        - nik
+        - fullName
+        - registeredAt
+        - eventCount
+
+    ScanKtpBody:
+      type: object
+      properties:
+        imageBase64:
+          type: string
+          description: Base64 encoded KTP image
+      required:
+        - imageBase64
+
+    KtpData:
+      type: object
+      properties:
+        nik:
+          type: string
+          nullable: true
+        fullName:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        birthPlace:
+          type: string
+          nullable: true
+        birthDate:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          nullable: true
+        religion:
+          type: string
+          nullable: true
+        maritalStatus:
+          type: string
+          nullable: true
+        occupation:
+          type: string
+          nullable: true
+        nationality:
+          type: string
+          nullable: true
+        rtRw:
+          type: string
+          nullable: true
+        kelurahan:
+          type: string
+          nullable: true
+        kecamatan:
+          type: string
+          nullable: true
+        province:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        bloodType:
+          type: string
+          nullable: true
+        validUntil:
+          type: string
+          nullable: true
+      required: []
+
+    RegisterKtpBody:
+      type: object
+      properties:
+        eventId:
+          type: integer
+        nik:
+          type: string
+        fullName:
+          type: string
+        address:
+          type: string
+          nullable: true
+        birthPlace:
+          type: string
+          nullable: true
+        birthDate:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          nullable: true
+        religion:
+          type: string
+          nullable: true
+        maritalStatus:
+          type: string
+          nullable: true
+        occupation:
+          type: string
+          nullable: true
+        nationality:
+          type: string
+          nullable: true
+        rtRw:
+          type: string
+          nullable: true
+        kelurahan:
+          type: string
+          nullable: true
+        kecamatan:
+          type: string
+          nullable: true
+        province:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        bloodType:
+          type: string
+          nullable: true
+      required:
+        - eventId
+        - nik
+        - fullName
+
+    RegisterKtpResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        participantId:
+          type: integer
+        registrationId:
+          type: integer
+        isNewParticipant:
+          type: boolean
+        totalEventsJoined:
+          type: integer
+        message:
+          type: string
+      required:
+        - success
+        - participantId
+        - registrationId
+        - isNewParticipant
+        - totalEventsJoined
+        - message
+
+    DuplicateError:
+      type: object
+      properties:
+        error:
+          type: string
+        nik:
+          type: string
+        eventId:
+          type: integer
+        totalEventsJoined:
+          type: integer
+      required:
+        - error
+        - nik
+        - eventId
+        - totalEventsJoined
+
+    DashboardStats:
+      type: object
+      properties:
+        totalParticipants:
+          type: integer
+        totalEvents:
+          type: integer
+        totalRegistrations:
+          type: integer
+        multiEventParticipants:
+          type: integer
+        recentRegistrations:
+          type: integer
+      required:
+        - totalParticipants
+        - totalEvents
+        - totalRegistrations
+        - multiEventParticipants
+        - recentRegistrations
+
+    EventSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        eventDate:
+          type: string
+        location:
+          type: string
+          nullable: true
+        participantCount:
+          type: integer
+      required:
+        - id
+        - name
+        - eventDate
+        - participantCount
+
+    DailyRegistration:
+      type: object
+      properties:
+        date:
+          type: string
+        count:
+          type: integer
+      required:
+        - date
+        - count
+
+    MultiEventParticipant:
+      type: object
+      properties:
+        nik:
+          type: string
+        fullName:
+          type: string
+        eventCount:
+          type: integer
+        events:
+          type: array
+          items:
+            type: string
+      required:
+        - nik
+        - fullName
+        - eventCount
+        - events
