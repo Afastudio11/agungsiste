@@ -9,6 +9,9 @@ import EventDetailPage from "@/pages/event-detail";
 import ParticipantsPage from "@/pages/participants";
 import ParticipantDetailPage from "@/pages/participant-detail";
 import ScanPage from "@/pages/scan";
+import StaffPage from "@/pages/staff";
+import SettingsPage from "@/pages/settings";
+import HelpPage from "@/pages/help";
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -25,6 +28,9 @@ function AppRoutes() {
       <Route path="/participants" component={ParticipantsPage} />
       <Route path="/participants/:nik" component={ParticipantDetailPage} />
       <Route path="/scan" component={ScanPage} />
+      <Route path="/staff" component={StaffPage} />
+      <Route path="/settings" component={SettingsPage} />
+      <Route path="/help" component={HelpPage} />
       <Route component={NotFound} />
     </Switch>
   );

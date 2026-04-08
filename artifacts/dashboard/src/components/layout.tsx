@@ -7,6 +7,7 @@ import {
   ScanLine,
   Settings,
   HelpCircle,
+  UserCheck,
 } from "lucide-react";
 
 interface LayoutProps {
@@ -18,11 +19,12 @@ const navMain = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/events", label: "Event", icon: CalendarDays },
   { href: "/participants", label: "Peserta", icon: Users },
+  { href: "/staff", label: "Staf", icon: UserCheck },
   { href: "/scan", label: "Scan KTP", icon: ScanLine },
 ];
 
 const navBottom = [
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/settings", label: "Pengaturan", icon: Settings },
   { href: "/help", label: "Help & Support", icon: HelpCircle },
 ];
 
@@ -86,14 +88,29 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Bottom nav */}
         <div className="border-t border-slate-100 px-3 py-3 space-y-0.5">
-          {navBottom.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href}>
-              <div className="flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all cursor-pointer">
-                <Icon className="h-[14px] w-[14px] shrink-0" strokeWidth={2} />
-                <span>{label}</span>
-              </div>
-            </Link>
-          ))}
+          {navBottom.map(({ href, label, icon: Icon }) => {
+            const active = location === href;
+            return (
+              <Link key={href} href={href}>
+                <div
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all cursor-pointer ${
+                    active
+                      ? "bg-blue-50 text-blue-600"
+                      : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                  }`}
+                >
+                  <Icon
+                    className={`h-[14px] w-[14px] shrink-0 ${active ? "text-blue-500" : ""}`}
+                    strokeWidth={active ? 2.5 : 2}
+                  />
+                  <span>{label}</span>
+                  {active && (
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-500" />
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </aside>
 

@@ -167,6 +167,31 @@ router.get("/multi-event-participants", requireAuth, async (req, res) => {
   }
 });
 
+// All staff with detailed stats
+router.get("/staff", requireAuth, async (req, res) => {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const staffRows = await db
+      .select({
+        staffName: eventRegistrationsTable.staffName,
+        totalCount: sql<number>`cast(count(*) as integer)`,
+        recentCount: sql<number>`cast(sum(case when ${eventRegistrationsTable.registeredAt} >= ${sevenDaysAgo.toISOString()} then 1 else 0 end) as integer)`,
+        lastActivity: sql<string>`to_char(max(${eventRegistrationsTable.registeredAt}), 'YYYY-MM-DD')`,
+      })
+      .from(eventRegistrationsTable)
+      .where(sql`${eventRegistrationsTable.staffName} is not null`)
+      .groupBy(eventRegistrationsTable.staffName)
+      .orderBy(sql`count(*) desc`);
+
+    res.json(staffRows);
+  } catch (err) {
+    req.log.error({ err }, "Error getting staff list");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Top staff by registration count
 router.get("/top-staff", requireAuth, async (req, res) => {
   try {
