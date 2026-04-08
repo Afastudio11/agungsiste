@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proposal Penawaran – KTP Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:    #2563eb;
+      --blue-lt: #eff6ff;
+      --blue-md: #bfdbfe;
+      --navy:    #0f172a;
+      --slate:   #475569;
+      --muted:   #94a3b8;
+      --border:  #e2e8f0;
+      --bg:      #f8fafc;
+      --white:   #ffffff;
+      --gold:    #f59e0b;
+      --emerald: #10b981;
+      --rose:    #f43f5e;
+      --violet:  #7c3aed;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--navy);
+      background: var(--bg);
+    }
+
+    /* ── Print button ─────────────────────────────── */
+    .print-bar {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      display: flex;
+      gap: 8px;
+    }
+    .print-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(37,99,235,.35);
+    }
+    .print-btn:hover { background: #1d4ed8; }
+    @media print {
+      .print-bar { display: none; }
+      body { background: white; }
+      .page { box-shadow: none !important; border: none !important; margin: 0 !important; border-radius: 0 !important; }
+    }
+
+    /* ── Page container ───────────────────────────── */
+    .document {
+      max-width: 860px;
+      margin: 32px auto;
+      padding: 0 16px;
+    }
+
+    .page {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 40px rgba(0,0,0,.08);
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+
+    /* ── Cover ────────────────────────────────────── */
+    .cover {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1d4ed8 100%);
+      color: white;
+      padding: 64px 56px 56px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cover::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 80% 20%, rgba(99,179,237,.15) 0%, transparent 50%),
+        radial-gradient(circle at 20% 80%, rgba(139,92,246,.1) 0%, transparent 40%);
+    }
+    .cover-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+      position: relative;
+    }
+    .cover-badge span.dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: #4ade80;
+      border-radius: 50%;
+    }
+    .cover h1 {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      position: relative;
+      margin-bottom: 8px;
+    }
+    .cover h1 span {
+      color: #93c5fd;
+    }
+    .cover .subtitle {
+      font-size: 16px;
+      font-weight: 500;
+      color: rgba(255,255,255,.7);
+      margin-bottom: 40px;
+      position: relative;
+    }
+    .cover-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      position: relative;
+    }
+    .cover-stat {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+    .cover-stat .label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.5);
+      margin-bottom: 4px;
+    }
+    .cover-stat .value {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .cover-stat .note {
+      font-size: 10px;
+      color: rgba(255,255,255,.5);
+      margin-top: 2px;
+    }
+    .cover-footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,.12);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+    .cover-footer .date {
+      font-size: 12px;
+      color: rgba(255,255,255,.5);
+    }
+    .cover-footer .ref {
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255,255,255,.4);
+      letter-spacing: .05em;
+    }
+
+    /* ── Section styles ───────────────────────────── */
+    .section {
+      padding: 48px 56px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section:last-child { border-bottom: none; }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 6px;
+    }
+    .section-label::before {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 2px;
+      background: var(--blue);
+      border-radius: 1px;
+    }
+
+    h2 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+    .section-desc {
+      font-size: 13px;
+      color: var(--slate);
+      margin-bottom: 28px;
+      max-width: 600px;
+    }
+
+    /* ── Feature grid ─────────────────────────────── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .feature-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--accent-color, var(--blue));
+    }
+    .feature-icon {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+    .feature-card h3 { font-size: 13px; margin-bottom: 4px; }
+    .feature-card p { font-size: 12px; color: var(--slate); }
+    .feature-tag {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 2px 10px;
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      background: var(--blue-lt);
+      color: var(--blue);
+    }
+    .feature-tag.new {
+      background: #ecfdf5;
+      color: #059669;
+    }
+
+    /* ── Pricing ──────────────────────────────────── */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .price-card {
+      border-radius: 18px;
+      padding: 28px 28px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .price-card.main {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: white;
+    }
+    .price-card.annual {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--navy);
+    }
+    .price-card .type {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .price-card.main .type { color: rgba(255,255,255,.6); }
+    .price-card.annual .type { color: var(--muted); }
+    .price-card .amount {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .price-card.main .amount { color: #fff; }
+    .price-card .period {
+      font-size: 12px;
+      margin-bottom: 20px;
+    }
+    .price-card.main .period { color: rgba(255,255,255,.6); }
+    .price-card.annual .period { color: var(--muted); }
+    .price-includes {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .price-includes li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .price-includes li .check {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      margin-top: 1px;
+    }
+    .price-card.main .check { background: rgba(255,255,255,.2); color: #fff; }
+    .price-card.annual .check { background: #dcfce7; color: #16a34a; }
+    .price-card.main li { color: rgba(255,255,255,.85); }
+
+    .pricing-note {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 12px;
+      color: #92400e;
+    }
+    .pricing-note strong { color: #78350f; }
+
+    /* ── Timeline ─────────────────────────────────── */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 0;
+      position: relative;
+    }
+    .timeline-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 57px;
+      top: 36px;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+    .timeline-left {
+      padding: 16px 24px 16px 0;
+      text-align: right;
+    }
+    .timeline-phase {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      background: var(--blue);
+      color: white;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 30px;
+      text-align: center;
+      margin-left: auto;
+    }
+    .timeline-right {
+      padding: 12px 0 20px 24px;
+      border-left: 2px solid var(--border);
+    }
+    .timeline-right h3 {
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+    .timeline-right p {
+      font-size: 12px;
+      color: var(--slate);
+    }
+    .timeline-right .week {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    /* ── Telegram integration ─────────────────────── */
+    .telegram-hero {
+      background: linear-gradient(135deg, #0d1b2a 0%, #1a237e 50%, #283593 100%);
+      border-radius: 18px;
+      padding: 32px 36px;
+      color: white;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .telegram-hero::after {
+      content: '✈';
+      position: absolute;
+      right: 32px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 80px;
+      opacity: .06;
+    }
+    .telegram-hero h3 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: white;
+      margin-bottom: 4px;
+    }
+    .telegram-hero p {
+      font-size: 13px;
+      color: rgba(255,255,255,.65);
+      max-width: 520px;
+    }
+    .telegram-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .flow-step {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 12px;
+      padding: 12px 10px;
+      text-align: center;
+    }
+    .flow-step .icon { font-size: 20px; margin-bottom: 4px; }
+    .flow-step .label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.7); }
+    .flow-arrow {
+      color: rgba(255,255,255,.3);
+      font-size: 18px;
+      text-align: center;
+    }
+    .tg-features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .tg-feature {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .tg-feature .icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      background: var(--blue-lt);
+    }
+    .tg-feature h4 { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+    .tg-feature p { font-size: 11px; color: var(--slate); }
+    .tg-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #0ea5e9;
+      color: white;
+      border-radius: 100px;
+      padding: 3px 10px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    /* ── Terms ────────────────────────────────────── */
+    .terms-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .term-item {
+      display: flex;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--slate);
+    }
+    .term-num {
+      flex-shrink: 0;
+      font-weight: 800;
+      color: var(--blue);
+      min-width: 20px;
+    }
+
+    /* ── Signature ────────────────────────────────── */
+    .sig-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 32px;
+    }
+    .sig-box {
+      border-top: 2px solid var(--border);
+      padding-top: 12px;
+    }
+    .sig-box .role { font-size: 11px; color: var(--muted); margin-bottom: 48px; }
+    .sig-box .name { font-size: 13px; font-weight: 700; }
+    .sig-box .org { font-size: 11px; color: var(--slate); }
+
+    /* ── Total summary ────────────────────────────── */
+    .total-bar {
+      background: var(--navy);
+      color: white;
+      border-radius: 16px;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      justify-between: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .total-item { flex: 1; }
+    .total-item .t-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.45);
+      margin-bottom: 2px;
+    }
+    .total-item .t-value {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .total-divider {
+      width: 1px;
+      height: 40px;
+      background: rgba(255,255,255,.15);
+    }
+
+    /* ── Misc ─────────────────────────────────────── */
+    .chip {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      background: var(--blue-lt);
+      color: var(--blue);
+    }
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+    p { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+
+<div class="print-bar">
+  <button class="print-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+</div>
+
+<div class="document">
+
+  <!-- ══ COVER ══════════════════════════════════════ -->
+  <div class="page">
+    <div class="cover">
+      <div class="cover-badge">
+        <span class="dot"></span>
+        Proposal Penawaran Resmi
+      </div>
+      <h1>KTP <span>Dashboard</span></h1>
+      <p class="subtitle">Sistem Registrasi Peserta Event Berbasis Kecerdasan Buatan (AI)</p>
+
+      <div class="cover-grid">
+        <div class="cover-stat">
+          <div class="label">Investasi Awal</div>
+          <div class="value">Rp 12 Jt</div>
+          <div class="note">Development + Server + Domain</div>
+        </div>
+        <div class="cover-stat">
+          <div class="label">Biaya Tahunan</div>
+          <div class="value">Rp 2,5 Jt</div>
+          <div class="note">Server + Domain + Maintenance</div>
+        </div>
+        <div class="cover-stat">
+          <div class="label">Integrasi</div>
+          <div class="value">Telegram</div>
+          <div class="note">Scan via bot & update real-time</div>
+        </div>
+      </div>
+
+      <div class="cover-footer">
+        <div>
+          <div class="date">Tanggal: ____________________________</div>
+          <div class="date" style="margin-top:4px">Nomor Proposal: KTP-DASH-2026-001</div>
+        </div>
+        <div class="ref">CONFIDENTIAL · FOR REVIEW ONLY</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LATAR BELAKANG ═════════════════════════════ -->
+  <div class="page">
+    <div class="section">
+      <div class="section-label">Pendahuluan</div>
+      <h2>Latar Belakang</h2>
+      <p class="section-desc">
+        Proses registrasi peserta event secara manual membutuhkan waktu yang lama, rawan kesalahan input data, dan berisiko terjadi pendaftaran ganda. Kami menghadirkan solusi terintegrasi yang memanfaatkan teknologi kecerdasan buatan untuk mempercepat dan mengakuratkan proses ini.
+      </p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:18px">
+          <div style="font-size:22px;margin-bottom:8px">⚠️</div>
+          <h3 style="font-size:13px;color:#991b1b;margin-bottom:4px">Masalah Lama</h3>
+          <p style="font-size:12px;color:#b91c1c">Input manual memakan waktu 3–5 menit per peserta dan sering terjadi typo atau duplikat data.</p>
+        </div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:18px">
+          <div style="font-size:22px;margin-bottom:8px">🔍</div>
+          <h3 style="font-size:13px;color:#9a3412;margin-bottom:4px">Tantangan</h3>
+          <p style="font-size:12px;color:#c2410c">Pengawasan performa staf sulit dilakukan, serta tidak ada data analitik real-time untuk supervisor.</p>
+        </div>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:18px">
+          <div style="font-size:22px;margin-bottom:8px">✅</div>
+          <h3 style="font-size:13px;color:#166534;margin-bottom:4px">Solusi Kami</h3>
+          <p style="font-size:12px;color:#15803d">AI baca KTP dalam &lt; 10 detik, dashboard real-time, pencegahan duplikat otomatis, integrasi Telegram.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ FITUR UTAMA ════════════════════════════════ -->
+  <div class="page">
+    <div class="section">
+      <div class="section-label">Spesifikasi Produk</div>
+      <h2>Fitur Utama Sistem</h2>
+      <p class="section-desc">Seluruh fitur dirancang untuk kebutuhan operasional event skala kecil hingga besar.</p>
+
+      <div class="feature-grid">
+        <div class="feature-card" style="--accent-color:#2563eb">
+          <div class="feature-icon">🤖</div>
+          <h3>AI OCR Scan KTP</h3>
+          <p>Upload foto KTP, sistem AI (GPT Vision) otomatis membaca seluruh field — NIK, nama, alamat, tanggal lahir, jenis kelamin, agama, pekerjaan, dan lainnya — dalam waktu kurang dari 10 detik.</p>
+          <span class="feature-tag">Core Feature</span>
+        </div>
+
+        <div class="feature-card" style="--accent-color:#7c3aed">
+          <div class="feature-icon">📊</div>
+          <h3>Dashboard Analytics Real-Time</h3>
+          <p>Supervisor dapat memantau total peserta, registrasi harian, komposisi gender, sebaran provinsi, hari paling aktif, dan multi-event rate — semuanya diperbarui secara real-time.</p>
+          <span class="feature-tag">Supervisor</span>
+        </div>
+
+        <div class="feature-card" style="--accent-color:#10b981">
+          <div class="feature-icon">🚫</div>
+          <h3>Pencegahan Duplikasi Otomatis</h3>
+          <p>Sistem secara otomatis mendeteksi dan mencegah pendaftaran ganda berdasarkan NIK pada event yang sama. Peserta yang sama bisa ikut event berbeda tanpa masalah.</p>
+          <span class="feature-tag">Keamanan Data</span>
+        </div>
+
+        <div class="feature-card" style="--accent-color:#f59e0b">
+          <div class="feature-icon">👥</div>
+          <h3>Manajemen Multi-Event</h3>
+          <p>Kelola banyak event sekaligus dalam satu platform. Setiap event memiliki halaman detail, daftar peserta, statistik, dan laporan tersendiri.</p>
+          <span class="feature-tag">Event Management</span>
+        </div>
+
+        <div class="feature-card" style="--accent-color:#f43f5e">
+          <div class="feature-icon">🏆</div>
+          <h3>Leaderboard Performa Staf</h3>
+          <p>Pantau produktivitas setiap staf input secara transparan — total registrasi, aktivitas 7 hari terakhir, tanggal terakhir aktif, dan ranking berbasis performa.</p>
+          <span class="feature-tag">Supervisor</span>
+        </div>
+
+        <div class="feature-card" style="--accent-color:#0ea5e9">
+          <div class="feature-icon">🔍</div>
+          <h3>Manajemen Peserta</h3>
+          <p>Database peserta terpusat dengan fitur pencarian, filter, dan halaman detail per peserta. Lihat riwayat event yang diikuti setiap peserta beserta data KTP lengkapnya.</p>
+          <span class="feature-tag">Data Management</span>
+        </div>
+
+        <div class="feature-card" style="--accent-color:#8b5cf6">
+          <div class="feature-icon">📱</div>
+          <h3>Integrasi Telegram Bot</h3>
+          <p>Staf cukup kirim foto KTP ke bot Telegram. Bot akan memproses data dan otomatis mendaftarkan peserta ke sistem web tanpa perlu membuka browser.</p>
+          <span class="feature-tag new">Coming Soon</span>
+        </div>
+
+        <div class="feature-card" style="--accent-color:#ec4899">
+          <div class="feature-icon">⚙️</div>
+          <h3>Pengaturan & Konfigurasi</h3>
+          <p>Kustomisasi nama organisasi, preferensi scan, tampilan, dan notifikasi. Panel administrasi lengkap untuk supervisor dalam mengelola sistem.</p>
+          <span class="feature-tag">Admin</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TELEGRAM INTEGRATION ═══════════════════════ -->
+  <div class="page">
+    <div class="section">
+      <div class="section-label">Roadmap Pengembangan</div>
+      <h2>Integrasi Telegram Bot</h2>
+      <p class="section-desc">Fitur eksklusif yang akan memperluas kemampuan sistem ke dalam genggaman staf — tanpa perlu membuka laptop atau website.</p>
+
+      <div class="telegram-hero">
+        <span class="tg-badge">✈ Telegram Integration</span>
+        <h3 style="margin-top:12px">Scan KTP Cukup dari HP via Telegram</h3>
+        <p>Staf cukup kirim foto KTP ke bot Telegram resmi. Sistem AI akan membaca, memproses, dan mendaftarkan peserta secara otomatis ke dashboard web — real-time, tanpa input manual.</p>
+
+        <div class="telegram-flow">
+          <div class="flow-step">
+            <div class="icon">📸</div>
+            <div class="label">Foto KTP</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="icon">✈</div>
+            <div class="label">Kirim ke Bot</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="icon">🤖</div>
+            <div class="label">AI Proses</div>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <div class="icon">🌐</div>
+            <div class="label">Update Web</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tg-features">
+        <div class="tg-feature">
+          <div class="icon-wrap">📤</div>
+          <div>
+            <h4>Kirim Foto, Selesai</h4>
+            <p>Staf cukup kirim foto KTP ke bot Telegram. Tidak perlu login website, tidak perlu buka browser.</p>
+          </div>
+        </div>
+        <div class="tg-feature">
+          <div class="icon-wrap">⚡</div>
+          <div>
+            <h4>Update Real-Time</h4>
+            <p>Dashboard web langsung diperbarui dalam hitungan detik setelah foto diterima bot.</p>
+          </div>
+        </div>
+        <div class="tg-feature">
+          <div class="icon-wrap">✅</div>
+          <div>
+            <h4>Konfirmasi Instan</h4>
+            <p>Bot membalas otomatis dengan konfirmasi data peserta, nama, NIK, dan status pendaftaran.</p>
+          </div>
+        </div>
+        <div class="tg-feature">
+          <div class="icon-wrap">🔔</div>
+          <div>
+            <h4>Notifikasi Supervisor</h4>
+            <p>Supervisor mendapat notifikasi Telegram untuk setiap registrasi baru dan laporan berkala.</p>
+          </div>
+        </div>
+        <div class="tg-feature">
+          <div class="icon-wrap">📋</div>
+          <div>
+            <h4>Pilih Event via Bot</h4>
+            <p>Staf dapat memilih event aktif langsung dari antarmuka bot Telegram dengan tombol interaktif.</p>
+          </div>
+        </div>
+        <div class="tg-feature">
+          <div class="icon-wrap">📊</div>
+          <div>
+            <h4>Laporan Otomatis</h4>
+            <p>Bot mengirimkan laporan ringkas harian dan mingguan langsung ke grup Telegram panitia.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HARGA ══════════════════════════════════════ -->
+  <div class="page">
+    <div class="section">
+      <div class="section-label">Investasi</div>
+      <h2>Paket Harga</h2>
+      <p class="section-desc">Harga sudah mencakup seluruh komponen yang dibutuhkan untuk operasional penuh sistem.</p>
+
+      <div class="pricing-grid">
+        <div class="price-card main">
+          <div class="type">💎 Investasi Awal</div>
+          <div class="amount">Rp 12.000.000</div>
+          <div class="period">Pembayaran satu kali saat kontrak</div>
+          <ul class="price-includes">
+            <li><span class="check">✓</span><span>Development sistem lengkap (frontend + backend + database)</span></li>
+            <li><span class="check">✓</span><span>Integrasi AI OCR (OpenAI GPT Vision)</span></li>
+            <li><span class="check">✓</span><span>Setup server cloud (VPS / cloud hosting 1 tahun pertama)</span></li>
+            <li><span class="check">✓</span><span>Registrasi dan konfigurasi domain (.id atau .com)</span></li>
+            <li><span class="check">✓</span><span>Dashboard analytics real-time</span></li>
+            <li><span class="check">✓</span><span>Sistem manajemen event & peserta</span></li>
+            <li><span class="check">✓</span><span>Leaderboard performa staf</span></li>
+            <li><span class="check">✓</span><span>Training penggunaan sistem (2 sesi)</span></li>
+            <li><span class="check">✓</span><span>Garansi bug-fix 3 bulan</span></li>
+            <li><span class="check">✓</span><span>Dokumentasi teknis & panduan pengguna</span></li>
+          </ul>
+        </div>
+
+        <div class="price-card annual">
+          <div class="type">🔄 Biaya Tahunan</div>
+          <div class="amount" style="color:var(--navy)">Rp 2.500.000</div>
+          <div class="period">Per tahun, mulai tahun ke-2</div>
+          <ul class="price-includes">
+            <li><span class="check" style="background:#dcfce7;color:#16a34a">✓</span><span>Perpanjangan domain (1 tahun)</span></li>
+            <li><span class="check" style="background:#dcfce7;color:#16a34a">✓</span><span>Biaya server / hosting (1 tahun)</span></li>
+            <li><span class="check" style="background:#dcfce7;color:#16a34a">✓</span><span>Maintenance & update keamanan sistem</span></li>
+            <li><span class="check" style="background:#dcfce7;color:#16a34a">✓</span><span>Backup data berkala (mingguan)</span></li>
+            <li><span class="check" style="background:#dcfce7;color:#16a34a">✓</span><span>Monitoring uptime 24/7</span></li>
+            <li><span class="check" style="background:#dcfce7;color:#16a34a">✓</span><span>Technical support via WhatsApp / Telegram</span></li>
+            <li><span class="check" style="background:#dcfce7;color:#16a34a">✓</span><span>Minor update & perbaikan bug</span></li>
+            <li><span class="check" style="background:#dcfce7;color:#16a34a">✓</span><span>Laporan penggunaan server bulanan</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="total-bar" style="display:flex;gap:0">
+        <div class="total-item" style="padding:0 28px 0 0">
+          <div class="t-label">Total Tahun Pertama</div>
+          <div class="t-value">Rp 12.000.000</div>
+        </div>
+        <div class="total-divider"></div>
+        <div class="total-item" style="padding:0 28px">
+          <div class="t-label">Tahun ke-2 dan Seterusnya</div>
+          <div class="t-value">Rp 2.500.000 / tahun</div>
+        </div>
+        <div class="total-divider"></div>
+        <div class="total-item" style="padding:0 0 0 28px">
+          <div class="t-label">Integrasi Telegram Bot</div>
+          <div class="t-value" style="font-size:14px;color:#93c5fd">Termasuk dalam paket awal</div>
+        </div>
+      </div>
+
+      <div class="pricing-note" style="margin-top:16px">
+        <strong>⚠️ Catatan Harga:</strong> Harga di atas belum termasuk biaya token AI (OpenAI API) untuk proses scan KTP. 
+        Biaya API bersifat pay-per-use sesuai volume scan — estimasi Rp 300–500 per scan KTP. 
+        Untuk volume tinggi dapat didiskusikan paket flat-rate terpisah.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TIMELINE PENGERJAAN ════════════════════════ -->
+  <div class="page">
+    <div class="section">
+      <div class="section-label">Jadwal Pengerjaan</div>
+      <h2>Timeline Implementasi</h2>
+      <p class="section-desc">Estimasi pengerjaan 4–5 minggu sejak kontrak ditandatangani dan DP diterima.</p>
+
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-left"><div class="timeline-phase">1</div></div>
+          <div class="timeline-right">
+            <div class="week">Minggu 1</div>
+            <h3>Analisis & Perancangan</h3>
+            <p>Diskusi kebutuhan, perancangan database, wireframe UI/UX, setup infrastruktur server dan domain.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-left"><div class="timeline-phase">2</div></div>
+          <div class="timeline-right">
+            <div class="week">Minggu 2</div>
+            <h3>Development Inti</h3>
+            <p>Implementasi backend API, integrasi AI OCR, sistem autentikasi, database schema, dan core business logic.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-left"><div class="timeline-phase">3</div></div>
+          <div class="timeline-right">
+            <div class="week">Minggu 3</div>
+            <h3>Development Frontend & Dashboard</h3>
+            <p>Pembangunan antarmuka dashboard, halaman scan KTP, manajemen event & peserta, dan leaderboard staf.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-left"><div class="timeline-phase">4</div></div>
+          <div class="timeline-right">
+            <div class="week">Minggu 4</div>
+            <h3>Integrasi Telegram Bot</h3>
+            <p>Pengembangan bot Telegram, koneksi webhook ke backend, testing alur scan via Telegram, notifikasi otomatis.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-left"><div class="timeline-phase">5</div></div>
+          <div class="timeline-right">
+            <div class="week">Minggu 5</div>
+            <h3>Testing, Deploy & Training</h3>
+            <p>User acceptance testing, perbaikan bug, deployment ke server produksi, dan sesi training pengguna.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SYARAT & KETENTUAN ═════════════════════════ -->
+  <div class="page">
+    <div class="section">
+      <div class="section-label">Ketentuan</div>
+      <h2>Syarat & Ketentuan</h2>
+      <p class="section-desc">Ketentuan umum yang berlaku dalam kerja sama pengembangan sistem ini.</p>
+
+      <div class="terms-list">
+        <div class="term-item"><div class="term-num">01.</div><div>Pembayaran uang muka (DP) sebesar <strong>50% (Rp 6.000.000)</strong> dilakukan di awal sebelum pengerjaan dimulai. Pelunasan 50% dilakukan saat sistem siap live.</div></div>
+        <div class="term-item"><div class="term-num">02.</div><div>Perubahan fitur (change request) yang melebihi scope proposal akan dikenakan biaya tambahan sesuai estimasi yang disepakati bersama.</div></div>
+        <div class="term-item"><div class="term-num">03.</div><div>Garansi bebas bug aktif selama <strong>3 bulan</strong> setelah go-live. Bug yang timbul akibat penyalahgunaan sistem tidak termasuk dalam garansi.</div></div>
+        <div class="term-item"><div class="term-num">04.</div><div>Source code sistem menjadi milik klien sepenuhnya setelah pelunasan pembayaran selesai.</div></div>
+        <div class="term-item"><div class="term-num">05.</div><div>Biaya tahunan (Rp 2.500.000) dibayarkan setiap awal tahun berikutnya untuk perpanjangan server, domain, dan maintenance.</div></div>
+        <div class="term-item"><div class="term-num">06.</div><div>Data peserta yang tersimpan dalam sistem sepenuhnya menjadi tanggung jawab dan hak milik klien. Developer berkomitmen untuk menjaga kerahasiaan data.</div></div>
+        <div class="term-item"><div class="term-num">07.</div><div>Biaya AI API (OpenAI) untuk proses scan KTP ditanggung oleh klien dan dibayarkan langsung ke OpenAI sesuai penggunaan.</div></div>
+        <div class="term-item"><div class="term-num">08.</div><div>Proposal ini berlaku selama <strong>30 hari</strong> sejak tanggal penerbitan. Harga dapat berubah setelah masa berlaku habis.</div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Signature -->
+      <div class="sig-grid">
+        <div class="sig-box">
+          <div class="role">Pihak Pertama (Developer)</div>
+          <div class="name">____________________________</div>
+          <div class="org">Developer / Tim Pengembang</div>
+        </div>
+        <div class="sig-box">
+          <div class="role">Pihak Kedua (Klien)</div>
+          <div class="name">____________________________</div>
+          <div class="org">Nama & Jabatan</div>
+        </div>
+      </div>
+
+      <div style="margin-top:32px;text-align:center">
+        <p style="font-size:11px;color:var(--muted)">
+          Terima kasih telah mempertimbangkan solusi ini. Kami siap berdiskusi lebih lanjut untuk menyesuaikan kebutuhan Anda.
+        </p>
+        <p style="font-size:12px;font-weight:700;color:var(--blue);margin-top:4px">
+          📧 support@ktpdashboard.id &nbsp;·&nbsp; 📱 +62 812-3456-7890 &nbsp;·&nbsp; 🌐 ktpdashboard.id
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
