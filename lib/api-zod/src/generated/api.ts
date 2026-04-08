@@ -210,6 +210,7 @@ export const RegisterKtpBody = zod.object({
   eventId: zod.number(),
   nik: zod.string(),
   fullName: zod.string(),
+  staffName: zod.string().nullish(),
   address: zod.string().nullish(),
   birthPlace: zod.string().nullish(),
   birthDate: zod.string().nullish(),

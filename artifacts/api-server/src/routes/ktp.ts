@@ -123,7 +123,7 @@ router.post("/register", requireAuth, async (req, res) => {
 
     const [registration] = await db
       .insert(eventRegistrationsTable)
-      .values({ eventId, participantId: participant.id })
+      .values({ eventId, participantId: participant.id, staffName: body.staffName ?? null })
       .returning();
 
     const newTotal = totalEventsJoined + 1;

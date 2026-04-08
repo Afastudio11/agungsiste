@@ -167,6 +167,27 @@ router.get("/multi-event-participants", requireAuth, async (req, res) => {
   }
 });
 
+// Top staff by registration count
+router.get("/top-staff", requireAuth, async (req, res) => {
+  try {
+    const result = await db
+      .select({
+        staffName: eventRegistrationsTable.staffName,
+        count: sql<number>`cast(count(*) as integer)`,
+      })
+      .from(eventRegistrationsTable)
+      .where(sql`${eventRegistrationsTable.staffName} is not null`)
+      .groupBy(eventRegistrationsTable.staffName)
+      .orderBy(sql`count(*) desc`)
+      .limit(10);
+
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Error getting top staff");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // New: gender + province breakdown
 router.get("/segments", requireAuth, async (req, res) => {
   try {

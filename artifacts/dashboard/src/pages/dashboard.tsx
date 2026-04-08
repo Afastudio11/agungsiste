@@ -13,6 +13,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart,
   Area,
+  BarChart,
+  Bar,
   PieChart,
   Pie,
   Cell,
@@ -30,8 +32,8 @@ import {
   TrendingDown,
   Download,
   ArrowUpRight,
-  MapPin,
   Repeat2,
+  Trophy,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -130,6 +132,11 @@ export default function DashboardPage() {
     queryFn: () => fetch("/api/dashboard/segments").then((r) => r.json()),
     staleTime: 60_000,
   });
+  const { data: topStaff } = useQuery<{ staffName: string | null; count: number }[]>({
+    queryKey: ["dashboard-top-staff"],
+    queryFn: () => fetch("/api/dashboard/top-staff").then((r) => r.json()),
+    staleTime: 60_000,
+  });
 
   const areaData = (daily ?? []).slice(-60).map((d) => ({
     date: d.date.slice(5),
@@ -145,7 +152,6 @@ export default function DashboardPage() {
     }
     return base;
   }, [segments]);
-  const maxDow = Math.max(...dowData.map((d) => d.count), 1);
   const peakDay = dowData.reduce((mx, d) => (d.count > mx.count ? d : mx), dowData[0]);
 
   const multiRate = stats?.totalParticipants
@@ -415,39 +421,52 @@ export default function DashboardPage() {
 
           {/* Day-of-week */}
           <div className="rounded-2xl bg-white border border-slate-100 px-5 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1">
               Hari Paling Aktif
             </p>
-            <div className="flex items-end gap-1 h-24">
-              {dowData.map((d) => {
-                const pct = (d.count / maxDow) * 100;
-                const isMax = d.count === peakDay?.count && peakDay?.count > 0;
-                return (
-                  <div key={d.dow} className="flex flex-1 flex-col items-center gap-1.5">
-                    <div
-                      className={`w-full rounded-md transition-all ${
-                        isMax ? "bg-blue-500" : "bg-slate-100"
-                      }`}
-                      style={{ height: `${Math.max(pct, 8)}%` }}
-                    />
-                    <span
-                      className={`text-[10px] font-bold ${
-                        isMax ? "text-blue-600" : "text-slate-300"
-                      }`}
-                    >
-                      {d.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-3 text-center text-[11px] text-slate-400 font-medium">
+            <p className="text-[11px] text-slate-400 mb-3">
               Paling aktif:{" "}
               <span className="font-bold text-slate-700">
                 {peakDay ? DOW_LABELS[peakDay.dow] : "—"}
               </span>{" "}
-              ({fmt(peakDay?.count ?? 0)} registrasi)
+              ({fmt(peakDay?.count ?? 0)})
             </p>
+            <ResponsiveContainer width="100%" height={110}>
+              <BarChart data={dowData} margin={{ top: 4, right: 0, left: -28, bottom: 0 }} barCategoryGap="20%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 10, fill: "#cbd5e1", fontFamily: "Plus Jakarta Sans", fontWeight: 700 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 9, fill: "#e2e8f0", fontFamily: "Plus Jakarta Sans" }}
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    fontSize: 11,
+                    fontFamily: "Plus Jakarta Sans",
+                    borderRadius: 8,
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+                    padding: "6px 10px",
+                  }}
+                  formatter={(val) => [fmt(Number(val)), "Registrasi"]}
+                />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                  {dowData.map((d) => (
+                    <Cell
+                      key={d.dow}
+                      fill={d.count === peakDay?.count && peakDay?.count > 0 ? "#3b82f6" : "#e2e8f0"}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
 
           {/* Multi-event gauge */}
@@ -638,6 +657,98 @@ export default function DashboardPage() {
               )}
           </tbody>
         </table>
+      </div>
+
+      {/* ── Staff Leaderboard ───────────────────────────── */}
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        {/* Top staff */}
+        <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+          <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-100">
+            <Trophy className="h-4 w-4 text-amber-400" />
+            <div>
+              <p className="text-[15px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
+                Staf Terbanyak Input
+              </p>
+              <p className="text-[11px] text-slate-400 font-medium">Berdasarkan jumlah registrasi yang diinput</p>
+            </div>
+          </div>
+
+          <div className="px-6 py-4 space-y-3">
+            {topStaff && topStaff.length > 0 ? (() => {
+              const maxCount = topStaff[0]?.count ?? 1;
+              return topStaff.slice(0, 10).map((s, i) => (
+                <div key={s.staffName ?? i} className="flex items-center gap-3">
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
+                      i === 0
+                        ? "bg-amber-100 text-amber-600"
+                        : i === 1
+                        ? "bg-slate-100 text-slate-500"
+                        : i === 2
+                        ? "bg-orange-100 text-orange-600"
+                        : "bg-slate-50 text-slate-400"
+                    }`}
+                  >
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[13px] font-semibold text-slate-700 truncate">
+                        {s.staffName ?? "—"}
+                      </span>
+                      <span className="text-[13px] font-extrabold text-slate-800 ml-2 shrink-0" style={{ letterSpacing: "-0.02em" }}>
+                        {fmt(s.count)}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className={`h-full rounded-full ${i === 0 ? "bg-amber-400" : "bg-blue-300"}`}
+                        style={{ width: `${(s.count / maxCount) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ));
+            })() : (
+              <p className="py-8 text-center text-sm text-slate-300">Belum ada data staf</p>
+            )}
+          </div>
+        </div>
+
+        {/* Province breakdown */}
+        <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100">
+            <p className="text-[15px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
+              Sebaran Provinsi
+            </p>
+            <p className="text-[11px] text-slate-400 font-medium">Top 10 provinsi asal peserta</p>
+          </div>
+          <div className="px-6 py-4 space-y-3">
+            {provinceData.slice(0, 10).map((p, i) => (
+              <div key={p.label}>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[11px] font-bold text-slate-300 font-mono w-5 text-right shrink-0">
+                      {i + 1}
+                    </span>
+                    <span className="text-[12px] font-semibold text-slate-600 truncate">
+                      {p.label}
+                    </span>
+                  </div>
+                  <span className="text-[12px] font-extrabold text-slate-700 shrink-0 ml-2" style={{ letterSpacing: "-0.02em" }}>
+                    {fmt(p.count)}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-blue-400"
+                    style={{ width: `${(p.count / maxProv) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </Layout>
   );

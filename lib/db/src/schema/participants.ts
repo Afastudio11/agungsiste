@@ -39,6 +39,7 @@ export const eventRegistrationsTable = pgTable(
     id: serial("id").primaryKey(),
     eventId: integer("event_id").notNull().references(() => eventsTable.id, { onDelete: "cascade" }),
     participantId: integer("participant_id").notNull().references(() => participantsTable.id, { onDelete: "cascade" }),
+    staffName: text("staff_name"),
     registeredAt: timestamp("registered_at").defaultNow().notNull(),
   },
   (t) => [unique("uq_event_participant").on(t.eventId, t.participantId)]

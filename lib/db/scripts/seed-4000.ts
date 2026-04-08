@@ -35,6 +35,13 @@ const surnames = [
   "Saputra","Saputri","Permana","Perdana","Utama","Pratama","Utami","Pertiwi",
 ];
 
+const staffNames = [
+  "Budi Santoso","Rina Wati","Agus Purnomo","Dewi Lestari","Hendra Kurniawan",
+  "Sari Utami","Fajar Nugroho","Mega Andriani","Wahyu Prasetyo","Indah Permata",
+  "Rudi Setiawan","Fitri Handayani","Eko Susanto","Nita Wibowo","Dani Firmansyah",
+  "Ayu Rahayu","Bagus Hidayat","Lestari Sari","Gilang Ramadhan","Tika Susanti",
+];
+
 const provinces = [
   "DKI Jakarta","Jawa Barat","Jawa Tengah","Jawa Timur","DI Yogyakarta",
   "Banten","Bali","Sumatera Utara","Sumatera Selatan","Sumatera Barat",
@@ -248,6 +255,7 @@ async function main() {
         regValues.push({
           eventId: ev.id,
           participantId: pid,
+          staffName: staffNames[Math.floor(Math.random() * staffNames.length)],
           registeredAt: randomDateInRange(startDate, endDate),
         });
       }

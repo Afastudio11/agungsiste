@@ -34,6 +34,7 @@ export default function ScanPage() {
   const [ktpData, setKtpData] = useState<KtpData | null>(null);
   const [editedData, setEditedData] = useState<KtpData>({});
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [staffName, setStaffName] = useState("");
   const [result, setResult] = useState<{ success: boolean; message: string; totalEventsJoined?: number } | null>(null);
   const [isDuplicate, setIsDuplicate] = useState(false);
 
@@ -86,6 +87,7 @@ export default function ScanPage() {
           eventId: selectedEventId,
           nik: editedData.nik!,
           fullName: editedData.fullName!,
+          staffName: staffName.trim() || null,
           ...editedData,
         },
       });
@@ -137,7 +139,26 @@ export default function ScanPage() {
   return (
     <Layout role="any">
       <div className="space-y-5">
-        <h1 className="text-xl font-bold">Scan KTP</h1>
+        <div>
+          <h1 className="text-[26px] font-extrabold text-slate-900 leading-tight" style={{ letterSpacing: "-0.03em" }}>
+            Scan KTP
+          </h1>
+          <p className="mt-1 text-sm text-slate-400 font-medium">Upload foto KTP, AI akan membaca data secara otomatis</p>
+        </div>
+
+        {/* Staff name bar */}
+        <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_1px_4px_rgba(0,0,0,0.06)] flex items-center gap-4">
+          <label className="text-[12px] font-bold uppercase tracking-[0.08em] text-slate-400 whitespace-nowrap">
+            Nama Staf
+          </label>
+          <input
+            type="text"
+            placeholder="Masukkan nama Anda sebelum mulai scan..."
+            value={staffName}
+            onChange={(e) => setStaffName(e.target.value)}
+            className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+          />
+        </div>
 
         {result && (
           <div
