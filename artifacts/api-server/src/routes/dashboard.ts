@@ -51,12 +51,26 @@ router.get("/stats", requireAuth, async (req, res) => {
       .from(eventRegistrationsTable)
       .where(gte(eventRegistrationsTable.registeredAt, sevenDaysAgo));
 
+    // Previous 7-day window for % change
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    const [prevWeekRegistrations] = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(eventRegistrationsTable)
+      .where(
+        and(
+          gte(eventRegistrationsTable.registeredAt, fourteenDaysAgo),
+          lte(eventRegistrationsTable.registeredAt, sevenDaysAgo)
+        )
+      );
+
     res.json({
       totalParticipants: totalParticipants.count,
       totalEvents: totalEvents.count,
       totalRegistrations: totalRegistrations.count,
       multiEventParticipants: multiEventParticipants.count,
       recentRegistrations: recentRegistrations.count,
+      prevWeekRegistrations: prevWeekRegistrations.count,
     });
   } catch (err) {
     req.log.error({ err }, "Error getting dashboard stats");
@@ -85,7 +99,7 @@ router.get("/events-summary", requireAuth, async (req, res) => {
       .leftJoin(eventRegistrationsTable, eq(eventsTable.id, eventRegistrationsTable.eventId))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .groupBy(eventsTable.id)
-      .orderBy(sql`${eventsTable.eventDate} desc`);
+      .orderBy(sql`count(${eventRegistrationsTable.id}) desc`);
 
     res.json(events);
   } catch (err) {
@@ -149,6 +163,45 @@ router.get("/multi-event-participants", requireAuth, async (req, res) => {
     res.json(enriched);
   } catch (err) {
     req.log.error({ err }, "Error getting multi-event participants");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// New: gender + province breakdown
+router.get("/segments", requireAuth, async (req, res) => {
+  try {
+    const gender = await db
+      .select({
+        gender: participantsTable.gender,
+        count: sql<number>`cast(count(*) as integer)`,
+      })
+      .from(participantsTable)
+      .groupBy(participantsTable.gender)
+      .orderBy(sql`count(*) desc`);
+
+    const province = await db
+      .select({
+        province: participantsTable.province,
+        count: sql<number>`cast(count(*) as integer)`,
+      })
+      .from(participantsTable)
+      .groupBy(participantsTable.province)
+      .orderBy(sql`count(*) desc`)
+      .limit(5);
+
+    // Day-of-week registrations (0=Sun ... 6=Sat)
+    const dow = await db
+      .select({
+        dow: sql<number>`cast(extract(dow from ${eventRegistrationsTable.registeredAt}) as integer)`,
+        count: sql<number>`cast(count(*) as integer)`,
+      })
+      .from(eventRegistrationsTable)
+      .groupBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`)
+      .orderBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`);
+
+    res.json({ gender, province, dow });
+  } catch (err) {
+    req.log.error({ err }, "Error getting segments");
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -1,18 +1,18 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import Layout from "@/components/layout";
 import {
   useGetDashboardStats,
   useGetDailyRegistrations,
   useGetEventsSummary,
-  useGetMultiEventParticipants,
   getGetDashboardStatsQueryKey,
   getGetDailyRegistrationsQueryKey,
   getGetEventsSummaryQueryKey,
 } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   PieChart,
@@ -23,32 +23,85 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
+import {
+  Users,
+  CalendarDays,
+  ClipboardList,
+  TrendingUp,
+  TrendingDown,
+  ArrowUpRight,
+  Download,
+  MoreHorizontal,
+  MapPin,
+} from "lucide-react";
 
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function fmt(n: number) {
+  return n.toLocaleString("id-ID");
+}
+
+function pct(val: number, prev: number) {
+  if (!prev) return null;
+  return (((val - prev) / prev) * 100).toFixed(1);
+}
+
+// ── Subcomponents ─────────────────────────────────────────────────────────────
 
 function StatCard({
+  icon: Icon,
   label,
   value,
   sub,
-  color,
+  trend,
+  iconBg,
 }: {
+  icon: any;
   label: string;
-  value: number | string;
+  value: number;
   sub?: string;
-  color?: string;
+  trend?: string | null;
+  iconBg: string;
 }) {
+  const positive = trend ? parseFloat(trend) >= 0 : null;
   return (
-    <div className={`rounded-xl border bg-card p-5 shadow-sm`}>
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={`mt-2 text-3xl font-bold ${color ?? ""}`}>
-        {typeof value === "number" ? value.toLocaleString("id-ID") : value}
-      </p>
-      {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
+    <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${iconBg}`}>
+          <Icon className="h-4 w-4 text-white" />
+        </div>
+      </div>
+      <p className="mt-3 text-3xl font-bold text-slate-800">{fmt(value)}</p>
+      {sub && <p className="mt-0.5 text-xs text-slate-400">{sub}</p>}
+      {trend !== undefined && trend !== null && (
+        <div className={`mt-2 flex items-center gap-1 text-xs font-medium ${positive ? "text-emerald-600" : "text-rose-500"}`}>
+          {positive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+          <span>{positive ? "+" : ""}{trend}% dari minggu lalu</span>
+        </div>
+      )}
     </div>
   );
 }
+
+function SectionHeader({ title, sub }: { title: string; sub?: string }) {
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <div>
+        <p className="text-sm font-semibold text-slate-700">{title}</p>
+        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+      </div>
+      <button className="rounded-full p-1.5 hover:bg-slate-100 transition-colors">
+        <MoreHorizontal className="h-4 w-4 text-slate-400" />
+      </button>
+    </div>
+  );
+}
+
+const DOW_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [startDate, setStartDate] = useState("");
@@ -68,261 +121,361 @@ export default function DashboardPage() {
   const { data: eventsSummary } = useGetEventsSummary(params, {
     query: { queryKey: getGetEventsSummaryQueryKey(params) },
   });
-  const { data: multiEvent } = useGetMultiEventParticipants();
 
-  // Derive gender chart data from events summary participant info
-  const eventBarData = (eventsSummary ?? []).map((e) => ({
-    name: e.name.length > 18 ? e.name.slice(0, 18) + "…" : e.name,
-    peserta: e.participantCount,
+  // Segments (gender, province, dow) — direct fetch
+  const { data: segments } = useQuery({
+    queryKey: ["dashboard-segments"],
+    queryFn: () => fetch("/api/dashboard/segments").then((r) => r.json()),
+    staleTime: 60_000,
+  });
+
+  // Day-of-week chart data
+  const dowData = useMemo(() => {
+    const base = DOW_LABELS.map((label, i) => ({ label, count: 0, dow: i }));
+    if (segments?.dow) {
+      segments.dow.forEach((d: { dow: number; count: number }) => {
+        if (base[d.dow]) base[d.dow].count = d.count;
+      });
+    }
+    return base;
+  }, [segments]);
+
+  // Multi-event rate
+  const multiEventRate = stats && stats.totalParticipants
+    ? Math.round((stats.multiEventParticipants / stats.totalParticipants) * 100)
+    : 0;
+
+  // Area chart – last 60 days
+  const areaData = (daily ?? []).slice(-60).map((d) => ({
+    date: d.date.slice(5),
+    count: d.count,
   }));
 
-  // 30-day slice for main chart
-  const dailySlice = (daily ?? []).slice(-30);
+  // Gender breakdown for segment bars
+  const genderData: { label: string; count: number; color: string }[] = useMemo(() => {
+    if (!segments?.gender) return [];
+    const colors = ["#3b82f6", "#ec4899", "#a78bfa"];
+    return segments.gender.map((g: { gender: string; count: number }, i: number) => ({
+      label: g.gender ?? "Tidak Diisi",
+      count: g.count,
+      color: colors[i] ?? "#94a3b8",
+    }));
+  }, [segments]);
+  const totalGender = genderData.reduce((s, g) => s + g.count, 0);
 
-  // Weekly aggregation
-  const weeklyData = (() => {
-    const map: Record<string, number> = {};
-    (daily ?? []).forEach((d) => {
-      const date = new Date(d.date);
-      const week = `W${Math.ceil(date.getDate() / 7)} ${date.toLocaleString("id-ID", { month: "short" })}`;
-      map[week] = (map[week] ?? 0) + d.count;
-    });
-    return Object.entries(map).map(([week, total]) => ({ week, total })).slice(-12);
-  })();
+  // Province breakdown
+  const provinceData: { label: string; count: number }[] = useMemo(() => {
+    if (!segments?.province) return [];
+    return segments.province.map((p: { province: string; count: number }) => ({
+      label: p.province,
+      count: p.count,
+    }));
+  }, [segments]);
+  const maxProvince = provinceData[0]?.count ?? 1;
+
+  // Trend
+  const recentTrend = pct(stats?.recentRegistrations ?? 0, stats?.prevWeekRegistrations ?? 0);
+
+  // Max dow for bar scaling
+  const maxDow = Math.max(...dowData.map((d) => d.count), 1);
 
   return (
     <Layout role="supervisor">
-      <div className="space-y-6">
-        {/* Header + Date Filter */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">Ringkasan data registrasi peserta</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs text-muted-foreground">Dari</label>
+      {/* Page header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+          <p className="text-sm text-slate-400 mt-0.5">Selamat datang kembali! Ini ringkasan hari ini.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Date range */}
+          <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
+            <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-md border px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+              className="border-0 bg-transparent text-xs text-slate-600 focus:outline-none w-28"
             />
-            <label className="text-xs text-muted-foreground">Sampai</label>
+            <span className="text-slate-300">—</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="rounded-md border px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+              className="border-0 bg-transparent text-xs text-slate-600 focus:outline-none w-28"
             />
             {(startDate || endDate) && (
-              <button
-                onClick={() => { setStartDate(""); setEndDate(""); }}
-                className="rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
-              >
-                Reset
-              </button>
+              <button onClick={() => { setStartDate(""); setEndDate(""); }} className="ml-1 text-slate-400 hover:text-slate-600">✕</button>
             )}
           </div>
+          <button className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors">
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </button>
         </div>
+      </div>
 
-        {/* Stat Cards */}
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          <StatCard
-            label="Total Peserta"
-            value={stats?.totalParticipants ?? 0}
-            sub="NIK unik terdaftar"
-            color="text-blue-600"
-          />
-          <StatCard label="Total Event" value={stats?.totalEvents ?? 0} color="text-violet-600" />
-          <StatCard
-            label="Total Registrasi"
-            value={stats?.totalRegistrations ?? 0}
-            sub="Termasuk multi-event"
-            color="text-emerald-600"
-          />
-          <StatCard
-            label="Multi-Event"
-            value={stats?.multiEventParticipants ?? 0}
-            sub="Ikut lebih dari 1 event"
-            color="text-amber-600"
-          />
-          <StatCard
-            label="7 Hari Terakhir"
-            value={stats?.recentRegistrations ?? 0}
-            sub="Registrasi baru"
-            color="text-rose-600"
-          />
-        </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4 mb-6">
+        <StatCard
+          icon={Users}
+          label="Total Peserta"
+          value={stats?.totalParticipants ?? 0}
+          sub="NIK unik terdaftar"
+          iconBg="bg-blue-500"
+        />
+        <StatCard
+          icon={CalendarDays}
+          label="Total Event"
+          value={stats?.totalEvents ?? 0}
+          sub="Event aktif"
+          iconBg="bg-violet-500"
+        />
+        <StatCard
+          icon={ClipboardList}
+          label="Total Registrasi"
+          value={stats?.totalRegistrations ?? 0}
+          sub="Termasuk multi-event"
+          iconBg="bg-emerald-500"
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="7 Hari Terakhir"
+          value={stats?.recentRegistrations ?? 0}
+          sub="Registrasi baru"
+          trend={recentTrend}
+          iconBg="bg-amber-500"
+        />
+      </div>
 
-        {/* Main Charts Row */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Daily Line Chart — 2/3 width */}
-          <div className="lg:col-span-2 rounded-xl border bg-card p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Registrasi Harian (30 hari terakhir)</h2>
-              <span className="text-xs text-muted-foreground">{dailySlice.reduce((a, d) => a + d.count, 0).toLocaleString("id-ID")} total</span>
+      {/* Middle row: left (2/3) + right (1/3) */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        {/* LEFT — Area chart + segments */}
+        <div className="col-span-2 space-y-4">
+          {/* Area chart */}
+          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+            <SectionHeader
+              title="Total Registrasi"
+              sub="60 hari terakhir"
+            />
+            <div className="flex items-end gap-3 mb-4">
+              <p className="text-4xl font-bold text-slate-800">{fmt(stats?.totalRegistrations ?? 0)}</p>
+              {recentTrend && (
+                <span className={`mb-1 flex items-center gap-1 text-sm font-semibold ${parseFloat(recentTrend) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                  <ArrowUpRight className="h-4 w-4" />
+                  {parseFloat(recentTrend) >= 0 ? "+" : ""}{recentTrend}%
+                  <span className="text-xs font-normal text-slate-400 ml-0.5">vs minggu lalu</span>
+                </span>
+              )}
             </div>
-            {dailySlice.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={dailySlice}>
+            {areaData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={180}>
+                <AreaChart data={areaData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} allowDecimals={false} />
                   <Tooltip
-                    formatter={(val) => [Number(val).toLocaleString("id-ID"), "Registrasi"]}
-                    labelFormatter={(l) => `Tanggal: ${l}`}
-                    contentStyle={{ fontSize: 12 }}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.05)" }}
+                    formatter={(val) => [fmt(Number(val)), "Registrasi"]}
+                    labelFormatter={(l) => `Tgl: ${l}`}
                   />
-                  <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2.5} dot={false} />
-                </LineChart>
+                  <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2.5} fill="url(#areaGrad)" dot={false} />
+                </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">Belum ada data</div>
+              <div className="flex h-[180px] items-center justify-center text-sm text-slate-400">Belum ada data</div>
             )}
           </div>
 
-          {/* Peserta Multi-Event List — 1/3 width */}
-          <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Peserta Multi-Event</h2>
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
-                {multiEvent?.length ?? 0}
-              </span>
-            </div>
-            {multiEvent && multiEvent.length > 0 ? (
-              <div className="space-y-1.5 overflow-y-auto max-h-[220px] pr-1">
-                {multiEvent.slice(0, 20).map((p) => (
-                  <Link key={p.nik} href={`/participants/${p.nik}`}>
-                    <div className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors">
+          {/* Gender Segment Bars */}
+          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+            <SectionHeader title="Komposisi Peserta" sub="Berdasarkan jenis kelamin" />
+            {genderData.length > 0 ? (
+              <div className="space-y-4">
+                <div className="flex gap-1 h-3 rounded-full overflow-hidden">
+                  {genderData.map((g) => (
+                    <div
+                      key={g.label}
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${(g.count / totalGender) * 100}%`, backgroundColor: g.color }}
+                    />
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {genderData.map((g) => (
+                    <div key={g.label} className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2.5">
+                      <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-xs">{p.fullName}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{p.nik}</p>
+                        <p className="text-xs text-slate-400 truncate">{g.label === "LAKI-LAKI" ? "Laki-laki" : g.label === "PEREMPUAN" ? "Perempuan" : g.label}</p>
+                        <p className="text-sm font-bold text-slate-700">{fmt(g.count)}</p>
+                        <p className="text-xs text-slate-400">{Math.round((g.count / totalGender) * 100)}%</p>
                       </div>
-                      <span className="ml-2 shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">
-                        {p.eventCount}×
-                      </span>
                     </div>
-                  </Link>
-                ))}
+                  ))}
+                </div>
               </div>
             ) : (
-              <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">Belum ada data</div>
+              <div className="h-20 flex items-center justify-center text-sm text-slate-400">Memuat...</div>
             )}
           </div>
         </div>
 
-        {/* Second Charts Row */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Bar chart per event */}
-          <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold">Peserta per Event</h2>
-            {eventBarData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={eventBarData} margin={{ left: 0, right: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                  <Tooltip
-                    formatter={(val) => [Number(val).toLocaleString("id-ID"), "Peserta"]}
-                    contentStyle={{ fontSize: 12 }}
-                  />
-                  <Bar dataKey="peserta" radius={[4, 4, 0, 0]}>
-                    {eventBarData.map((_, idx) => (
-                      <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">Belum ada data</div>
+        {/* RIGHT panel */}
+        <div className="col-span-1 space-y-4">
+          {/* Day-of-week bar chart */}
+          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+            <SectionHeader title="Hari Paling Aktif" />
+            <div className="flex items-end gap-1 h-28 mt-2">
+              {dowData.map((d) => {
+                const h = Math.round((d.count / maxDow) * 100);
+                const isMax = d.count === maxDow;
+                return (
+                  <div key={d.dow} className="flex flex-1 flex-col items-center gap-1">
+                    <div
+                      className={`w-full rounded-t-md transition-all ${isMax ? "bg-blue-500" : "bg-slate-100"}`}
+                      style={{ height: `${Math.max(h, 8)}%` }}
+                    />
+                    <span className={`text-[10px] font-medium ${isMax ? "text-blue-600" : "text-slate-400"}`}>{d.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {dowData.length > 0 && (
+              <p className="mt-3 text-center text-xs text-slate-400">
+                Paling aktif: <span className="font-semibold text-slate-700">{DOW_LABELS[dowData.reduce((mx, d) => d.count > mx.count ? d : mx, dowData[0]).dow]}</span>
+              </p>
             )}
           </div>
 
-          {/* Weekly trend bar */}
-          <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold">Tren Mingguan Registrasi</h2>
-            {weeklyData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={weeklyData} margin={{ left: 0, right: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="week" tick={{ fontSize: 9 }} />
-                  <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                  <Tooltip
-                    formatter={(val) => [Number(val).toLocaleString("id-ID"), "Registrasi"]}
-                    contentStyle={{ fontSize: 12 }}
-                  />
-                  <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]} />
-                </BarChart>
+          {/* Multi-event rate gauge */}
+          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+            <SectionHeader title="Multi-Event Rate" sub="Peserta ikut > 1 event" />
+            <div className="relative flex justify-center">
+              <ResponsiveContainer width="100%" height={130}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { value: multiEventRate },
+                      { value: 100 - multiEventRate },
+                    ]}
+                    cx="50%"
+                    cy="85%"
+                    startAngle={180}
+                    endAngle={0}
+                    innerRadius={55}
+                    outerRadius={72}
+                    dataKey="value"
+                    strokeWidth={0}
+                  >
+                    <Cell fill="#10b981" />
+                    <Cell fill="#f1f5f9" />
+                  </Pie>
+                </PieChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">Belum ada data</div>
-            )}
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-center">
+                <p className="text-2xl font-bold text-slate-800">{multiEventRate}%</p>
+                <p className="text-[10px] text-slate-400">dari target</p>
+              </div>
+            </div>
+            <button className="mt-2 w-full text-xs font-medium text-blue-600 hover:underline">Lihat detail →</button>
+          </div>
+
+          {/* Province top */}
+          <div className="rounded-2xl bg-white border border-slate-100 p-5 shadow-sm">
+            <SectionHeader title="Provinsi Teratas" />
+            <div className="space-y-3">
+              {provinceData.slice(0, 5).map((p) => (
+                <div key={p.label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-3 w-3 text-slate-400" />
+                      <span className="text-xs text-slate-600 truncate max-w-[120px]">{p.label}</span>
+                    </div>
+                    <span className="text-xs font-bold text-slate-700">{fmt(p.count)}</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-blue-400 transition-all"
+                      style={{ width: `${(p.count / maxProvince) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Events Summary Table */}
-        <div className="rounded-xl border bg-card shadow-sm">
-          <div className="flex items-center justify-between border-b px-5 py-3.5">
-            <h2 className="text-sm font-semibold">Ringkasan Event</h2>
-            <Link href="/events" className="text-xs font-medium text-primary hover:underline">
-              Kelola Event →
-            </Link>
+      {/* Best events table */}
+      <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <div>
+            <p className="text-sm font-semibold text-slate-700">Top Event</p>
+            <p className="text-xs text-slate-400 mt-0.5">Diurutkan berdasarkan jumlah peserta</p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nama Event</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tanggal</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Lokasi</th>
-                  <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Peserta</th>
-                  <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Porsi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {eventsSummary && eventsSummary.length > 0 ? (() => {
-                  const totalAll = eventsSummary.reduce((s, e) => s + e.participantCount, 0);
-                  return eventsSummary.map((event) => (
-                    <tr key={event.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                      <td className="px-5 py-3 font-medium">
-                        <Link href={`/events/${event.id}`} className="hover:underline text-primary">
-                          {event.name}
+          <Link href="/events">
+            <span className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline cursor-pointer">
+              Lihat semua <ArrowUpRight className="h-3.5 w-3.5" />
+            </span>
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">ID</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Nama Event</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Tanggal</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Lokasi</th>
+                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">Peserta</th>
+                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">Porsi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {eventsSummary && eventsSummary.length > 0 ? (() => {
+                const total = eventsSummary.reduce((s, e) => s + e.participantCount, 0);
+                return eventsSummary.slice(0, 10).map((ev, idx) => {
+                  const share = total ? Math.round((ev.participantCount / total) * 100) : 0;
+                  return (
+                    <tr key={ev.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3.5 text-xs font-mono text-slate-400">#{String(idx + 1).padStart(3, "0")}</td>
+                      <td className="px-5 py-3.5">
+                        <Link href={`/events/${ev.id}`}>
+                          <span className="text-sm font-medium text-slate-700 hover:text-blue-600 cursor-pointer hover:underline">
+                            {ev.name}
+                          </span>
                         </Link>
                       </td>
-                      <td className="px-5 py-3 text-muted-foreground">{event.eventDate}</td>
-                      <td className="px-5 py-3 text-muted-foreground">{event.location ?? "-"}</td>
-                      <td className="px-5 py-3 text-right font-bold">{event.participantCount.toLocaleString("id-ID")}</td>
-                      <td className="px-5 py-3 text-right">
+                      <td className="px-5 py-3.5 text-sm text-slate-500">{ev.eventDate}</td>
+                      <td className="px-5 py-3.5 text-sm text-slate-500 max-w-[160px] truncate">{ev.location ?? "-"}</td>
+                      <td className="px-5 py-3.5 text-right">
+                        <span className="text-sm font-bold text-slate-700">{fmt(ev.participantCount)}</span>
+                        <span className="text-xs text-slate-400 ml-1">peserta</span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-                            <div
-                              className="h-full rounded-full bg-blue-500"
-                              style={{ width: `${totalAll ? (event.participantCount / totalAll) * 100 : 0}%` }}
-                            />
+                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
+                            <div className="h-full rounded-full bg-emerald-400" style={{ width: `${share}%` }} />
                           </div>
-                          <span className="text-xs text-muted-foreground w-8 text-right">
-                            {totalAll ? Math.round((event.participantCount / totalAll) * 100) : 0}%
-                          </span>
+                          <span className="text-xs font-semibold text-slate-500 w-7 text-right">{share}%</span>
                         </div>
                       </td>
                     </tr>
-                  ));
-                })() : (
-                  <tr>
-                    <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">
-                      Belum ada event
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  );
+                });
+              })() : (
+                <tr>
+                  <td colSpan={6} className="px-5 py-12 text-center text-sm text-slate-400">Belum ada data event</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </Layout>
