@@ -1,48 +1,20 @@
-import { useUser, useClerk } from "@clerk/react";
 import { Link, useLocation } from "wouter";
 import { ReactNode } from "react";
-import { Redirect } from "wouter";
 
 interface LayoutProps {
   children: ReactNode;
   role?: "supervisor" | "staff" | "any";
 }
 
-export default function Layout({ children, role = "any" }: LayoutProps) {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
+const navItems = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/events", label: "Event" },
+  { href: "/participants", label: "Peserta" },
+  { href: "/scan", label: "Scan KTP" },
+];
+
+export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
-
-  if (!isLoaded) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-      </div>
-    );
-  }
-
-  if (!user) return <Redirect to="/" />;
-
-  const userRole = user.publicMetadata?.role as string | undefined;
-
-  if (!userRole) return <Redirect to="/waiting-role" />;
-
-  if (role === "supervisor" && userRole !== "supervisor") {
-    return <Redirect to="/scan" />;
-  }
-
-  if (role === "staff" && userRole !== "staff") {
-    return <Redirect to="/dashboard" />;
-  }
-
-  const navItems =
-    userRole === "supervisor"
-      ? [
-          { href: "/dashboard", label: "Dashboard" },
-          { href: "/events", label: "Event" },
-          { href: "/participants", label: "Peserta" },
-        ]
-      : [{ href: "/scan", label: "Scan KTP" }];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -70,15 +42,7 @@ export default function Layout({ children, role = "any" }: LayoutProps) {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-sidebar-foreground/60 capitalize">
-              {user.firstName || user.emailAddresses[0]?.emailAddress} &bull; {userRole}
-            </span>
-            <button
-              onClick={() => signOut({ redirectUrl: "/" })}
-              className="rounded border border-sidebar-border px-3 py-1.5 text-xs font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            >
-              Keluar
-            </button>
+            <span className="text-xs text-sidebar-foreground/60">Event KTP Scan</span>
           </div>
         </div>
       </header>
