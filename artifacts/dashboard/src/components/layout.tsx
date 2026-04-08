@@ -28,13 +28,15 @@ const navBottom = [
   { href: "/help", label: "Help & Support", icon: HelpCircle },
 ];
 
+const allNav = [...navMain, ...navBottom];
+
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
 
   return (
     <div className="flex min-h-screen bg-slate-50/70">
-      {/* Sidebar */}
-      <aside className="flex w-[220px] flex-col fixed inset-y-0 left-0 z-40 bg-white border-r border-slate-100/80">
+      {/* ── Desktop Sidebar ──────────────────────────────────────────── */}
+      <aside className="hidden md:flex w-[220px] flex-col fixed inset-y-0 left-0 z-40 bg-white border-r border-slate-100/80">
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-[22px]">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 shadow-sm shadow-blue-200">
@@ -48,7 +50,6 @@ export default function Layout({ children }: LayoutProps) {
           </span>
         </div>
 
-        {/* Divider */}
         <div className="mx-4 border-t border-slate-100" />
 
         {/* Main nav */}
@@ -114,10 +115,59 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 ml-[220px] min-h-screen">
-        <main className="p-7">{children}</main>
+      {/* ── Main content ─────────────────────────────────────────────── */}
+      <div className="flex-1 md:ml-[220px] min-h-screen">
+        {/* Mobile top bar */}
+        <div className="md:hidden sticky top-0 z-30 flex items-center gap-3 bg-white border-b border-slate-100 px-4 py-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600">
+            <ScanLine className="h-[13px] w-[13px] text-white" strokeWidth={2.5} />
+          </div>
+          <span
+            className="text-[14px] font-bold text-slate-900"
+            style={{ letterSpacing: "-0.02em" }}
+          >
+            KTP Scan
+          </span>
+        </div>
+
+        <main className="p-4 md:p-7 pb-24 md:pb-7">{children}</main>
       </div>
+
+      {/* ── Mobile bottom navigation ──────────────────────────────────── */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-100 safe-area-bottom">
+        <div className="flex items-center justify-around px-1 py-1">
+          {allNav.map(({ href, label, icon: Icon }) => {
+            const active = location === href || location.startsWith(href + "/");
+            return (
+              <Link key={href} href={href}>
+                <div
+                  className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[52px] transition-all cursor-pointer ${
+                    active ? "text-blue-600" : "text-slate-400"
+                  }`}
+                >
+                  <div
+                    className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${
+                      active ? "bg-blue-50" : ""
+                    }`}
+                  >
+                    <Icon
+                      className={`h-[18px] w-[18px] ${active ? "text-blue-600" : "text-slate-400"}`}
+                      strokeWidth={active ? 2.5 : 2}
+                    />
+                  </div>
+                  <span
+                    className={`text-[9px] font-semibold leading-none ${
+                      active ? "text-blue-600" : "text-slate-400"
+                    }`}
+                  >
+                    {label === "Help & Support" ? "Help" : label === "Pengaturan" ? "Setting" : label}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

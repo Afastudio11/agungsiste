@@ -23,8 +23,10 @@ export default function ParticipantsPage() {
 
   return (
     <Layout role="supervisor">
-      <div className="space-y-5">
-        <h1 className="text-xl font-bold">Daftar Peserta</h1>
+      <div className="space-y-4 md:space-y-5">
+        <h1 className="text-[22px] md:text-[26px] font-extrabold text-slate-900 leading-tight" style={{ letterSpacing: "-0.03em" }}>
+          Daftar Peserta
+        </h1>
 
         <div className="flex flex-wrap gap-2">
           <input
@@ -32,7 +34,7 @@ export default function ParticipantsPage() {
             placeholder="Cari nama atau NIK..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="flex-1 min-w-[160px] rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <input
             type="date"

@@ -65,22 +65,20 @@ export default function StaffPage() {
   return (
     <Layout>
       {/* Header */}
-      <div className="flex items-start justify-between mb-7">
-        <div>
-          <h1
-            className="text-[26px] font-extrabold text-slate-900 leading-tight"
-            style={{ letterSpacing: "-0.03em" }}
-          >
-            Staf
-          </h1>
-          <p className="mt-1 text-sm text-slate-400 font-medium">
-            Performa dan aktivitas staf input registrasi
-          </p>
-        </div>
+      <div className="mb-5 md:mb-7">
+        <h1
+          className="text-[22px] md:text-[26px] font-extrabold text-slate-900 leading-tight"
+          style={{ letterSpacing: "-0.03em" }}
+        >
+          Staf
+        </h1>
+        <p className="mt-1 text-sm text-slate-400 font-medium">
+          Performa dan aktivitas staf input registrasi
+        </p>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4 mb-6">
         <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-5 pt-5 pb-4 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="absolute inset-x-0 top-0 h-[3px] bg-blue-500" />
           <div className="flex items-start justify-between mb-3">
@@ -118,7 +116,7 @@ export default function StaffPage() {
       {/* Table card */}
       <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
         {/* Table header */}
-        <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-100">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-6 py-4 border-b border-slate-100">
           <div>
             <p className="text-[15px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
               Leaderboard Staf
@@ -136,7 +134,7 @@ export default function StaffPage() {
               placeholder="Cari nama staf..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-44 border-0 bg-transparent text-[12px] text-slate-600 placeholder:text-slate-300 focus:outline-none"
+              className="w-full sm:w-44 border-0 bg-transparent text-[12px] text-slate-600 placeholder:text-slate-300 focus:outline-none"
             />
           </div>
         </div>
@@ -148,6 +146,7 @@ export default function StaffPage() {
             <span className="ml-3 text-sm text-slate-400">Memuat data staf...</span>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-50 bg-slate-50/60">
@@ -231,6 +230,7 @@ export default function StaffPage() {
               )}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </Layout>

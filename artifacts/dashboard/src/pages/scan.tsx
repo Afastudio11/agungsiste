@@ -140,14 +140,14 @@ export default function ScanPage() {
     <Layout role="any">
       <div className="space-y-5">
         <div>
-          <h1 className="text-[26px] font-extrabold text-slate-900 leading-tight" style={{ letterSpacing: "-0.03em" }}>
+          <h1 className="text-[22px] md:text-[26px] font-extrabold text-slate-900 leading-tight" style={{ letterSpacing: "-0.03em" }}>
             Scan KTP
           </h1>
           <p className="mt-1 text-sm text-slate-400 font-medium">Upload foto KTP, AI akan membaca data secara otomatis</p>
         </div>
 
         {/* Staff name bar */}
-        <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_1px_4px_rgba(0,0,0,0.06)] flex items-center gap-4">
+        <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_1px_4px_rgba(0,0,0,0.06)] flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
           <label className="text-[12px] font-bold uppercase tracking-[0.08em] text-slate-400 whitespace-nowrap">
             Nama Staf
           </label>

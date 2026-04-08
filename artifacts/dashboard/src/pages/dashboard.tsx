@@ -193,10 +193,10 @@ export default function DashboardPage() {
   return (
     <Layout>
       {/* ── Page header ─────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-7">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-5 md:mb-7">
         <div>
           <h1
-            className="text-[26px] font-extrabold text-slate-900 leading-tight"
+            className="text-[22px] md:text-[26px] font-extrabold text-slate-900 leading-tight"
             style={{ letterSpacing: "-0.03em" }}
           >
             Dashboard
@@ -206,21 +206,21 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
-            <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+            <CalendarDays className="h-3.5 w-3.5 text-slate-400 shrink-0" />
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border-0 bg-transparent text-[12px] text-slate-600 focus:outline-none w-28"
+              className="border-0 bg-transparent text-[12px] text-slate-600 focus:outline-none w-[110px]"
             />
             <span className="text-slate-300 text-xs">—</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="border-0 bg-transparent text-[12px] text-slate-600 focus:outline-none w-28"
+              className="border-0 bg-transparent text-[12px] text-slate-600 focus:outline-none w-[110px]"
             />
             {(startDate || endDate) && (
               <button
@@ -269,10 +269,10 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Middle section ──────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
 
         {/* Left — 2 columns */}
-        <div className="col-span-2 space-y-4">
+        <div className="col-span-1 md:col-span-2 space-y-4">
 
           {/* Area chart */}
           <div className="rounded-2xl bg-white border border-slate-100 px-6 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
@@ -551,7 +551,8 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Events table ────────────────────────────────── */}
-      <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+      <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden mb-4">
+
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div>
             <p
@@ -571,6 +572,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
+        <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-50 bg-slate-50/60">
@@ -657,10 +659,11 @@ export default function DashboardPage() {
               )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* ── Staff Leaderboard ───────────────────────────── */}
-      <div className="mt-4 grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Top staff */}
         <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
           <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-100">
