@@ -156,6 +156,7 @@ router.get("/:id/participants", requireAuth, async (req, res) => {
         phone: eventRegistrationsTable.phone,
         tags: eventRegistrationsTable.tags,
         registrationType: eventRegistrationsTable.registrationType,
+        checkedInAt: eventRegistrationsTable.checkedInAt,
         eventCount: sql<number>`cast((select count(*) from event_registrations er2 where er2.participant_id = ${participantsTable.id}) as integer)`,
       })
       .from(eventRegistrationsTable)
@@ -340,6 +341,18 @@ router.post("/:id/rsvp/check", requireAuth, async (req, res) => {
       });
     }
 
+    // Mark check-in time (attendance on the day)
+    const now = new Date();
+    await db
+      .update(eventRegistrationsTable)
+      .set({ checkedInAt: now })
+      .where(
+        and(
+          eq(eventRegistrationsTable.eventId, eventId),
+          eq(eventRegistrationsTable.participantId, participant.id)
+        )
+      );
+
     return res.json({
       valid: true,
       participant: {
@@ -353,6 +366,7 @@ router.post("/:id/rsvp/check", requireAuth, async (req, res) => {
       },
       registration: {
         registeredAt: registration.registeredAt,
+        checkedInAt: now.toISOString(),
         phone: registration.phone,
         email: registration.email,
         tags: registration.tags,

@@ -66,6 +66,7 @@ export const eventRegistrationsTable = pgTable(
     tags: text("tags"),
     registrationType: text("registration_type").default("onsite"),
     registeredAt: timestamp("registered_at").defaultNow().notNull(),
+    checkedInAt: timestamp("checked_in_at"),
   },
   (t) => [unique("uq_event_participant").on(t.eventId, t.participantId)]
 );
