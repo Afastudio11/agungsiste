@@ -228,8 +228,8 @@ export default function PemetaanPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {desaData.map((d) => (
-                  <tr key={`${d.kelurahan}-${d.kecamatan}`} className="hover:bg-slate-50/50">
+                {desaData.map((d, idx) => (
+                  <tr key={`${d.kelurahan}-${d.kecamatan}-${idx}`} className="hover:bg-slate-50/50">
                     <td className="px-5 py-3">
                       <button
                         onClick={() => setSelectedDesa(d.kelurahan)}
