@@ -123,4 +123,31 @@ router.get("/desa/:kelurahan", async (req, res) => {
   }
 });
 
+router.get("/desa/:kelurahan/event/:eventId/participants", async (req, res) => {
+  try {
+    const { kelurahan, eventId } = req.params;
+    const data = await db
+      .select({
+        nik: participantsTable.nik,
+        fullName: participantsTable.fullName,
+        gender: participantsTable.gender,
+        occupation: participantsTable.occupation,
+        phone: eventRegistrationsTable.phone,
+        tags: eventRegistrationsTable.tags,
+        registeredAt: eventRegistrationsTable.createdAt,
+      })
+      .from(participantsTable)
+      .innerJoin(eventRegistrationsTable, sql`${eventRegistrationsTable.participantId} = ${participantsTable.id}`)
+      .where(
+        sql`lower(${participantsTable.kelurahan}) = lower(${kelurahan})
+          and ${eventRegistrationsTable.eventId} = ${parseInt(eventId)}`
+      )
+      .orderBy(sql`${eventRegistrationsTable.createdAt} desc`);
+    return res.json(data);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 export default router;
