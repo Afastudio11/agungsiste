@@ -134,7 +134,7 @@ router.get("/desa/:kelurahan/event/:eventId/participants", async (req, res) => {
         occupation: participantsTable.occupation,
         phone: eventRegistrationsTable.phone,
         tags: eventRegistrationsTable.tags,
-        registeredAt: eventRegistrationsTable.createdAt,
+        registeredAt: eventRegistrationsTable.registeredAt,
       })
       .from(participantsTable)
       .innerJoin(eventRegistrationsTable, sql`${eventRegistrationsTable.participantId} = ${participantsTable.id}`)
