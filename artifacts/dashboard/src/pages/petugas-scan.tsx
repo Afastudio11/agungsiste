@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Camera, Upload, CheckCircle2, AlertCircle, Phone, Mail, Tag, FileText, User } from "lucide-react";
+import { ArrowLeft, Camera, Upload, CheckCircle2, AlertCircle, Phone, Mail, Tag, FileText, User, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -158,18 +158,21 @@ export default function PetugasScanPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-8">
+    <div className="min-h-screen bg-[#f0f4ff] pb-8" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {/* Top bar */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => navigate("/petugas")} className="p-1.5 hover:bg-slate-100 rounded-lg">
+      <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+        <button onClick={() => navigate("/petugas")} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
           <ArrowLeft className="h-4 w-4 text-slate-600" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold text-orange-600">Scan KTP — On The Spot</div>
-          <div className="text-sm font-bold text-slate-900 truncate">{event?.name || "Memuat..."}</div>
+          <div className="text-xs font-bold text-blue-600 tracking-wide">Scan KTP — On The Spot</div>
+          <div className="text-sm font-extrabold text-slate-900 truncate">{event?.name || "Memuat..."}</div>
         </div>
         {event && (
-          <div className="text-xs text-slate-400 shrink-0">{event.participantCount} terdaftar</div>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 shrink-0 bg-slate-50 px-2.5 py-1 rounded-lg">
+            <Users className="h-3 w-3" />
+            {event.participantCount}
+          </div>
         )}
       </div>
 
@@ -182,13 +185,13 @@ export default function PetugasScanPage() {
               onDragOver={(e) => e.preventDefault()}
               onClick={() => !scanning && fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition ${
-                scanning ? "border-orange-300 bg-orange-50" : "border-slate-300 bg-white hover:border-orange-400 hover:bg-orange-50/50"
+                scanning ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50/30"
               }`}
             >
               <div className="flex justify-center mb-3">
                 {scanning ? (
-                  <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center animate-pulse">
-                    <Camera className="h-6 w-6 text-orange-500" />
+                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center animate-pulse">
+                    <Camera className="h-6 w-6 text-blue-600" />
                   </div>
                 ) : (
                   <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
@@ -204,7 +207,7 @@ export default function PetugasScanPage() {
               </div>
               {!scanning && (
                 <div className="flex gap-2 justify-center">
-                  <div className="flex items-center gap-1.5 bg-orange-500 text-white text-xs font-bold px-4 py-2 rounded-xl">
+                  <div className="flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-xl">
                     <Upload className="h-3.5 w-3.5" />
                     Pilih Foto
                   </div>
@@ -321,8 +324,8 @@ export default function PetugasScanPage() {
                       }}
                       className={`text-xs px-2.5 py-1 rounded-full border transition ${
                         tags.includes(p)
-                          ? "bg-orange-500 border-orange-500 text-white"
-                          : "border-slate-200 text-slate-600 hover:border-orange-300"
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : "border-slate-200 text-slate-600 hover:border-blue-300"
                       }`}
                     >
                       {p}
@@ -351,7 +354,7 @@ export default function PetugasScanPage() {
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {tags.map((t) => (
-                      <span key={t} className="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full">
+                      <span key={t} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">
                         {t}
                         <button onClick={() => removeTag(t)} className="hover:text-red-600">×</button>
                       </span>
@@ -401,7 +404,7 @@ export default function PetugasScanPage() {
             <div className="text-sm text-slate-500 mb-6 max-w-xs mx-auto">{successMsg}</div>
             <button
               onClick={resetForm}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3 rounded-2xl text-sm transition"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-2xl text-sm transition"
             >
               📷 Scan Peserta Berikutnya
             </button>

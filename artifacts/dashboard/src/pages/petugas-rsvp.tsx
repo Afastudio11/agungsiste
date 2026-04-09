@@ -102,18 +102,21 @@ export default function PetugasRsvpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-8">
+    <div className="min-h-screen bg-[#f0f4ff] pb-8" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {/* Top bar */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => navigate("/petugas")} className="p-1.5 hover:bg-slate-100 rounded-lg">
+      <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+        <button onClick={() => navigate("/petugas")} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
           <ArrowLeft className="h-4 w-4 text-slate-600" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold text-blue-600">Scan RSVP — Verifikasi Kehadiran</div>
-          <div className="text-sm font-bold text-slate-900 truncate">{event?.name || "Memuat..."}</div>
+          <div className="text-xs font-bold text-blue-600 tracking-wide">Verifikasi RSVP</div>
+          <div className="text-sm font-extrabold text-slate-900 truncate">{event?.name || "Memuat..."}</div>
         </div>
         {event && (
-          <div className="text-xs text-slate-400 shrink-0">{event.participantCount} terdaftar</div>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 shrink-0 bg-slate-50 px-2.5 py-1 rounded-lg">
+            <User className="h-3 w-3" />
+            {event.participantCount}
+          </div>
         )}
       </div>
 
@@ -176,7 +179,7 @@ export default function PetugasRsvpPage() {
               </button>
               <button
                 onClick={() => navigate(`/petugas/scan/${eventId}`)}
-                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-sm transition"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition"
               >
                 📷 Scan KTP
               </button>
@@ -198,7 +201,7 @@ export default function PetugasRsvpPage() {
               </button>
               <button
                 onClick={() => navigate(`/petugas/scan/${eventId}`)}
-                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-sm transition"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition"
               >
                 📷 Daftarkan via KTP
               </button>
@@ -265,7 +268,7 @@ export default function PetugasRsvpPage() {
 
             <div className="bg-white rounded-2xl border border-slate-100 p-5">
               <div className="flex items-center gap-2 mb-2">
-                <User className="h-4 w-4 text-orange-500" />
+                <User className="h-4 w-4 text-blue-500" />
                 <div className="text-sm font-bold text-slate-800">Peserta Tanpa RSVP / QR Rusak?</div>
               </div>
               <div className="text-xs text-slate-500 mb-4">
@@ -273,7 +276,7 @@ export default function PetugasRsvpPage() {
               </div>
               <button
                 onClick={() => navigate(`/petugas/scan/${eventId}`)}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center gap-2"
               >
                 📷 Scan KTP — Daftar On The Spot
               </button>
