@@ -31,8 +31,14 @@ router.get("/", requireAuth, async (req, res) => {
         id: eventsTable.id,
         name: eventsTable.name,
         description: eventsTable.description,
+        category: eventsTable.category,
         location: eventsTable.location,
         eventDate: eventsTable.eventDate,
+        startTime: eventsTable.startTime,
+        endTime: eventsTable.endTime,
+        targetParticipants: eventsTable.targetParticipants,
+        isRsvp: eventsTable.isRsvp,
+        status: eventsTable.status,
         createdAt: eventsTable.createdAt,
         participantCount: sql<number>`cast(count(${eventRegistrationsTable.id}) as integer)`,
       })
@@ -68,8 +74,14 @@ router.get("/:id", requireAuth, async (req, res) => {
         id: eventsTable.id,
         name: eventsTable.name,
         description: eventsTable.description,
+        category: eventsTable.category,
         location: eventsTable.location,
         eventDate: eventsTable.eventDate,
+        startTime: eventsTable.startTime,
+        endTime: eventsTable.endTime,
+        targetParticipants: eventsTable.targetParticipants,
+        isRsvp: eventsTable.isRsvp,
+        status: eventsTable.status,
         createdAt: eventsTable.createdAt,
         participantCount: sql<number>`cast(count(${eventRegistrationsTable.id}) as integer)`,
       })
@@ -138,7 +150,11 @@ router.get("/:id/participants", requireAuth, async (req, res) => {
         birthDate: participantsTable.birthDate,
         gender: participantsTable.gender,
         occupation: participantsTable.occupation,
+        city: participantsTable.city,
         registeredAt: eventRegistrationsTable.registeredAt,
+        staffName: eventRegistrationsTable.staffName,
+        phone: eventRegistrationsTable.phone,
+        tags: eventRegistrationsTable.tags,
         eventCount: sql<number>`cast((select count(*) from event_registrations er2 where er2.participant_id = ${participantsTable.id}) as integer)`,
       })
       .from(eventRegistrationsTable)
@@ -149,6 +165,68 @@ router.get("/:id/participants", requireAuth, async (req, res) => {
     res.json(participants);
   } catch (err) {
     req.log.error({ err }, "Error listing event participants");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// RSVP: Verify a participant is registered in this event by NIK
+router.post("/:id/rsvp/check", requireAuth, async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.id);
+    const { nik } = req.body as { nik: string };
+
+    if (!nik || !nik.trim()) {
+      return res.status(400).json({ error: "NIK diperlukan" });
+    }
+
+    const { participantsTable } = await import("@workspace/db");
+
+    const participant = await db.query.participantsTable.findFirst({
+      where: (t, { eq }) => eq(t.nik, nik.trim()),
+    });
+
+    if (!participant) {
+      return res.status(404).json({ error: "NIK tidak ditemukan dalam database. Peserta belum pernah didaftarkan." });
+    }
+
+    const registration = await db.query.eventRegistrationsTable.findFirst({
+      where: (t, { and, eq }) => and(
+        eq(t.eventId, eventId),
+        eq(t.participantId, participant.id)
+      ),
+    });
+
+    if (!registration) {
+      return res.status(404).json({
+        error: "Peserta tidak terdaftar di event ini",
+        participant: {
+          fullName: participant.fullName,
+          nik: participant.nik,
+        },
+      });
+    }
+
+    return res.json({
+      valid: true,
+      participant: {
+        nik: participant.nik,
+        fullName: participant.fullName,
+        gender: participant.gender,
+        city: participant.city,
+        occupation: participant.occupation,
+        birthDate: participant.birthDate,
+        birthPlace: participant.birthPlace,
+      },
+      registration: {
+        registeredAt: registration.registeredAt,
+        phone: registration.phone,
+        email: registration.email,
+        tags: registration.tags,
+        staffName: registration.staffName,
+      },
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error checking RSVP");
     res.status(500).json({ error: "Internal server error" });
   }
 });

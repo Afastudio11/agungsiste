@@ -23,6 +23,11 @@ import PetugasRsvpPage from "@/pages/petugas-rsvp";
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+const ADMIN_PATHS = [
+  "/dashboard", "/events", "/participants", "/scan", "/staff",
+  "/officers", "/pemetaan", "/settings", "/help",
+];
+
 function AppRoutes() {
   const { user, loading } = useAuth();
   const [location] = useLocation();
@@ -41,6 +46,23 @@ function AppRoutes() {
 
   if (user && location === "/login") {
     return <Redirect to="/" />;
+  }
+
+  // Role guard: petugas cannot access admin routes
+  if (user?.role === "petugas") {
+    const isAdminPath = ADMIN_PATHS.some(
+      (p) => location === p || location.startsWith(p + "/")
+    );
+    if (isAdminPath) {
+      return <Redirect to="/petugas" />;
+    }
+  }
+
+  // Role guard: admin cannot access petugas routes
+  if (user?.role === "admin" || user?.role === "supervisor") {
+    if (location.startsWith("/petugas")) {
+      return <Redirect to="/dashboard" />;
+    }
   }
 
   return (

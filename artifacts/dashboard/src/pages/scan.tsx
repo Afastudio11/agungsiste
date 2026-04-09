@@ -38,6 +38,14 @@ export default function ScanPage() {
   const [result, setResult] = useState<{ success: boolean; message: string; totalEventsJoined?: number } | null>(null);
   const [isDuplicate, setIsDuplicate] = useState(false);
 
+  // Read user settings from localStorage
+  const getSettings = () => {
+    try {
+      const raw = localStorage.getItem("ktp_dashboard_settings");
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  };
+
   const { data: events } = useListEvents({}, { query: { queryKey: getListEventsQueryKey({}) } });
   const scanKtp = useScanKtp();
   const registerKtp = useRegisterKtp();
@@ -91,7 +99,14 @@ export default function ScanPage() {
           ...editedData,
         },
       });
-      setResult({ success: true, message: res.message, totalEventsJoined: res.totalEventsJoined });
+      const s = getSettings();
+      const msg = s.showTotalOnSuccess === false
+        ? "Peserta berhasil didaftarkan"
+        : res.message;
+      setResult({ success: true, message: msg, totalEventsJoined: res.totalEventsJoined });
+      if (s.autoResetForm) {
+        setTimeout(() => handleReset(), 2500);
+      }
     } catch (err: any) {
       const body = err?.response?.data ?? err?.data;
       if (body?.error && body?.totalEventsJoined !== undefined) {

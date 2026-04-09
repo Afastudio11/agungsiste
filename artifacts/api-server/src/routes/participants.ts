@@ -37,6 +37,10 @@ router.get("/", requireAuth, async (req, res) => {
         maritalStatus: participantsTable.maritalStatus,
         occupation: participantsTable.occupation,
         nationality: participantsTable.nationality,
+        city: participantsTable.city,
+        kecamatan: participantsTable.kecamatan,
+        kelurahan: participantsTable.kelurahan,
+        province: participantsTable.province,
         eventCount: sql<number>`cast(count(${eventRegistrationsTable.id}) as integer)`,
         firstRegisteredAt: sql<string>`min(${eventRegistrationsTable.registeredAt})`,
         lastRegisteredAt: sql<string>`max(${eventRegistrationsTable.registeredAt})`,
@@ -73,6 +77,12 @@ router.get("/:nik", requireAuth, async (req, res) => {
         location: eventsTable.location,
         eventDate: eventsTable.eventDate,
         createdAt: eventsTable.createdAt,
+        registeredAt: eventRegistrationsTable.registeredAt,
+        staffName: eventRegistrationsTable.staffName,
+        phone: eventRegistrationsTable.phone,
+        email: eventRegistrationsTable.email,
+        tags: eventRegistrationsTable.tags,
+        notes: eventRegistrationsTable.notes,
         participantCount: sql<number>`cast((select count(*) from event_registrations er where er.event_id = ${eventsTable.id}) as integer)`,
       })
       .from(eventRegistrationsTable)
@@ -91,6 +101,12 @@ router.get("/:nik", requireAuth, async (req, res) => {
       maritalStatus: participant.maritalStatus,
       occupation: participant.occupation,
       nationality: participant.nationality,
+      rtRw: participant.rtRw,
+      kelurahan: participant.kelurahan,
+      kecamatan: participant.kecamatan,
+      city: participant.city,
+      province: participant.province,
+      bloodType: participant.bloodType,
       events: registrations,
     });
   } catch (err) {

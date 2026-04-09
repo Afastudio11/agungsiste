@@ -3,10 +3,11 @@ import bcrypt from "bcryptjs";
 import { db } from "@workspace/db";
 import { usersTable, eventRegistrationsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
+import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 
-router.get("/", async (_req, res) => {
+router.get("/", requireAuth, async (_req, res) => {
   try {
     const users = await db
       .select({
@@ -19,8 +20,8 @@ router.get("/", async (_req, res) => {
         phone: usersTable.phone,
         notes: usersTable.notes,
         createdAt: usersTable.createdAt,
-        totalInput: sql<number>`count(${eventRegistrationsTable.id})`.as("total_input"),
-        totalEvent: sql<number>`count(distinct ${eventRegistrationsTable.eventId})`.as("total_event"),
+        totalInput: sql<number>`cast(count(${eventRegistrationsTable.id}) as integer)`.as("total_input"),
+        totalEvent: sql<number>`cast(count(distinct ${eventRegistrationsTable.eventId}) as integer)`.as("total_event"),
       })
       .from(usersTable)
       .leftJoin(eventRegistrationsTable, eq(eventRegistrationsTable.staffId, usersTable.id))
@@ -33,7 +34,7 @@ router.get("/", async (_req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   try {
     const { username, password, role, name, jabatan, wilayah, phone, notes } = req.body as {
       username: string; password: string; role: string; name: string;
@@ -56,7 +57,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { password, role, name, jabatan, wilayah, phone, notes } = req.body as {
@@ -80,7 +81,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await db.delete(usersTable).where(eq(usersTable.id, id));

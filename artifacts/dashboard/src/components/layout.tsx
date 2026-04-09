@@ -11,6 +11,7 @@ import {
   Map,
   LogOut,
   Shield,
+  BarChart2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
@@ -23,6 +24,7 @@ const adminNav = [
   { href: "/events", label: "Event", icon: CalendarDays },
   { href: "/participants", label: "Peserta", icon: Users },
   { href: "/officers", label: "Petugas", icon: UserCheck },
+  { href: "/staff", label: "Statistik Staf", icon: BarChart2 },
   { href: "/scan", label: "Scan KTP", icon: ScanLine },
   { href: "/pemetaan", label: "Pemetaan", icon: Map },
 ];
@@ -147,12 +149,13 @@ export default function Layout({ children }: LayoutProps) {
       {/* ── Mobile bottom navigation ──────────────────────────────────── */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-100 safe-area-bottom">
         <div className="flex items-center justify-around px-1 py-1">
-          {allNav.map(({ href, label, icon: Icon }) => {
+          {allNav.slice(0, 6).map(({ href, label, icon: Icon }) => {
             const active = location === href || location.startsWith(href + "/");
             const shortLabel =
               label === "Help & Support" ? "Help"
               : label === "Pengaturan" ? "Setting"
               : label === "Dashboard" ? "Home"
+              : label === "Statistik Staf" ? "Staf"
               : label;
             return (
               <Link key={href} href={href}>
