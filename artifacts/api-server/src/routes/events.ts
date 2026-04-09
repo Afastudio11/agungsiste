@@ -155,6 +155,7 @@ router.get("/:id/participants", requireAuth, async (req, res) => {
         staffName: eventRegistrationsTable.staffName,
         phone: eventRegistrationsTable.phone,
         tags: eventRegistrationsTable.tags,
+        registrationType: eventRegistrationsTable.registrationType,
         eventCount: sql<number>`cast((select count(*) from event_registrations er2 where er2.participant_id = ${participantsTable.id}) as integer)`,
       })
       .from(eventRegistrationsTable)

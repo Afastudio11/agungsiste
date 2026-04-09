@@ -7,9 +7,11 @@ import {
   getGetEventQueryKey,
   getListEventParticipantsQueryKey,
 } from "@workspace/api-client-react";
-import { CalendarDays, MapPin, Users, Search, ChevronLeft, Download, ClipboardList } from "lucide-react";
+import { CalendarDays, MapPin, Users, Search, ChevronLeft, Download, ClipboardList, ClipboardCheck, ScanLine } from "lucide-react";
 
-function exportCSV(participants: any[], eventName: string) {
+type TabType = "rsvp" | "onsite";
+
+function exportCSV(participants: any[], eventName: string, label: string) {
   const headers = ["NIK", "Nama", "Kelamin", "Pekerjaan", "Kota", "Waktu Daftar", "Staf", "Tag", "Total Event"];
   const rows = participants.map((p) => [
     p.nik,
@@ -27,7 +29,7 @@ function exportCSV(participants: any[], eventName: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `peserta_${eventName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `${label}_${eventName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -36,6 +38,7 @@ export default function EventDetailPage() {
   const params = useParams();
   const id = parseInt(params.id as string);
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<TabType>("rsvp");
 
   const { data: event, isLoading: eventLoading } = useGetEvent(id, {
     query: { enabled: !!id, queryKey: getGetEventQueryKey(id) },
@@ -67,6 +70,28 @@ export default function EventDetailPage() {
   const pct = (event as any).targetParticipants
     ? Math.min(100, Math.round((event.participantCount / (event as any).targetParticipants) * 100))
     : null;
+
+  const allParticipants = (participants as any[]) ?? [];
+  const rsvpList = allParticipants.filter((p) => p.registrationType === "rsvp");
+  const onsiteList = allParticipants.filter((p) => p.registrationType !== "rsvp");
+  const filteredList = activeTab === "rsvp" ? rsvpList : onsiteList;
+
+  const tabs: { key: TabType; label: string; icon: React.ReactNode; count: number; color: string }[] = [
+    {
+      key: "rsvp",
+      label: "Registrasi",
+      icon: <ClipboardList className="h-3.5 w-3.5" />,
+      count: rsvpList.length,
+      color: "blue",
+    },
+    {
+      key: "onsite",
+      label: "Absen Hari-H",
+      icon: <ScanLine className="h-3.5 w-3.5" />,
+      count: onsiteList.length,
+      color: "emerald",
+    },
+  ];
 
   return (
     <Layout>
@@ -134,20 +159,28 @@ export default function EventDetailPage() {
                 </Link>
               )}
               <div className="flex gap-3">
-              <div className="rounded-xl bg-blue-50 px-4 py-3 text-center min-w-[80px]">
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-blue-400 mb-1">Peserta</p>
-                <p className="text-[28px] font-extrabold text-blue-700" style={{ letterSpacing: "-0.04em" }}>
-                  {event.participantCount}
-                </p>
-                {pct !== null && (
-                  <>
-                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-blue-100">
-                      <div className="h-full rounded-full bg-blue-400" style={{ width: `${pct}%` }} />
-                    </div>
-                    <p className="text-[10px] text-blue-400 mt-0.5">{pct}% target</p>
-                  </>
-                )}
-              </div>
+                {/* Registrasi count */}
+                <div className="rounded-xl bg-blue-50 px-4 py-3 text-center min-w-[72px]">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-blue-400 mb-1">Registrasi</p>
+                  <p className="text-[26px] font-extrabold text-blue-700" style={{ letterSpacing: "-0.04em" }}>
+                    {participantsLoading ? "—" : rsvpList.length}
+                  </p>
+                </div>
+                {/* Absen count */}
+                <div className="rounded-xl bg-emerald-50 px-4 py-3 text-center min-w-[72px]">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-500 mb-1">Absen</p>
+                  <p className="text-[26px] font-extrabold text-emerald-700" style={{ letterSpacing: "-0.04em" }}>
+                    {participantsLoading ? "—" : onsiteList.length}
+                  </p>
+                  {pct !== null && (
+                    <>
+                      <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-emerald-100">
+                        <div className="h-full rounded-full bg-emerald-400" style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="text-[10px] text-emerald-400 mt-0.5">{pct}% target</p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -155,36 +188,85 @@ export default function EventDetailPage() {
 
         {/* Participants table */}
         <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <div>
-              <p className="text-[15px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
-                Daftar Peserta
-              </p>
-              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                {participants?.length ?? 0} peserta terdaftar
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5">
-                <Search className="h-3.5 w-3.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Cari peserta..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="bg-transparent text-[12px] text-slate-700 placeholder:text-slate-300 focus:outline-none w-[130px]"
-                />
+          {/* Header */}
+          <div className="px-6 pt-5 pb-0 border-b border-slate-100">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[15px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
+                  Daftar Peserta
+                </p>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                  {allParticipants.length} total · {rsvpList.length} registrasi · {onsiteList.length} absen
+                </p>
               </div>
-              <button
-                onClick={() => participants && exportCSV(participants as any[], event.name)}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Export
-              </button>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5">
+                  <Search className="h-3.5 w-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari peserta..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="bg-transparent text-[12px] text-slate-700 placeholder:text-slate-300 focus:outline-none w-[130px]"
+                  />
+                </div>
+                <button
+                  onClick={() =>
+                    exportCSV(
+                      filteredList,
+                      event.name,
+                      activeTab === "rsvp" ? "registrasi" : "absen"
+                    )
+                  }
+                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export
+                </button>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.key;
+                const colorMap = {
+                  blue: {
+                    active: "border-blue-600 text-blue-700",
+                    badge: "bg-blue-100 text-blue-700",
+                  },
+                  emerald: {
+                    active: "border-emerald-600 text-emerald-700",
+                    badge: "bg-emerald-100 text-emerald-700",
+                  },
+                };
+                const colors = colorMap[tab.color as keyof typeof colorMap];
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-[13px] font-bold border-b-2 transition-colors ${
+                      isActive
+                        ? colors.active
+                        : "border-transparent text-slate-400 hover:text-slate-600"
+                    }`}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                    <span
+                      className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                        isActive ? colors.badge : "bg-slate-100 text-slate-400"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
+          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -204,9 +286,9 @@ export default function EventDetailPage() {
                   <tr>
                     <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">Memuat...</td>
                   </tr>
-                ) : participants && participants.length > 0 ? (
-                  participants.map((p) => (
-                    <tr key={p.nik} className="hover:bg-blue-50/30 transition-colors">
+                ) : filteredList.length > 0 ? (
+                  filteredList.map((p) => (
+                    <tr key={p.nik} className={`transition-colors ${activeTab === "rsvp" ? "hover:bg-blue-50/30" : "hover:bg-emerald-50/30"}`}>
                       <td className="px-5 py-3 font-mono text-[11px] text-slate-500">{p.nik}</td>
                       <td className="px-5 py-3">
                         <Link href={`/participants/${p.nik}`}>
@@ -214,13 +296,13 @@ export default function EventDetailPage() {
                             {p.fullName}
                           </span>
                         </Link>
-                        {(p as any).staffName && (
-                          <div className="text-[10px] text-slate-400 mt-0.5">via {(p as any).staffName}</div>
+                        {p.staffName && (
+                          <div className="text-[10px] text-slate-400 mt-0.5">via {p.staffName}</div>
                         )}
                       </td>
                       <td className="px-5 py-3 text-sm text-slate-500">{p.gender ?? "—"}</td>
                       <td className="px-5 py-3 text-sm text-slate-500 max-w-[120px] truncate">{p.occupation ?? "—"}</td>
-                      <td className="px-5 py-3 text-sm text-slate-500">{(p as any).city ?? "—"}</td>
+                      <td className="px-5 py-3 text-sm text-slate-500">{p.city ?? "—"}</td>
                       <td className="px-5 py-3 text-[11px] text-slate-400 whitespace-nowrap">
                         {new Date(p.registeredAt).toLocaleString("id-ID")}
                       </td>
@@ -234,8 +316,24 @@ export default function EventDetailPage() {
                 ) : (
                   <tr>
                     <td colSpan={7} className="px-5 py-12 text-center">
-                      <Users className="h-8 w-8 mx-auto mb-2 text-slate-200" />
-                      <p className="text-sm text-slate-400">Belum ada peserta terdaftar</p>
+                      {activeTab === "rsvp" ? (
+                        <>
+                          <ClipboardList className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+                          <p className="text-sm text-slate-400">Belum ada peserta yang registrasi pra-acara</p>
+                          {(event as any).isRsvp && (
+                            <Link href={`/events/${id}/rsvp`}>
+                              <span className="mt-2 inline-block text-xs font-bold text-blue-600 hover:underline cursor-pointer">
+                                Kelola daftar RSVP →
+                              </span>
+                            </Link>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <ClipboardCheck className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+                          <p className="text-sm text-slate-400">Belum ada absen hari-H dari petugas lapangan</p>
+                        </>
+                      )}
                     </td>
                   </tr>
                 )}
