@@ -1,9 +1,8 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { participantsTable, eventRegistrationsTable, eventsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
-import { ScanKtpBody, RegisterKtpBody } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/auth";
+import { participantsTable, eventRegistrationsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 import OpenAI from "openai";
 
 const router = Router();
@@ -13,11 +12,37 @@ const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
 });
 
-router.post("/scan", requireAuth, async (req, res) => {
-  try {
-    const body = ScanKtpBody.parse(req.body);
-    const { imageBase64 } = body;
+const ScanBody = z.object({ imageBase64: z.string() });
 
+const RegisterBody = z.object({
+  eventId: z.number(),
+  staffId: z.number().optional(),
+  staffName: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  notes: z.string().optional(),
+  tags: z.string().optional(),
+  nik: z.string(),
+  fullName: z.string(),
+  address: z.string().optional(),
+  birthPlace: z.string().optional(),
+  birthDate: z.string().optional(),
+  gender: z.string().optional(),
+  religion: z.string().optional(),
+  maritalStatus: z.string().optional(),
+  occupation: z.string().optional(),
+  nationality: z.string().optional(),
+  rtRw: z.string().optional(),
+  kelurahan: z.string().optional(),
+  kecamatan: z.string().optional(),
+  province: z.string().optional(),
+  city: z.string().optional(),
+  bloodType: z.string().optional(),
+});
+
+router.post("/scan", async (req, res) => {
+  try {
+    const { imageBase64 } = ScanBody.parse(req.body);
     const response = await openai.chat.completions.create({
       model: "gpt-5.2",
       max_completion_tokens: 2000,
@@ -51,10 +76,7 @@ Return only the JSON, no explanation, no markdown.`,
             },
             {
               type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
-                detail: "high",
-              },
+              image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: "high" },
             },
           ],
         },
@@ -63,14 +85,11 @@ Return only the JSON, no explanation, no markdown.`,
 
     const content = response.choices[0]?.message?.content ?? "{}";
     let ktpData: Record<string, string | null> = {};
-
     try {
-      const cleaned = content.replace(/```json\n?|```/g, "").trim();
-      ktpData = JSON.parse(cleaned);
+      ktpData = JSON.parse(content.replace(/```json\n?|```/g, "").trim());
     } catch {
       req.log.warn({ content }, "Failed to parse KTP extraction response");
     }
-
     res.json(ktpData);
   } catch (err) {
     req.log.error({ err }, "Error scanning KTP");
@@ -78,10 +97,10 @@ Return only the JSON, no explanation, no markdown.`,
   }
 });
 
-router.post("/register", requireAuth, async (req, res) => {
+router.post("/register", async (req, res) => {
   try {
-    const body = RegisterKtpBody.parse(req.body);
-    const { eventId, nik, fullName, ...rest } = body;
+    const body = RegisterBody.parse(req.body);
+    const { eventId, staffId, staffName, phone, email, notes, tags, nik, fullName, ...rest } = body;
 
     let participant = await db.query.participantsTable.findFirst({
       where: eq(participantsTable.nik, nik),
@@ -90,21 +109,16 @@ router.post("/register", requireAuth, async (req, res) => {
     const isNewParticipant = !participant;
 
     if (!participant) {
-      const [newParticipant] = await db
-        .insert(participantsTable)
-        .values({ nik, fullName, ...rest })
-        .returning();
-      participant = newParticipant;
+      const [p] = await db.insert(participantsTable).values({ nik, fullName, ...rest }).returning();
+      participant = p;
     } else {
-      await db
-        .update(participantsTable)
+      await db.update(participantsTable)
         .set({ fullName, ...rest, updatedAt: new Date() })
         .where(eq(participantsTable.id, participant.id));
     }
 
     const existing = await db.query.eventRegistrationsTable.findFirst({
-      where: (t, { and, eq }) =>
-        and(eq(t.eventId, eventId), eq(t.participantId, participant!.id)),
+      where: (t, { and, eq }) => and(eq(t.eventId, eventId), eq(t.participantId, participant!.id)),
     });
 
     const totalEventsJoined = await db.$count(
@@ -114,33 +128,34 @@ router.post("/register", requireAuth, async (req, res) => {
 
     if (existing) {
       return res.status(409).json({
-        error: "Participant already registered for this event",
-        nik,
-        eventId,
-        totalEventsJoined,
+        error: "Peserta sudah terdaftar di event ini",
+        nik, eventId, totalEventsJoined,
       });
     }
 
-    const [registration] = await db
-      .insert(eventRegistrationsTable)
-      .values({ eventId, participantId: participant.id, staffName: body.staffName ?? null })
-      .returning();
-
-    const newTotal = totalEventsJoined + 1;
+    const [registration] = await db.insert(eventRegistrationsTable).values({
+      eventId, participantId: participant.id,
+      staffName: staffName ?? null,
+      staffId: staffId ?? null,
+      phone: phone ?? null,
+      email: email ?? null,
+      notes: notes ?? null,
+      tags: tags ?? null,
+    }).returning();
 
     res.status(201).json({
       success: true,
       participantId: participant.id,
       registrationId: registration.id,
       isNewParticipant,
-      totalEventsJoined: newTotal,
+      totalEventsJoined: totalEventsJoined + 1,
       message: isNewParticipant
-        ? `Peserta baru berhasil didaftarkan ke event ini`
-        : `Peserta berhasil didaftarkan. Total event diikuti: ${newTotal}`,
+        ? "Peserta baru berhasil didaftarkan"
+        : `Peserta berhasil didaftarkan. Total event: ${totalEventsJoined + 1}`,
     });
   } catch (err) {
     req.log.error({ err }, "Error registering KTP");
-    res.status(400).json({ error: "Invalid data" });
+    res.status(400).json({ error: "Data tidak valid" });
   }
 });
 
