@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UI/UX Design — Sistem Registrasi KTP</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue:   #2563eb;
+    --blue-l: #eff6ff;
+    --orange: #ea580c;
+    --org-l:  #fff7ed;
+    --slate:  #64748b;
+    --slate-l:#f8fafc;
+    --border: #e2e8f0;
+    --text:   #0f172a;
+    --muted:  #94a3b8;
+    --green:  #16a34a;
+    --red:    #dc2626;
+    --amber:  #d97706;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f1f5f9;
+    color: var(--text);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  /* ── Print & PDF layout ────────────────────────── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+    margin: 0 auto 12px;
+    padding: 16mm 14mm 14mm;
+    position: relative;
+    page-break-after: always;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  }
+
+  @media print {
+    body { background: white; }
+    .page {
+      margin: 0;
+      box-shadow: none;
+      page-break-after: always;
+    }
+    .no-print { display: none !important; }
+  }
+
+  /* ── Cover ──────────────────────────────────────── */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 0;
+  }
+  .cover-badge {
+    display: inline-block;
+    background: var(--blue);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+  .cover h1 {
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: -.04em;
+    color: var(--text);
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  .cover h1 span { color: var(--blue); }
+  .cover .sub {
+    font-size: 13px;
+    color: var(--slate);
+    font-weight: 400;
+    max-width: 360px;
+    margin: 0 auto 40px;
+    line-height: 1.7;
+  }
+  .cover-divider {
+    width: 60px;
+    height: 3px;
+    background: var(--blue);
+    border-radius: 2px;
+    margin: 0 auto 40px;
+  }
+  .cover-roles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 48px;
+  }
+  .role-card {
+    border-radius: 16px;
+    padding: 20px;
+    text-align: left;
+  }
+  .role-card.admin { background: var(--blue-l); border: 1.5px solid #bfdbfe; }
+  .role-card.petugas { background: var(--org-l); border: 1.5px solid #fed7aa; }
+  .role-card .icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  .role-card.admin .icon { background: #2563eb; }
+  .role-card.petugas .icon { background: var(--orange); }
+  .role-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .role-card p { font-size: 10px; color: var(--slate); }
+  .cover-toc {
+    width: 100%;
+    text-align: left;
+    background: var(--slate-l);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+  .cover-toc h4 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 10px; }
+  .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; }
+  .toc-item { font-size: 10px; color: var(--slate); padding: 2px 0; }
+  .toc-item span { color: var(--muted); font-size: 9px; }
+
+  /* ── Section header ─────────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-header .pill {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+  }
+  .pill-admin { background: var(--blue); color: white; }
+  .pill-petugas { background: var(--orange); color: white; }
+  .pill-auth { background: #7c3aed; color: white; }
+  .section-header h2 { font-size: 16px; font-weight: 800; letter-spacing: -.02em; }
+  .section-header .pg { margin-left: auto; font-size: 9px; color: var(--muted); font-weight: 600; }
+
+  /* ── Screen mockup ──────────────────────────────── */
+  .screen {
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .screen-title {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    padding: 6px 12px 5px;
+    background: var(--slate-l);
+    border-bottom: 1px solid var(--border);
+  }
+  .screen-body {
+    padding: 10px 12px;
+  }
+
+  /* ── Wireframe components ───────────────────────── */
+  .wf-topbar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .wf-logo { font-weight: 800; font-size: 12px; color: var(--blue); }
+  .wf-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #dbeafe;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--blue);
+  }
+  .wf-sidebar {
+    width: 100px;
+    min-height: 100%;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    flex-shrink: 0;
+  }
+  .wf-sidebar-logo {
+    font-weight: 800;
+    font-size: 11px;
+    color: var(--blue);
+    padding: 0 4px 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .nav-item {
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 9.5px;
+    font-weight: 500;
+    color: var(--slate);
+    margin-bottom: 1px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .nav-item.active {
+    background: var(--blue-l);
+    color: var(--blue);
+    font-weight: 700;
+  }
+  .nav-item .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .layout-with-sidebar {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .main-content { flex: 1; min-width: 0; }
+
+  .wf-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: white;
+    margin-bottom: 8px;
+  }
+  .wf-card-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .stat-row-3 { grid-template-columns: repeat(3, 1fr); }
+  .stat-row-2 { grid-template-columns: repeat(2, 1fr); }
+  .stat-box {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: white;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 8px 8px 0 0; }
+  .stat-label { font-size: 8.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
+  .stat-value { font-size: 18px; font-weight: 900; letter-spacing: -.04em; color: var(--text); }
+  .stat-value.sm { font-size: 14px; }
+
+  .wf-input {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    background: var(--slate-l);
+    font-size: 9.5px;
+    color: var(--muted);
+    width: 100%;
+    margin-bottom: 5px;
+  }
+  .wf-input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .wf-label {
+    font-size: 8.5px;
+    font-weight: 600;
+    color: var(--slate);
+    margin-bottom: 2px;
+    display: block;
+  }
+  .wf-field { margin-bottom: 6px; }
+
+  .wf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 9.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-orange { background: var(--orange); color: white; }
+  .btn-outline { border: 1.5px solid var(--border); color: var(--slate); background: white; }
+  .btn-green { background: #16a34a; color: white; }
+  .btn-sm { padding: 3px 8px; font-size: 8.5px; }
+
+  .wf-table { width: 100%; border-collapse: collapse; }
+  .wf-table th {
+    text-align: left;
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    padding: 5px 8px;
+    background: var(--slate-l);
+    border-bottom: 1px solid var(--border);
+  }
+  .wf-table td {
+    padding: 6px 8px;
+    font-size: 9.5px;
+    color: var(--slate);
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .wf-table tr:last-child td { border-bottom: none; }
+  .wf-table td strong { color: var(--text); font-weight: 600; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-size: 8.5px;
+    font-weight: 700;
+  }
+  .badge-green { background: #dcfce7; color: var(--green); }
+  .badge-gray { background: #f1f5f9; color: var(--slate); }
+  .badge-blue { background: #dbeafe; color: var(--blue); }
+  .badge-orange { background: #ffedd5; color: var(--orange); }
+  .badge-red { background: #fee2e2; color: var(--red); }
+
+  .tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--slate-l);
+    padding: 3px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .tab {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .tab.active { background: white; color: var(--blue); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    background: white;
+    margin-bottom: 8px;
+  }
+  .search-bar input-placeholder {
+    flex: 1;
+    font-size: 9.5px;
+    color: var(--muted);
+  }
+
+  .scan-box {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    background: var(--slate-l);
+    margin-bottom: 8px;
+  }
+  .scan-box .icon-lg { font-size: 28px; margin-bottom: 6px; }
+  .scan-box p { font-size: 9.5px; color: var(--muted); }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill { height: 100%; border-radius: 3px; background: var(--blue); }
+
+  .map-placeholder {
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 9.5px;
+    font-weight: 600;
+  }
+  .map-placeholder .icon { font-size: 24px; }
+
+  .chart-placeholder {
+    background: var(--slate-l);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 9px;
+  }
+
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 50px;
+    padding: 0 4px;
+  }
+  .bar-chart-bar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    background: #bfdbfe;
+    position: relative;
+    min-width: 8px;
+  }
+  .bar-chart-bar.active { background: var(--blue); }
+
+  .notif {
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 9.5px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .notif-success { background: #dcfce7; color: var(--green); }
+  .notif-error { background: #fee2e2; color: var(--red); }
+  .notif-info { background: #dbeafe; color: var(--blue); }
+
+  .annotation {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 8.5px;
+    color: #92400e;
+    margin-top: 6px;
+  }
+  .annotation strong { font-weight: 700; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  .page-footer {
+    position: absolute;
+    bottom: 10mm;
+    left: 14mm;
+    right: 14mm;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+    padding-top: 6px;
+  }
+  .page-footer span { font-size: 8px; color: var(--muted); }
+
+  .rank-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .rank-1 { background: #fef3c7; color: #92400e; }
+  .rank-2 { background: #f1f5f9; color: var(--slate); }
+  .rank-3 { background: #ffedd5; color: var(--orange); }
+  .rank-n { background: #f8fafc; color: var(--muted); }
+
+  .leaderboard-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid #f8fafc;
+  }
+  .leaderboard-row:last-child { border-bottom: none; }
+  .leaderboard-row .info { flex: 1; min-width: 0; }
+  .leaderboard-row .info strong { font-size: 9.5px; color: var(--text); }
+  .leaderboard-row .info small { display: block; font-size: 8px; color: var(--muted); }
+  .leaderboard-row .count { font-size: 12px; font-weight: 800; color: var(--text); letter-spacing: -.03em; }
+
+  .event-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: white;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .event-card-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .event-card-dot.done { background: var(--muted); }
+  .event-card .info { flex: 1; min-width: 0; }
+  .event-card .info h4 { font-size: 10px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .event-card .info p { font-size: 8.5px; color: var(--muted); }
+  .event-card .actions { display: flex; align-items: center; gap: 4px; }
+
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--slate-l);
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .profile-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--blue-l);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .profile-header .info h3 { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+  .profile-header .info p { font-size: 9px; color: var(--muted); }
+
+  .ktp-card {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: white;
+    margin-bottom: 8px;
+  }
+  .ktp-card .ktp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .ktp-card .ktp-header h4 { font-size: 9px; font-weight: 700; letter-spacing: .05em; opacity: .8; }
+  .ktp-card .ktp-nik { font-size: 14px; font-weight: 800; letter-spacing: .08em; margin-bottom: 8px; font-family: monospace; }
+  .ktp-card .ktp-name { font-size: 11px; font-weight: 700; margin-bottom: 6px; }
+  .ktp-card .ktp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .ktp-card .ktp-field label { font-size: 7px; opacity: .6; display: block; }
+  .ktp-card .ktp-field span { font-size: 9px; font-weight: 600; }
+
+  .filter-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 8.5px;
+    font-weight: 600;
+    color: var(--slate);
+    background: white;
+  }
+  .filter-chip.active { background: var(--blue-l); border-color: #93c5fd; color: var(--blue); }
+
+  /* Print button */
+  .print-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(37,99,235,.3);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Inter', sans-serif;
+  }
+  .print-btn:hover { background: #1d4ed8; }
+  @media print { .print-btn { display: none; } }
+
+  .divider { height: 1px; background: var(--border); margin: 10px 0; }
+
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .gap-6 { gap: 6px; }
+  .gap-8 { gap: 8px; }
+  .flex-1 { flex: 1; }
+  .mb-6 { margin-bottom: 6px; }
+  .mb-8 { margin-bottom: 8px; }
+  .mb-10 { margin-bottom: 10px; }
+  .text-muted { color: var(--muted); font-size: 9px; }
+  .fw-700 { font-weight: 700; }
+  .fs-10 { font-size: 10px; }
+  .fs-9 { font-size: 9px; }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     COVER
+════════════════════════════════════════════════════════════════ -->
+<div class="page cover">
+  <div class="cover-badge">UI/UX Design Document</div>
+  <h1>Sistem Registrasi<br /><span>Berbasis KTP</span></h1>
+  <p class="sub">Dokumen desain antarmuka untuk platform manajemen registrasi peserta event dengan fitur scan KTP, RSVP, pemetaan wilayah, dan laporan.</p>
+  <div class="cover-divider"></div>
+
+  <div class="cover-roles">
+    <div class="role-card admin">
+      <div class="icon">🛡️</div>
+      <h3>Admin</h3>
+      <p>Dashboard, Event, Petugas, Peserta, Pemetaan, Pengaturan</p>
+    </div>
+    <div class="role-card petugas">
+      <div class="icon">👤</div>
+      <h3>Petugas</h3>
+      <p>Pilih Event, Scan KTP On-The-Spot, Scan Barcode RSVP</p>
+    </div>
+  </div>
+
+  <div class="cover-toc">
+    <h4>Daftar Halaman</h4>
+    <div class="toc-grid">
+      <div class="toc-item">1. Login &amp; Pemilihan Role <span>→ hal. 2</span></div>
+      <div class="toc-item">7. Halaman Admin: Peserta <span>→ hal. 8</span></div>
+      <div class="toc-item">2. Petugas: Daftar Event <span>→ hal. 3</span></div>
+      <div class="toc-item">8. Profil Peserta <span>→ hal. 9</span></div>
+      <div class="toc-item">3. Petugas: Scan KTP (On The Spot) <span>→ hal. 4</span></div>
+      <div class="toc-item">9. Halaman Admin: Pemetaan <span>→ hal. 10</span></div>
+      <div class="toc-item">4. Petugas: Scan Barcode (RSVP) <span>→ hal. 5</span></div>
+      <div class="toc-item">10. Profil Desa <span>→ hal. 11</span></div>
+      <div class="toc-item">5. Admin: Dashboard <span>→ hal. 6</span></div>
+      <div class="toc-item">11. Halaman Admin: Petugas <span>→ hal. 12</span></div>
+      <div class="toc-item">6. Admin: Manajemen Event <span>→ hal. 7</span></div>
+      <div class="toc-item">12. Profil Petugas &amp; RSVP <span>→ hal. 13</span></div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Confidential</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 2 — LOGIN
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-auth">Autentikasi</span>
+    <h2>Login &amp; Pemilihan Role</h2>
+    <span class="pg">Hal. 2</span>
+  </div>
+
+  <div class="grid-2">
+    <!-- Login form -->
+    <div class="screen">
+      <div class="screen-title">Login Page</div>
+      <div class="screen-body">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="width:40px;height:40px;background:var(--blue);border-radius:12px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:20px;">🪪</div>
+          <div style="font-size:14px;font-weight:800;letter-spacing:-.03em;">KTP Registrasi</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px;">Sistem Manajemen Peserta Event</div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div class="wf-label">Masuk sebagai</div>
+          <div class="tabs">
+            <div class="tab active" style="flex:1;text-align:center;">🛡️ Admin</div>
+            <div class="tab" style="flex:1;text-align:center;">👤 Petugas</div>
+          </div>
+        </div>
+
+        <div class="wf-field">
+          <span class="wf-label">Username</span>
+          <div class="wf-input">Masukkan username...</div>
+        </div>
+        <div class="wf-field">
+          <span class="wf-label">Password</span>
+          <div class="wf-input">••••••••</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <label style="font-size:8.5px;color:var(--slate);display:flex;align-items:center;gap:4px;">
+            <div style="width:12px;height:12px;border:1.5px solid var(--border);border-radius:3px;"></div>
+            Ingat saya
+          </label>
+          <span style="font-size:8.5px;color:var(--blue);font-weight:600;cursor:pointer;">Lupa password?</span>
+        </div>
+        <div class="wf-btn btn-primary" style="width:100%;justify-content:center;padding:8px;">Masuk</div>
+      </div>
+    </div>
+
+    <!-- Role selection UI detail -->
+    <div>
+      <div class="screen">
+        <div class="screen-title">Tampilan Setelah Login — Admin</div>
+        <div class="screen-body" style="padding:8px;">
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <div style="width:28px;height:28px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;">🛡️</div>
+              <div>
+                <div style="font-size:10px;font-weight:700;">Dashboard Admin</div>
+                <div style="font-size:8.5px;color:var(--muted);">Akses penuh ke semua fitur</div>
+              </div>
+              <div class="badge badge-green" style="margin-left:auto;">Aktif</div>
+            </div>
+            <div style="font-size:8.5px;color:var(--slate);">Fitur: Dashboard · Event · Petugas · Peserta · Pemetaan · Pengaturan</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen">
+        <div class="screen-title">Tampilan Setelah Login — Petugas</div>
+        <div class="screen-body" style="padding:8px;">
+          <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <div style="width:28px;height:28px;border-radius:8px;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>
+              <div>
+                <div style="font-size:10px;font-weight:700;">Portal Petugas</div>
+                <div style="font-size:8.5px;color:var(--muted);">Akses terbatas pada event yang ditugaskan</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;font-size:8.5px;">
+              <div style="flex:1;background:white;border-radius:6px;padding:6px 8px;border:1px solid var(--border);">
+                <div style="color:var(--muted);">Nama</div>
+                <div style="font-weight:700;">Budi Santoso</div>
+              </div>
+              <div style="flex:1;background:white;border-radius:6px;padding:6px 8px;border:1px solid var(--border);">
+                <div style="color:var(--muted);">Jabatan</div>
+                <div style="font-weight:700;">Koordinator</div>
+              </div>
+              <div style="flex:1;background:white;border-radius:6px;padding:6px 8px;border:1px solid var(--border);">
+                <div style="color:var(--muted);">Wilayah</div>
+                <div style="font-weight:700;">Kab. Bandung</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>Catatan Desain:</strong> Toggle role di atas form login mengubah label dan warna aksen halaman. Admin = biru, Petugas = oranye. Setelah berhasil login, redirect otomatis ke halaman sesuai role.
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 2 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 3 — PETUGAS: EVENT LIST
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-petugas">Petugas</span>
+    <h2>Halaman Utama Petugas</h2>
+    <span class="pg">Hal. 3</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="screen">
+      <div class="screen-title">Portal Petugas — Daftar Event Aktif</div>
+      <div class="screen-body">
+        <!-- Petugas header -->
+        <div style="background:linear-gradient(135deg,#ea580c,#c2410c);border-radius:10px;padding:12px;color:white;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:9px;opacity:.7;font-weight:600;letter-spacing:.05em;">PORTAL PETUGAS</div>
+            <div class="wf-btn btn-outline" style="font-size:8px;padding:3px 8px;background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:white;">Sign Out</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>
+            <div>
+              <div style="font-size:13px;font-weight:800;letter-spacing:-.02em;">Budi Santoso</div>
+              <div style="font-size:9px;opacity:.75;">Koordinator · Kab. Bandung Barat</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:8px;">📋 Event Aktif — Pilih untuk Mulai Scan</div>
+
+        <div class="event-card">
+          <div class="event-card-dot"></div>
+          <div class="event-card-info" style="flex:1;">
+            <div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:2px;">Festival Budaya Nusantara 2025</div>
+            <div style="font-size:8.5px;color:var(--muted);">📅 21 Apr 2025 &nbsp; 📍 GBK, Jakarta</div>
+            <div style="font-size:8.5px;color:var(--muted);margin-top:2px;">👥 Target: 500 peserta · Terdaftar: 312</div>
+          </div>
+          <div class="wf-btn btn-orange btn-sm">Pilih →</div>
+        </div>
+
+        <div class="event-card">
+          <div class="event-card-dot"></div>
+          <div class="event-card-info" style="flex:1;">
+            <div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:2px;">Seminar Pendidikan Nasional</div>
+            <div style="font-size:8.5px;color:var(--muted);">📅 25 Apr 2025 &nbsp; 📍 UI, Depok</div>
+            <div style="font-size:8.5px;color:var(--muted);margin-top:2px;">👥 Target: 300 peserta · Terdaftar: 198</div>
+          </div>
+          <div class="wf-btn btn-orange btn-sm">Pilih →</div>
+        </div>
+
+        <div class="event-card">
+          <div class="event-card-dot" style="background:#f59e0b;"></div>
+          <div class="event-card-info" style="flex:1;">
+            <div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:2px;">Expo UMKM Indonesia Bangkit</div>
+            <div style="font-size:8.5px;color:var(--muted);">📅 02 Mei 2025 &nbsp; 📍 ICE BSD, Tangerang</div>
+            <div style="font-size:8.5px;color:var(--muted);margin-top:2px;">👥 Target: 1.000 peserta · RSVP</div>
+          </div>
+          <div class="wf-btn btn-orange btn-sm">Pilih →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event detail preview (read only) -->
+    <div class="screen">
+      <div class="screen-title">Preview Detail Event (Read Only)</div>
+      <div class="screen-body">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div class="badge badge-green" style="margin-bottom:4px;">Aktif</div>
+            <div style="font-size:12px;font-weight:800;letter-spacing:-.02em;color:var(--text);">Festival Budaya Nusantara 2025</div>
+            <div style="font-size:9px;color:var(--muted);margin-top:2px;">Seni &amp; Budaya · 21 April 2025</div>
+          </div>
+        </div>
+
+        <div class="stat-row" style="grid-template-columns:1fr 1fr;margin-bottom:10px;">
+          <div class="stat-box">
+            <div class="stat-accent" style="background:var(--blue);"></div>
+            <div class="stat-label">Kapasitas</div>
+            <div class="stat-value sm">500</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-accent" style="background:var(--green);"></div>
+            <div class="stat-label">Terdaftar</div>
+            <div class="stat-value sm">312</div>
+          </div>
+        </div>
+
+        <div class="wf-card" style="background:var(--slate-l);">
+          <div style="font-size:9.5px;font-weight:700;color:var(--slate);margin-bottom:6px;">📍 Informasi Event</div>
+          <div style="display:grid;grid-template-columns:80px 1fr;gap:3px;font-size:8.5px;">
+            <span style="color:var(--muted);">Lokasi</span><span style="font-weight:600;">Gelora Bung Karno, Jakarta</span>
+            <span style="color:var(--muted);">Tanggal</span><span style="font-weight:600;">21 April 2025, 08.00–17.00</span>
+            <span style="color:var(--muted);">Kategori</span><span style="font-weight:600;">Festival &amp; Budaya</span>
+            <span style="color:var(--muted);">Sistem</span><span><span class="badge badge-blue">On The Spot</span></span>
+          </div>
+        </div>
+
+        <div class="wf-btn btn-orange" style="width:100%;justify-content:center;margin-top:8px;padding:8px;">
+          Mulai Scan KTP →
+        </div>
+
+        <div class="annotation" style="margin-top:8px;">
+          <strong>Catatan:</strong> Petugas tidak melihat tombol Edit. Tampilan ini hanya informasi event sebelum memulai scan.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 3 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 4 — PETUGAS: SCAN KTP ON THE SPOT
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-petugas">Petugas</span>
+    <h2>Scan KTP — Sistem On The Spot</h2>
+    <span class="pg">Hal. 4</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+    <!-- Upload/Scan -->
+    <div class="screen">
+      <div class="screen-title">1. Upload / Scan Foto KTP</div>
+      <div class="screen-body">
+        <div style="display:flex;align-items:center;gap:6px;background:var(--org-l);border-radius:8px;padding:8px;margin-bottom:8px;border:1px solid #fed7aa;">
+          <div style="font-size:9px;color:var(--orange);font-weight:700;">📍 Festival Budaya 2025</div>
+          <div class="wf-btn btn-outline btn-sm" style="margin-left:auto;font-size:7px;">Ganti</div>
+        </div>
+
+        <div class="scan-box" style="border-color:var(--orange);">
+          <div class="icon-lg">📸</div>
+          <p style="font-weight:600;color:var(--orange);">Upload Foto KTP</p>
+          <p style="margin-top:4px;">Ambil foto atau pilih dari galeri</p>
+          <div style="display:flex;gap:4px;justify-content:center;margin-top:8px;">
+            <div class="wf-btn btn-orange btn-sm">📷 Kamera</div>
+            <div class="wf-btn btn-outline btn-sm">🖼 Galeri</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:6px;padding:8px;background:var(--slate-l);border-radius:8px;font-size:9px;color:var(--muted);">
+          <div class="icon-lg" style="font-size:14px;">⚡</div>
+          AI membaca data KTP secara otomatis. Foto tidak disimpan.
+        </div>
+      </div>
+    </div>
+
+    <!-- Data KTP -->
+    <div class="screen">
+      <div class="screen-title">2. Data KTP Terdeteksi AI</div>
+      <div class="screen-body">
+        <div class="ktp-card">
+          <div class="ktp-header">
+            <h4>REPUBLIK INDONESIA</h4>
+            <span style="font-size:8px;">📸 OCR ✓</span>
+          </div>
+          <div class="ktp-nik">3271234567890001</div>
+          <div class="ktp-name">BUDI SANTOSO</div>
+          <div class="ktp-grid">
+            <div class="ktp-field"><label>Tempat/Tgl Lahir</label><span>Bandung, 01-05-1990</span></div>
+            <div class="ktp-field"><label>Jenis Kelamin</label><span>Laki-laki</span></div>
+            <div class="ktp-field"><label>Agama</label><span>Islam</span></div>
+            <div class="ktp-field"><label>Status</label><span>Kawin</span></div>
+            <div class="ktp-field"><label>Pekerjaan</label><span>Karyawan Swasta</span></div>
+            <div class="ktp-field"><label>Gol. Darah</label><span>O+</span></div>
+          </div>
+        </div>
+
+        <div class="wf-field">
+          <span class="wf-label">Alamat</span>
+          <div class="wf-input">Jl. Merdeka No. 12 RT 03/07...</div>
+        </div>
+        <div class="wf-input-row">
+          <div class="wf-field">
+            <span class="wf-label">Kecamatan</span>
+            <div class="wf-input">Cimahi Selatan</div>
+          </div>
+          <div class="wf-field">
+            <span class="wf-label">Kabupaten</span>
+            <div class="wf-input">Kab. Bandung Barat</div>
+          </div>
+        </div>
+
+        <div class="annotation" style="margin:4px 0 0;">
+          <strong>Editable:</strong> Semua field bisa diedit manual jika AI salah baca.
+        </div>
+      </div>
+    </div>
+
+    <!-- Kontak + Keterangan + Submit -->
+    <div class="screen">
+      <div class="screen-title">3. Kontak, Keterangan &amp; Submit</div>
+      <div class="screen-body">
+        <div style="font-size:9.5px;font-weight:700;color:var(--text);margin-bottom:6px;">📞 Data Kontak</div>
+        <div class="wf-field">
+          <span class="wf-label">Nomor HP</span>
+          <div class="wf-input">+62 8xx xxxx xxxx</div>
+        </div>
+        <div class="wf-field">
+          <span class="wf-label">Email</span>
+          <div class="wf-input">email@domain.com</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div style="font-size:9.5px;font-weight:700;color:var(--text);margin-bottom:6px;">🏷 Keterangan (Tagging)</div>
+        <div class="wf-field">
+          <span class="wf-label">Profesi / Kategori</span>
+          <div class="wf-input">Pilih profesi...</div>
+        </div>
+        <div class="wf-field">
+          <span class="wf-label">Catatan Tambahan</span>
+          <div class="wf-input" style="min-height:36px;">Catatan bebas...</div>
+        </div>
+        <div class="wf-field">
+          <span class="wf-label">Tag</span>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <div class="filter-chip active">Undangan</div>
+            <div class="filter-chip">VIP</div>
+            <div class="filter-chip">Media</div>
+            <div class="filter-chip">+ Tambah</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="wf-btn btn-green" style="width:100%;justify-content:center;padding:8px;font-size:10px;">
+          ✓ Submit Absen
+        </div>
+
+        <div class="notif-success notif" style="margin-top:8px;display:flex;align-items:center;gap:6px;">
+          ✓ Berhasil! Peserta terdaftar. Siap scan berikutnya.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 4 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 5 — PETUGAS: SCAN BARCODE RSVP
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-petugas">Petugas</span>
+    <h2>Scan Barcode — Sistem RSVP</h2>
+    <span class="pg">Hal. 5</span>
+  </div>
+
+  <div class="grid-2">
+    <!-- RSVP scan -->
+    <div class="screen">
+      <div class="screen-title">Scan QR Code — Peserta RSVP</div>
+      <div class="screen-body">
+        <div style="display:flex;align-items:center;gap:6px;background:#eff6ff;border-radius:8px;padding:8px;margin-bottom:8px;border:1px solid #bfdbfe;">
+          <div style="font-size:9px;color:var(--blue);font-weight:700;">📍 Expo UMKM Indonesia Bangkit · RSVP Mode</div>
+        </div>
+
+        <div class="scan-box" style="border-color:var(--blue);background:#eff6ff;padding:24px;">
+          <div class="icon-lg" style="font-size:36px;">⬛</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;gap:2px;width:60px;margin:4px auto 8px;opacity:.4;">
+            <div style="background:var(--text);width:100%;aspect-ratio:1;border-radius:2px;"></div>
+            <div></div>
+            <div style="background:var(--text);width:100%;aspect-ratio:1;border-radius:2px;"></div>
+            <div></div>
+            <div style="background:var(--text);width:100%;aspect-ratio:1;border-radius:2px;"></div>
+            <div></div>
+            <div style="background:var(--text);width:100%;aspect-ratio:1;border-radius:2px;"></div>
+            <div></div>
+            <div style="background:var(--text);width:100%;aspect-ratio:1;border-radius:2px;"></div>
+          </div>
+          <p style="font-weight:700;color:var(--blue);font-size:10px;">Arahkan kamera ke QR Code peserta</p>
+          <p style="margin-top:4px;">QR Code dikirim via email saat konfirmasi RSVP</p>
+        </div>
+
+        <!-- Success state -->
+        <div class="notif notif-success">
+          ✅ QR Code valid! Peserta terkonfirmasi hadir.
+        </div>
+
+        <div class="wf-card" style="background:#f0fdf4;border-color:#bbf7d0;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:16px;">👤</div>
+            <div>
+              <div style="font-size:10px;font-weight:700;">Ahmad Wijaya</div>
+              <div style="font-size:8.5px;color:var(--muted);">NIK: 3271 xxxx xxxx xxxx</div>
+              <div style="font-size:8.5px;color:var(--muted);">Kab. Bandung · Karyawan Swasta</div>
+            </div>
+            <div class="badge badge-green" style="margin-left:auto;">Hadir ✓</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RSVP fail state -->
+    <div class="screen">
+      <div class="screen-title">QR Gagal → Input Manual On The Spot</div>
+      <div class="screen-body">
+        <div class="notif notif-error">
+          ❌ QR Code tidak ditemukan / tidak valid
+        </div>
+
+        <div style="text-align:center;padding:12px 0;border:1px dashed var(--border);border-radius:8px;margin-bottom:10px;">
+          <div style="font-size:24px;margin-bottom:4px;">🔍</div>
+          <div style="font-size:10px;font-weight:700;color:var(--text);margin-bottom:4px;">QR Code tidak terdeteksi</div>
+          <div style="font-size:8.5px;color:var(--muted);margin-bottom:10px;">QR mungkin rusak atau peserta belum RSVP</div>
+          <div class="wf-btn btn-orange" style="display:inline-flex;justify-content:center;">📝 Input Data Manual</div>
+        </div>
+
+        <div style="font-size:9px;font-weight:700;color:var(--slate);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em;">Input Data On The Spot</div>
+
+        <div class="wf-field">
+          <span class="wf-label">Cari NIK Peserta (sudah RSVP?)</span>
+          <div class="wf-input">🔍 Ketik NIK atau nama...</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div style="font-size:9px;color:var(--muted);text-align:center;margin:8px 0;">— atau daftarkan sebagai peserta baru —</div>
+
+        <div class="wf-btn btn-orange" style="width:100%;justify-content:center;padding:8px;">
+          📸 Scan KTP Baru
+        </div>
+
+        <div class="annotation" style="margin-top:8px;">
+          <strong>Alur:</strong> Jika QR gagal, petugas bisa cari data peserta RSVP via NIK, atau langsung daftarkan sebagai peserta on the spot baru.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 5 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 6 — ADMIN: DASHBOARD
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-admin">Admin</span>
+    <h2>Dashboard</h2>
+    <span class="pg">Hal. 6</span>
+  </div>
+
+  <div class="layout-with-sidebar">
+    <!-- Sidebar -->
+    <div class="wf-sidebar">
+      <div class="wf-sidebar-logo">🪪 KTP System</div>
+      <div class="nav-item active"><div class="dot"></div> Dashboard</div>
+      <div class="nav-item">📅 Event</div>
+      <div class="nav-item">👥 Petugas</div>
+      <div class="nav-item">👤 Peserta</div>
+      <div class="nav-item">🗺 Pemetaan</div>
+      <div style="margin-top:auto;padding-top:8px;border-top:1px solid var(--border);margin-top:20px;">
+        <div class="nav-item">⚙️ Pengaturan</div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <!-- Filter bar -->
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <div style="font-size:14px;font-weight:900;letter-spacing:-.03em;">Dashboard</div>
+          <div style="font-size:8.5px;color:var(--muted);">Ringkasan data registrasi peserta</div>
+        </div>
+        <div class="flex gap-6" style="align-items:center;">
+          <div class="filter-chip active">📅 Jan–Des 2025</div>
+          <div class="filter-chip">🏘 Semua Wilayah</div>
+          <div class="filter-chip">📋 Semua Jenis</div>
+          <div class="wf-btn btn-primary btn-sm">⬇ Export</div>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stat-row mb-8">
+        <div class="stat-box" style="cursor:pointer;" title="→ Halaman Peserta">
+          <div class="stat-accent" style="background:var(--blue);"></div>
+          <div class="stat-label">Total Peserta</div>
+          <div class="stat-value">4.312</div>
+          <div style="font-size:8px;color:var(--blue);font-weight:600;margin-top:4px;">Klik → Peserta</div>
+        </div>
+        <div class="stat-box" style="cursor:pointer;" title="→ Halaman Event">
+          <div class="stat-accent" style="background:#7c3aed;"></div>
+          <div class="stat-label">Total Event</div>
+          <div class="stat-value">24</div>
+          <div style="font-size:8px;color:#7c3aed;font-weight:600;margin-top:4px;">Klik → Event</div>
+        </div>
+        <div class="stat-box" style="cursor:pointer;" title="→ Halaman Pemetaan">
+          <div class="stat-accent" style="background:var(--green);"></div>
+          <div class="stat-label">Desa Dikunjungi</div>
+          <div class="stat-value">87</div>
+          <div style="font-size:8px;color:var(--green);font-weight:600;margin-top:4px;">Klik → Pemetaan</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-accent" style="background:var(--amber);"></div>
+          <div class="stat-label">7 Hari Terakhir</div>
+          <div class="stat-value">312</div>
+          <div style="font-size:8px;color:var(--amber);font-weight:600;margin-top:4px;">↑ +12% minggu lalu</div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+        <!-- Sebaran kabupaten -->
+        <div class="wf-card">
+          <div class="wf-card-title">Sebaran Peserta (Kabupaten)</div>
+          <div class="bar-chart" style="margin-bottom:4px;">
+            <div class="bar-chart-bar active" style="height:100%;"></div>
+            <div class="bar-chart-bar" style="height:78%;"></div>
+            <div class="bar-chart-bar" style="height:64%;"></div>
+            <div class="bar-chart-bar" style="height:52%;"></div>
+            <div class="bar-chart-bar" style="height:48%;"></div>
+            <div class="bar-chart-bar" style="height:38%;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:7px;color:var(--muted);">
+            <span>Bandung</span><span>Garut</span><span>Cimahi</span><span>Subang</span><span>Purwakarta</span><span>Lainnya</span>
+          </div>
+        </div>
+
+        <!-- Profil jenis kelamin -->
+        <div class="wf-card">
+          <div class="wf-card-title">Profil Jenis Kelamin</div>
+          <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin:8px 0;">
+            <div style="width:58%;background:var(--blue);"></div>
+            <div style="width:42%;background:#f472b6;"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div style="text-align:center;background:var(--blue-l);border-radius:6px;padding:6px;">
+              <div style="font-size:14px;font-weight:800;color:var(--blue);">58%</div>
+              <div style="font-size:7.5px;color:var(--muted);">Laki-laki</div>
+            </div>
+            <div style="text-align:center;background:#fdf2f8;border-radius:6px;padding:6px;">
+              <div style="font-size:14px;font-weight:800;color:#db2777;">42%</div>
+              <div style="font-size:7.5px;color:var(--muted);">Perempuan</div>
+            </div>
+          </div>
+          <div class="wf-card-title" style="margin-top:8px;margin-bottom:4px;">Profil Usia</div>
+          <div class="chart-placeholder" style="height:36px;">Grafik usia (pie chart)</div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="wf-card">
+          <div class="wf-card-title">🏆 Top 5 Petugas</div>
+          <div class="leaderboard-row">
+            <div class="rank-badge rank-1">1</div>
+            <div class="info"><strong>Budi Santoso</strong><small>Kab. Bandung · 271 input</small></div>
+            <div class="count">271</div>
+          </div>
+          <div class="leaderboard-row">
+            <div class="rank-badge rank-2">2</div>
+            <div class="info"><strong>Rina Wati</strong><small>Kab. Garut · 248 input</small></div>
+            <div class="count">248</div>
+          </div>
+          <div class="leaderboard-row">
+            <div class="rank-badge rank-3">3</div>
+            <div class="info"><strong>Agus Purnomo</strong><small>Kab. Cimahi · 236 input</small></div>
+            <div class="count">236</div>
+          </div>
+          <div class="leaderboard-row">
+            <div class="rank-badge rank-n">4</div>
+            <div class="info"><strong>Dewi Lestari</strong><small>Kab. Subang · 198</small></div>
+            <div class="count">198</div>
+          </div>
+          <div class="leaderboard-row">
+            <div class="rank-badge rank-n">5</div>
+            <div class="info"><strong>Fajar Nugroho</strong><small>Kab. Purwakarta · 187</small></div>
+            <div class="count">187</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top 5 event -->
+      <div class="wf-card">
+        <div class="wf-card-title">🏆 Top 5 Program dengan Peserta Terbanyak</div>
+        <table class="wf-table">
+          <thead>
+            <tr><th>#</th><th>Nama Program</th><th>Kategori</th><th>Peserta</th><th>Target</th><th>%</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>01</strong></td><td><strong>Festival Budaya Nusantara</strong></td><td><span class="badge badge-blue">Budaya</span></td><td><strong>892</strong></td><td>1000</td><td>89%</td></tr>
+            <tr><td>02</td><td>Seminar Wirausaha Muda</td><td><span class="badge badge-green">Ekonomi</span></td><td><strong>744</strong></td><td>800</td><td>93%</td></tr>
+            <tr><td>03</td><td>Expo UMKM Indonesia Bangkit</td><td><span class="badge badge-orange">UMKM</span></td><td><strong>631</strong></td><td>1000</td><td>63%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 6 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 7 — ADMIN: MANAJEMEN EVENT
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-admin">Admin</span>
+    <h2>Manajemen Event</h2>
+    <span class="pg">Hal. 7</span>
+  </div>
+
+  <div class="grid-2">
+    <!-- Event list -->
+    <div class="screen">
+      <div class="screen-title">Daftar Event</div>
+      <div class="screen-body">
+        <!-- Toolbar -->
+        <div class="flex items-center justify-between mb-6">
+          <div class="wf-btn btn-primary btn-sm">+ Buat Event</div>
+          <div class="search-bar" style="flex:1;margin:0 6px;">
+            <span style="font-size:10px;">🔍</span>
+            <div style="font-size:9px;color:var(--muted);flex:1;">Cari nama event...</div>
+            <div class="filter-chip" style="padding:1px 6px;font-size:8px;">📅 Waktu</div>
+            <div class="filter-chip" style="padding:1px 6px;font-size:8px;">📋 Jenis</div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active">Semua (24)</div>
+          <div class="tab">Aktif (8)</div>
+          <div class="tab">Selesai (16)</div>
+        </div>
+
+        <div class="event-card">
+          <div class="event-card-dot"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+              <span class="badge badge-blue" style="font-size:7.5px;">Festival</span>
+              <span class="badge badge-green" style="font-size:7.5px;">Aktif</span>
+            </div>
+            <div style="font-size:10px;font-weight:700;color:var(--text);">Festival Budaya Nusantara 2025</div>
+            <div style="font-size:8.5px;color:var(--muted);">📅 21 Apr 2025 · 📍 GBK Jakarta · 👥 312/500</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+            <div class="wf-btn btn-outline btn-sm">✏️ Edit</div>
+          </div>
+        </div>
+
+        <div class="event-card">
+          <div class="event-card-dot"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+              <span class="badge badge-orange" style="font-size:7.5px;">UMKM</span>
+              <span class="badge badge-green" style="font-size:7.5px;">Aktif · RSVP</span>
+            </div>
+            <div style="font-size:10px;font-weight:700;color:var(--text);">Expo UMKM Indonesia Bangkit</div>
+            <div style="font-size:8.5px;color:var(--muted);">📅 02 Mei 2025 · 📍 ICE BSD · 👥 631/1000</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+            <div class="wf-btn btn-outline btn-sm">✏️ Edit</div>
+          </div>
+        </div>
+
+        <div class="event-card">
+          <div class="event-card-dot done"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+              <span class="badge badge-blue" style="font-size:7.5px;">Pendidikan</span>
+              <span class="badge badge-gray" style="font-size:7.5px;">Selesai</span>
+            </div>
+            <div style="font-size:10px;font-weight:700;color:var(--text);">Seminar Nasional Pendidikan</div>
+            <div style="font-size:8.5px;color:var(--muted);">📅 25 Feb 2025 · 📍 UI Depok · 👥 298/300</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+            <div class="wf-btn btn-outline btn-sm">✏️ Edit</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buat Event form -->
+    <div class="screen">
+      <div class="screen-title">Form Buat Event Baru</div>
+      <div class="screen-body">
+        <div class="wf-input-row">
+          <div class="wf-field">
+            <span class="wf-label">Nama Event *</span>
+            <div class="wf-input">Judul event...</div>
+          </div>
+          <div class="wf-field">
+            <span class="wf-label">Jenis / Kategori *</span>
+            <div class="wf-input">Pilih jenis...</div>
+          </div>
+        </div>
+        <div class="wf-field">
+          <span class="wf-label">Deskripsi</span>
+          <div class="wf-input" style="min-height:32px;">Deskripsi singkat event...</div>
+        </div>
+        <div class="wf-input-row">
+          <div class="wf-field">
+            <span class="wf-label">Tanggal</span>
+            <div class="wf-input">📅 dd/mm/yyyy</div>
+          </div>
+          <div class="wf-field">
+            <span class="wf-label">Waktu</span>
+            <div class="wf-input">🕐 HH:MM – HH:MM</div>
+          </div>
+        </div>
+        <div class="wf-field">
+          <span class="wf-label">Lokasi</span>
+          <div class="wf-input">📍 Nama tempat & alamat...</div>
+        </div>
+        <div class="wf-input-row">
+          <div class="wf-field">
+            <span class="wf-label">Target Peserta</span>
+            <div class="wf-input">0</div>
+          </div>
+          <div class="wf-field">
+            <span class="wf-label">Sistem Registrasi</span>
+            <div style="display:flex;gap:4px;margin-top:2px;">
+              <div style="flex:1;border:1.5px solid var(--blue);border-radius:6px;padding:5px 8px;font-size:9px;font-weight:700;color:var(--blue);text-align:center;background:var(--blue-l);">On The Spot</div>
+              <div style="flex:1;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:9px;font-weight:600;color:var(--muted);text-align:center;">RSVP</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px;margin-bottom:8px;font-size:8.5px;">
+          <div style="font-weight:700;color:var(--blue);margin-bottom:4px;">✉️ Sistem RSVP (jika dipilih)</div>
+          <div style="color:var(--slate);">Akan otomatis generate link pendaftaran khusus yang bisa disebar. Peserta yang daftar akan mendapat email konfirmasi + QR Code.</div>
+        </div>
+
+        <div style="display:flex;gap:6px;">
+          <div class="wf-btn btn-primary" style="flex:1;justify-content:center;padding:7px;">Buat Event</div>
+          <div class="wf-btn btn-outline" style="justify-content:center;padding:7px 14px;">Batal</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event detail edit -->
+  <div class="screen" style="margin-top:8px;">
+    <div class="screen-title">Halaman Detail Event (klik Edit dari list)</div>
+    <div class="screen-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <div>
+          <div style="font-size:10px;font-weight:700;margin-bottom:6px;">📋 Informasi Event</div>
+          <div style="display:grid;grid-template-columns:70px 1fr;gap:3px;font-size:8.5px;">
+            <span style="color:var(--muted);">Judul</span><span style="font-weight:600;">Festival Budaya Nusantara</span>
+            <span style="color:var(--muted);">Kategori</span><span><span class="badge badge-blue">Budaya</span></span>
+            <span style="color:var(--muted);">Tanggal</span><span style="font-weight:600;">21 April 2025</span>
+            <span style="color:var(--muted);">Lokasi</span><span style="font-weight:600;">GBK, Jakarta</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;margin-bottom:6px;">📊 Kehadiran</div>
+          <div class="stat-row" style="grid-template-columns:1fr 1fr;gap:4px;margin-bottom:0;">
+            <div class="stat-box"><div class="stat-accent" style="background:var(--blue);"></div><div class="stat-label">Kapasitas</div><div class="stat-value sm">500</div></div>
+            <div class="stat-box"><div class="stat-accent" style="background:var(--green);"></div><div class="stat-label">Hadir</div><div class="stat-value sm">312</div></div>
+          </div>
+          <div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width:62%;"></div></div>
+          <div style="font-size:8px;color:var(--muted);margin-top:2px;">62% dari target tercapai</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;margin-bottom:6px;">⚙️ Aksi</div>
+          <div class="wf-btn btn-primary btn-sm" style="width:100%;justify-content:center;margin-bottom:4px;">👥 Lihat Peserta</div>
+          <div class="wf-btn btn-outline btn-sm" style="width:100%;justify-content:center;margin-bottom:4px;">✏️ Edit Informasi</div>
+          <div class="wf-btn btn-green btn-sm" style="width:100%;justify-content:center;">⬇ Unduh Laporan (Excel)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 7 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 8 — ADMIN: PESERTA
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-admin">Admin</span>
+    <h2>Halaman Peserta</h2>
+    <span class="pg">Hal. 8</span>
+  </div>
+
+  <div class="layout-with-sidebar">
+    <div class="wf-sidebar">
+      <div class="wf-sidebar-logo">🪪 KTP System</div>
+      <div class="nav-item">Dashboard</div>
+      <div class="nav-item">📅 Event</div>
+      <div class="nav-item">👥 Petugas</div>
+      <div class="nav-item active"><div class="dot"></div> 👤 Peserta</div>
+      <div class="nav-item">🗺 Pemetaan</div>
+      <div class="nav-item" style="margin-top:20px;border-top:1px solid var(--border);padding-top:8px;">⚙️ Pengaturan</div>
+    </div>
+
+    <div class="main-content">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <div style="font-size:14px;font-weight:900;letter-spacing:-.03em;">Daftar Peserta</div>
+          <div style="font-size:8.5px;color:var(--muted);">4.312 peserta unik terdaftar</div>
+        </div>
+        <div class="wf-btn btn-primary btn-sm">⬇ Download Data</div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-row">
+        <div class="search-bar" style="flex:1;margin:0;">
+          <span>🔍</span>
+          <div style="font-size:9px;color:var(--muted);flex:1;">Cari NIK, nama, profesi, tag...</div>
+        </div>
+        <div class="filter-chip">🏘 Kabupaten</div>
+        <div class="filter-chip">🏡 Kecamatan</div>
+        <div class="filter-chip">🏠 Desa</div>
+        <div class="filter-chip">♀️ Kelamin</div>
+        <div class="filter-chip">💼 Profesi</div>
+      </div>
+
+      <!-- Table -->
+      <div class="wf-card" style="padding:0;overflow:hidden;">
+        <table class="wf-table">
+          <thead>
+            <tr>
+              <th>NIK</th>
+              <th>Nama Lengkap</th>
+              <th>Kelamin</th>
+              <th>Kabupaten</th>
+              <th>Kecamatan</th>
+              <th>Desa</th>
+              <th>Total Event</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span style="font-family:monospace;font-size:8.5px;color:var(--blue);cursor:pointer;text-decoration:underline;">3271234567890001</span></td>
+              <td><strong style="cursor:pointer;color:var(--blue);">Ahmad Wijaya</strong></td>
+              <td>Laki-laki</td>
+              <td>Kab. Bandung</td>
+              <td>Cimahi Sel.</td>
+              <td>Cibeber</td>
+              <td><span class="badge badge-blue">3</span></td>
+            </tr>
+            <tr>
+              <td><span style="font-family:monospace;font-size:8.5px;color:var(--blue);cursor:pointer;text-decoration:underline;">3271234567890002</span></td>
+              <td><strong style="cursor:pointer;color:var(--blue);">Siti Rahayu</strong></td>
+              <td>Perempuan</td>
+              <td>Kab. Garut</td>
+              <td>Tarogong</td>
+              <td>Sukajaya</td>
+              <td><span class="badge badge-blue">1</span></td>
+            </tr>
+            <tr>
+              <td><span style="font-family:monospace;font-size:8.5px;color:var(--blue);cursor:pointer;text-decoration:underline;">3271234567890003</span></td>
+              <td><strong style="cursor:pointer;color:var(--blue);">Budi Prasetyo</strong></td>
+              <td>Laki-laki</td>
+              <td>Kab. Sumedang</td>
+              <td>Jatinangor</td>
+              <td>Cibeusi</td>
+              <td><span class="badge badge-orange">5</span></td>
+            </tr>
+            <tr>
+              <td><span style="font-family:monospace;font-size:8.5px;color:var(--blue);cursor:pointer;text-decoration:underline;">3271234567890004</span></td>
+              <td><strong style="cursor:pointer;color:var(--blue);">Dewi Kurniasih</strong></td>
+              <td>Perempuan</td>
+              <td>Kab. Bandung Barat</td>
+              <td>Batujajar</td>
+              <td>Selacau</td>
+              <td><span class="badge badge-blue">2</span></td>
+            </tr>
+            <tr>
+              <td colspan="7" style="text-align:center;color:var(--muted);font-size:8.5px;padding:8px;">... dan 4.308 peserta lainnya</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="padding:6px 12px;border-top:1px solid var(--border);font-size:8px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;">
+          <span>Menampilkan 1–50 dari 4.312 peserta</span>
+          <div style="display:flex;gap:4px;">
+            <div class="wf-btn btn-outline btn-sm">← Prev</div>
+            <div class="wf-btn btn-primary btn-sm">Next →</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation" style="margin-top:8px;">
+        <strong>NIK, Nama, dan Jumlah Event</strong> bisa diklik untuk menuju halaman Profil Peserta. Filter wilayah berjenjang: Kabupaten → Kecamatan → Desa.
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 8 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 9 — PROFIL PESERTA
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-admin">Admin</span>
+    <h2>Profil Peserta</h2>
+    <span class="pg">Hal. 9</span>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <!-- Profile header -->
+      <div class="profile-header">
+        <div class="profile-avatar">👤</div>
+        <div class="info">
+          <h3>Ahmad Wijaya</h3>
+          <p>NIK: 3271 2345 6789 0001 · Laki-laki · 35 tahun</p>
+          <p style="margin-top:2px;">Kab. Bandung · Kec. Cimahi Selatan · Ds. Cibeber</p>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div style="font-size:20px;font-weight:900;color:var(--blue);letter-spacing:-.04em;">3</div>
+          <div style="font-size:8px;color:var(--muted);">Event diikuti</div>
+        </div>
+      </div>
+
+      <!-- KTP card visual -->
+      <div class="ktp-card">
+        <div class="ktp-header">
+          <h4>KARTU TANDA PENDUDUK</h4>
+          <span style="font-size:8px;opacity:.6;">Data terakhir diperbarui: 21 Apr 2025</span>
+        </div>
+        <div class="ktp-nik">3271 2345 6789 0001</div>
+        <div class="ktp-name">AHMAD WIJAYA</div>
+        <div class="ktp-grid">
+          <div class="ktp-field"><label>Tempat/Tgl Lahir</label><span>Bandung, 15-03-1990</span></div>
+          <div class="ktp-field"><label>Jenis Kelamin</label><span>Laki-laki</span></div>
+          <div class="ktp-field"><label>Agama</label><span>Islam</span></div>
+          <div class="ktp-field"><label>Gol. Darah</label><span>O+</span></div>
+          <div class="ktp-field"><label>Status</label><span>Kawin</span></div>
+          <div class="ktp-field"><label>Pekerjaan</label><span>Karyawan Swasta</span></div>
+        </div>
+        <div style="font-size:8px;margin-top:8px;opacity:.7;border-top:1px solid rgba(255,255,255,.2);padding-top:6px;">
+          Alamat: Jl. Merdeka No. 12 RT 03/07, Ds. Cibeber, Kec. Cimahi Selatan, Kab. Bandung Barat
+        </div>
+      </div>
+
+      <!-- Kontak & tagging -->
+      <div class="wf-card" style="margin-top:8px;">
+        <div class="wf-card-title">📞 Kontak & Tag</div>
+        <div style="display:grid;grid-template-columns:70px 1fr;gap:4px;font-size:8.5px;">
+          <span style="color:var(--muted);">No. HP</span><span style="font-weight:600;">+62 812 xxxx xxxx</span>
+          <span style="color:var(--muted);">Email</span><span style="font-weight:600;">ahmad.w@email.com</span>
+          <span style="color:var(--muted);">Profesi</span><span><span class="badge badge-blue">Karyawan Swasta</span></span>
+          <span style="color:var(--muted);">Tags</span>
+          <span style="display:flex;gap:3px;flex-wrap:wrap;">
+            <span class="badge badge-orange">Undangan</span>
+            <span class="badge badge-gray">Komunitas</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event history -->
+    <div>
+      <div class="wf-card">
+        <div class="wf-card-title">📋 Riwayat Event yang Diikuti</div>
+        <table class="wf-table">
+          <thead>
+            <tr><th>Nama Event</th><th>Tanggal</th><th>Lokasi</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Festival Budaya Nusantara</strong></td>
+              <td>21 Apr 2025</td>
+              <td>GBK, Jakarta</td>
+              <td><span class="badge badge-green">Hadir</span></td>
+            </tr>
+            <tr>
+              <td><strong>Expo UMKM Indonesia</strong></td>
+              <td>02 Mei 2025</td>
+              <td>ICE BSD</td>
+              <td><span class="badge badge-green">Hadir</span></td>
+            </tr>
+            <tr>
+              <td><strong>Seminar Wirausaha Muda</strong></td>
+              <td>18 Mar 2025</td>
+              <td>Mal Kelapa Gading</td>
+              <td><span class="badge badge-green">Hadir</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="wf-card" style="margin-top:8px;">
+        <div class="wf-card-title">📊 Statistik Peserta</div>
+        <div class="stat-row" style="grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:0;">
+          <div class="stat-box">
+            <div class="stat-accent" style="background:var(--blue);"></div>
+            <div class="stat-label">Total Event</div>
+            <div class="stat-value sm">3</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-accent" style="background:var(--green);"></div>
+            <div class="stat-label">Hadir</div>
+            <div class="stat-value sm">3</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-accent" style="background:var(--amber);"></div>
+            <div class="stat-label">Terakhir</div>
+            <div class="stat-value" style="font-size:10px;font-weight:800;">02 Mei</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation" style="margin-top:8px;">
+        <strong>Profil Peserta</strong> menampilkan data lengkap KTP, kontak, tag/tagging, dan riwayat event yang pernah diikuti. Semua data bisa dilihat Admin tapi tidak bisa diedit dari halaman ini (edit hanya lewat scan ulang atau koreksi manual di event).
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 9 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 10 — ADMIN: PEMETAAN
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-admin">Admin</span>
+    <h2>Pemetaan Wilayah</h2>
+    <span class="pg">Hal. 10</span>
+  </div>
+
+  <div class="layout-with-sidebar">
+    <div class="wf-sidebar">
+      <div class="wf-sidebar-logo">🪪 KTP System</div>
+      <div class="nav-item">Dashboard</div>
+      <div class="nav-item">📅 Event</div>
+      <div class="nav-item">👥 Petugas</div>
+      <div class="nav-item">👤 Peserta</div>
+      <div class="nav-item active"><div class="dot"></div> 🗺 Pemetaan</div>
+      <div class="nav-item" style="margin-top:20px;border-top:1px solid var(--border);padding-top:8px;">⚙️ Pengaturan</div>
+    </div>
+
+    <div class="main-content">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <div style="font-size:14px;font-weight:900;letter-spacing:-.03em;">Pemetaan Wilayah</div>
+          <div style="font-size:8.5px;color:var(--muted);">Sebaran event per desa dan kecamatan</div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="stat-row mb-8" style="grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div class="stat-box">
+          <div class="stat-accent" style="background:var(--blue);"></div>
+          <div class="stat-label">Total Desa</div>
+          <div class="stat-value">1.248</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-accent" style="background:var(--green);"></div>
+          <div class="stat-label">Desa Ada Event</div>
+          <div class="stat-value">87</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-accent" style="background:var(--amber);"></div>
+          <div class="stat-label">Coverage</div>
+          <div class="stat-value">7%</div>
+          <div style="font-size:7.5px;color:var(--muted);margin-top:4px;">1.161 desa belum terjangkau</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:8px;margin-bottom:8px;">
+        <!-- Map placeholder -->
+        <div class="map-placeholder" style="height:120px;">
+          <div class="icon">🗺️</div>
+          <div>Peta Sebaran Wilayah Jawa Barat</div>
+          <div style="font-size:8px;">Warna menunjukkan intensitas event per kecamatan</div>
+          <div style="display:flex;gap:8px;font-size:7.5px;margin-top:4px;">
+            <span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;background:#1e3a8a;border-radius:2px;display:inline-block;"></span> Banyak event</span>
+            <span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;background:#bfdbfe;border-radius:2px;display:inline-block;"></span> Sedikit</span>
+            <span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;background:#f1f5f9;border-radius:2px;display:inline-block;"></span> Belum ada</span>
+          </div>
+        </div>
+
+        <!-- Per kabupaten summary -->
+        <div class="wf-card" style="padding:8px;">
+          <div class="wf-card-title">Per Kabupaten</div>
+          <table class="wf-table" style="font-size:8.5px;">
+            <thead><tr><th>Kabupaten</th><th style="text-align:right;">Desa</th><th style="text-align:right;">Ada Event</th><th style="text-align:right;">Kec.</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Kab. Bandung</strong></td><td style="text-align:right;">270</td><td style="text-align:right;"><strong style="color:var(--green);">24</strong></td><td style="text-align:right;">31</td></tr>
+              <tr><td><strong>Kab. Garut</strong></td><td style="text-align:right;">421</td><td style="text-align:right;"><strong style="color:var(--green);">18</strong></td><td style="text-align:right;">42</td></tr>
+              <tr><td><strong>Kab. Sumedang</strong></td><td style="text-align:right;">270</td><td style="text-align:right;"><strong style="color:var(--amber);">9</strong></td><td style="text-align:right;">26</td></tr>
+              <tr><td><strong>Kab. Bandung Barat</strong></td><td style="text-align:right;">165</td><td style="text-align:right;"><strong style="color:var(--amber);">7</strong></td><td style="text-align:right;">16</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Village list -->
+      <div class="wf-card" style="padding:0;overflow:hidden;">
+        <div style="padding:8px 12px;border-bottom:1px solid var(--border);">
+          <div class="flex items-center gap-6">
+            <div style="font-size:10px;font-weight:700;">Daftar Desa</div>
+            <div class="search-bar" style="flex:1;margin:0;">
+              <span>🔍</span><div style="font-size:9px;color:var(--muted);">Cari nama desa...</div>
+            </div>
+            <div class="filter-chip">🏘 Kabupaten</div>
+            <div class="filter-chip">🏡 Kecamatan</div>
+          </div>
+        </div>
+        <table class="wf-table">
+          <thead>
+            <tr><th>Nama Desa</th><th>Kecamatan</th><th>Kabupaten</th><th style="text-align:right;">Total Input</th><th style="text-align:right;">Total Event</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong style="color:var(--blue);cursor:pointer;">Cibeber</strong></td>
+              <td>Cimahi Selatan</td>
+              <td>Kab. Bandung Barat</td>
+              <td style="text-align:right;"><strong>312</strong></td>
+              <td style="text-align:right;"><span class="badge badge-blue">4</span></td>
+            </tr>
+            <tr>
+              <td><strong style="color:var(--blue);cursor:pointer;">Sukajaya</strong></td>
+              <td>Tarogong Kidul</td>
+              <td>Kab. Garut</td>
+              <td style="text-align:right;"><strong>208</strong></td>
+              <td style="text-align:right;"><span class="badge badge-blue">2</span></td>
+            </tr>
+            <tr>
+              <td colspan="5" style="text-align:center;color:var(--muted);font-size:8.5px;">... dan 85 desa lainnya</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 10 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 11 — PROFIL DESA
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-admin">Admin</span>
+    <h2>Profil Desa</h2>
+    <span class="pg">Hal. 11</span>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="profile-header" style="background:linear-gradient(135deg,#1e3a8a,#1e40af);color:white;padding:16px;">
+        <div class="profile-avatar" style="background:rgba(255,255,255,.15);font-size:24px;width:48px;height:48px;">🏘️</div>
+        <div class="info">
+          <h3 style="color:white;">Desa Cibeber</h3>
+          <p style="color:rgba(255,255,255,.7);">Kec. Cimahi Selatan · Kab. Bandung Barat</p>
+        </div>
+      </div>
+
+      <div class="stat-row" style="grid-template-columns:1fr 1fr;gap:6px;margin-top:0;">
+        <div class="stat-box">
+          <div class="stat-accent" style="background:var(--blue);"></div>
+          <div class="stat-label">Total Input Peserta</div>
+          <div class="stat-value">312</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-accent" style="background:var(--green);"></div>
+          <div class="stat-label">Total Event</div>
+          <div class="stat-value sm">4</div>
+        </div>
+      </div>
+
+      <div class="wf-card" style="margin-top:8px;">
+        <div class="wf-card-title">📋 Daftar Event di Desa Ini</div>
+        <table class="wf-table">
+          <thead><tr><th>Nama Event</th><th>Tanggal</th><th style="text-align:right;">Peserta</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Festival Budaya Nusantara</strong></td><td>21 Apr 2025</td><td style="text-align:right;"><strong>134</strong></td></tr>
+            <tr><td><strong>Expo UMKM Indonesia</strong></td><td>02 Mei 2025</td><td style="text-align:right;"><strong>98</strong></td></tr>
+            <tr><td><strong>Seminar Wirausaha Muda</strong></td><td>18 Mar 2025</td><td style="text-align:right;"><strong>55</strong></td></tr>
+            <tr><td><strong>Lomba Cipta Karya Pemuda</strong></td><td>15 Feb 2025</td><td style="text-align:right;"><strong>25</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <!-- Map mini -->
+      <div class="map-placeholder" style="height:80px;margin-bottom:8px;border-radius:8px;border:1px solid var(--border);">
+        <div class="icon" style="font-size:16px;">📍</div>
+        <div style="font-size:8.5px;">Lokasi Desa Cibeber di Peta</div>
+      </div>
+
+      <div class="wf-card">
+        <div class="wf-card-title">📊 Sebaran Peserta per Event</div>
+        <div class="bar-chart" style="height:60px;margin-bottom:4px;">
+          <div class="bar-chart-bar active" style="height:100%;"></div>
+          <div class="bar-chart-bar" style="height:75%;"></div>
+          <div class="bar-chart-bar" style="height:44%;"></div>
+          <div class="bar-chart-bar" style="height:20%;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-around;font-size:7px;color:var(--muted);">
+          <span>Festival</span><span>Expo</span><span>Seminar</span><span>Lomba</span>
+        </div>
+      </div>
+
+      <div class="wf-card" style="margin-top:8px;">
+        <div class="wf-card-title">👥 Profil Peserta Desa</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <div>
+            <div style="font-size:8.5px;font-weight:700;color:var(--slate);margin-bottom:4px;">Jenis Kelamin</div>
+            <div style="height:6px;border-radius:3px;overflow:hidden;background:var(--border);margin-bottom:4px;display:flex;">
+              <div style="width:60%;background:var(--blue);"></div>
+              <div style="width:40%;background:#f472b6;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--muted);">
+              <span>Laki 60%</span><span>Perempuan 40%</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:8.5px;font-weight:700;color:var(--slate);margin-bottom:4px;">Top Profesi</div>
+            <div style="font-size:8px;color:var(--slate);">1. Karyawan Swasta — 38%</div>
+            <div style="font-size:8px;color:var(--slate);">2. Wiraswasta — 24%</div>
+            <div style="font-size:8px;color:var(--slate);">3. Pelajar/Mhs — 18%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation" style="margin-top:8px;">
+        <strong>Profil Desa</strong> menampilkan ringkasan semua event yang pernah diadakan di desa tersebut, beserta sebaran pesertanya.
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 11 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 12 — ADMIN: KELOLA PETUGAS
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-admin">Admin</span>
+    <h2>Halaman Petugas</h2>
+    <span class="pg">Hal. 12</span>
+  </div>
+
+  <div class="layout-with-sidebar">
+    <div class="wf-sidebar">
+      <div class="wf-sidebar-logo">🪪 KTP System</div>
+      <div class="nav-item">Dashboard</div>
+      <div class="nav-item">📅 Event</div>
+      <div class="nav-item active"><div class="dot"></div> 👥 Petugas</div>
+      <div class="nav-item">👤 Peserta</div>
+      <div class="nav-item">🗺 Pemetaan</div>
+      <div class="nav-item" style="margin-top:20px;border-top:1px solid var(--border);padding-top:8px;">⚙️ Pengaturan</div>
+    </div>
+
+    <div class="main-content">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <div style="font-size:14px;font-weight:900;letter-spacing:-.03em;">Kelola Petugas</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <div class="wf-btn btn-outline btn-sm">⬇ Export Performa</div>
+          <div class="wf-btn btn-primary btn-sm">+ Tambah Petugas</div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="stat-row mb-8" style="grid-template-columns:repeat(3,1fr);gap:8px;">
+        <div class="stat-box">
+          <div class="stat-accent" style="background:var(--blue);"></div>
+          <div class="stat-label">Total Petugas</div>
+          <div class="stat-value">20</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-accent" style="background:var(--green);"></div>
+          <div class="stat-label">Total Peserta (Input)</div>
+          <div class="stat-value">4.312</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-accent" style="background:var(--amber);"></div>
+          <div class="stat-label">Total Event</div>
+          <div class="stat-value sm">24</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <!-- Leaderboard -->
+        <div class="wf-card">
+          <div class="wf-card-title">🏆 Leaderboard Petugas</div>
+          <div class="leaderboard-row">
+            <div class="rank-badge rank-1">1</div>
+            <div class="info"><strong>Budi Santoso</strong><small>Koordinator · Kab. Bandung · 271 input · 8 event</small></div>
+            <div class="count">271</div>
+          </div>
+          <div class="leaderboard-row">
+            <div class="rank-badge rank-2">2</div>
+            <div class="info"><strong>Rina Wati</strong><small>Staf · Kab. Garut · 248 input · 6 event</small></div>
+            <div class="count">248</div>
+          </div>
+          <div class="leaderboard-row">
+            <div class="rank-badge rank-3">3</div>
+            <div class="info"><strong>Agus Purnomo</strong><small>Staf · Kab. Cimahi · 236 input · 7 event</small></div>
+            <div class="count">236</div>
+          </div>
+          <div class="leaderboard-row">
+            <div class="rank-badge rank-n">4</div>
+            <div class="info"><strong>Dewi Lestari</strong><small>Staf · Kab. Sumedang · 198 input · 5 event</small></div>
+            <div class="count">198</div>
+          </div>
+          <div class="leaderboard-row">
+            <div class="rank-badge rank-n">5</div>
+            <div class="info"><strong>Fajar Nugroho</strong><small>Koordinator · Kab. Purwakarta · 187 input</small></div>
+            <div class="count">187</div>
+          </div>
+        </div>
+
+        <!-- Kelola Petugas list -->
+        <div class="wf-card" style="padding:0;overflow:hidden;">
+          <div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;">
+            <div style="font-size:10px;font-weight:700;flex:1;">Daftar Petugas</div>
+            <div class="filter-chip" style="font-size:8px;">🏘 Filter Wilayah</div>
+          </div>
+          <table class="wf-table" style="font-size:8.5px;">
+            <thead><tr><th>Nama</th><th>Jabatan</th><th>Wilayah</th><th>Input</th><th></th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong style="color:var(--blue);cursor:pointer;">Budi Santoso</strong></td>
+                <td>Koordinator</td>
+                <td>Kab. Bandung</td>
+                <td><strong>271</strong></td>
+                <td><span class="badge badge-red" style="cursor:pointer;font-size:7px;">Hapus</span></td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--blue);cursor:pointer;">Rina Wati</strong></td>
+                <td>Staf</td>
+                <td>Kab. Garut</td>
+                <td><strong>248</strong></td>
+                <td><span class="badge badge-red" style="cursor:pointer;font-size:7px;">Hapus</span></td>
+              </tr>
+              <tr>
+                <td><strong style="color:var(--blue);cursor:pointer;">Agus Purnomo</strong></td>
+                <td>Staf</td>
+                <td>Kab. Cimahi</td>
+                <td><strong>236</strong></td>
+                <td><span class="badge badge-red" style="cursor:pointer;font-size:7px;">Hapus</span></td>
+              </tr>
+              <tr>
+                <td colspan="5" style="text-align:center;color:var(--muted);font-size:8px;">... dan 17 petugas lainnya</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 12 / 13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PAGE 13 — PROFIL PETUGAS + RSVP PAGE
+════════════════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-header">
+    <span class="pill pill-admin">Admin</span>
+    <h2>Profil Petugas &amp; Halaman RSVP Peserta</h2>
+    <span class="pg">Hal. 13</span>
+  </div>
+
+  <div class="grid-2">
+    <!-- Profil Petugas -->
+    <div>
+      <!-- Form Tambah Petugas -->
+      <div class="screen" style="margin-bottom:8px;">
+        <div class="screen-title">Form Tambah / Edit Petugas</div>
+        <div class="screen-body">
+          <div class="wf-input-row">
+            <div class="wf-field">
+              <span class="wf-label">Nama Lengkap *</span>
+              <div class="wf-input">Nama petugas...</div>
+            </div>
+            <div class="wf-field">
+              <span class="wf-label">Wilayah / Kabupaten *</span>
+              <div class="wf-input">Pilih kabupaten...</div>
+            </div>
+          </div>
+          <div class="wf-input-row">
+            <div class="wf-field">
+              <span class="wf-label">Jabatan *</span>
+              <div class="wf-input">Koordinator / Staf...</div>
+            </div>
+            <div class="wf-field">
+              <span class="wf-label">Nomor HP</span>
+              <div class="wf-input">+62 8xx xxxx xxxx</div>
+            </div>
+          </div>
+          <div class="wf-input-row">
+            <div class="wf-field">
+              <span class="wf-label">Username *</span>
+              <div class="wf-input">username_login</div>
+            </div>
+            <div class="wf-field">
+              <span class="wf-label">Password *</span>
+              <div class="wf-input">••••••••</div>
+            </div>
+          </div>
+          <div class="wf-field">
+            <span class="wf-label">Catatan</span>
+            <div class="wf-input" style="min-height:28px;">Catatan tambahan...</div>
+          </div>
+          <div class="wf-btn btn-primary" style="width:100%;justify-content:center;padding:7px;">Simpan Petugas</div>
+        </div>
+      </div>
+
+      <!-- Profil Petugas view -->
+      <div class="screen">
+        <div class="screen-title">Profil Petugas (view)</div>
+        <div class="screen-body">
+          <div class="profile-header" style="margin-bottom:8px;">
+            <div class="profile-avatar" style="background:#ffedd5;font-size:22px;">👤</div>
+            <div class="info">
+              <h3>Budi Santoso</h3>
+              <p>Koordinator · Kab. Bandung Barat</p>
+              <p>+62 812 xxxx xxxx</p>
+            </div>
+          </div>
+          <div class="stat-row" style="grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+            <div class="stat-box">
+              <div class="stat-accent" style="background:var(--orange);"></div>
+              <div class="stat-label">Jumlah Input</div>
+              <div class="stat-value sm">271</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-accent" style="background:var(--blue);"></div>
+              <div class="stat-label">Jumlah Event</div>
+              <div class="stat-value sm">8</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <div class="wf-btn btn-outline btn-sm" style="flex:1;justify-content:center;">✏️ Edit</div>
+            <div class="wf-btn btn-outline btn-sm" style="flex:1;justify-content:center;color:var(--red);border-color:var(--red);">🗑 Hapus</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RSVP Public Page -->
+    <div class="screen">
+      <div class="screen-title">Halaman RSVP Publik (link disebar ke peserta)</div>
+      <div class="screen-body">
+        <div style="text-align:center;margin-bottom:12px;">
+          <div style="font-size:9px;color:var(--muted);margin-bottom:4px;">ktpreg.id/rsvp/<strong>expo-umkm-2025</strong></div>
+          <div style="font-size:13px;font-weight:800;letter-spacing:-.03em;">Expo UMKM Indonesia Bangkit 2025</div>
+          <div style="font-size:8.5px;color:var(--muted);">📅 02 Mei 2025 · 08.00 – 17.00 · ICE BSD, Tangerang</div>
+        </div>
+
+        <div class="wf-card" style="background:var(--blue-l);border-color:#bfdbfe;margin-bottom:8px;">
+          <div style="font-size:9px;font-weight:700;color:var(--blue);margin-bottom:4px;">📋 Detail Event</div>
+          <div style="font-size:8.5px;color:var(--slate);">Pameran UMKM nasional yang menampilkan produk unggulan dari seluruh Indonesia. Terbuka untuk umum.</div>
+          <div style="margin-top:4px;font-size:8px;color:var(--muted);">Sisa kursi: <strong style="color:var(--green);">369</strong> dari 1.000</div>
+        </div>
+
+        <div style="font-size:9.5px;font-weight:700;color:var(--text);margin-bottom:6px;">📇 Data Diri (Scan / Upload KTP)</div>
+        <div class="scan-box" style="border-color:var(--blue);padding:12px;margin-bottom:8px;">
+          <div class="icon-lg" style="font-size:20px;">📷</div>
+          <p style="font-size:9px;font-weight:600;color:var(--blue);">Upload foto KTP untuk isi otomatis</p>
+          <div class="wf-btn btn-primary btn-sm" style="margin-top:6px;display:inline-flex;">Upload KTP</div>
+        </div>
+
+        <div class="wf-input-row">
+          <div class="wf-field"><span class="wf-label">NIK</span><div class="wf-input">3271 xxxx xxxx xxxx</div></div>
+          <div class="wf-field"><span class="wf-label">Nama Lengkap</span><div class="wf-input">Nama sesuai KTP...</div></div>
+        </div>
+        <div class="wf-input-row">
+          <div class="wf-field"><span class="wf-label">Nomor HP</span><div class="wf-input">+62 8xx xxxx xxxx</div></div>
+          <div class="wf-field"><span class="wf-label">Email *</span><div class="wf-input">email@domain.com</div></div>
+        </div>
+
+        <div class="wf-btn btn-primary" style="width:100%;justify-content:center;padding:8px;margin-top:4px;">✓ Daftar Sekarang</div>
+
+        <div class="notif notif-info" style="margin-top:8px;font-size:8.5px;">
+          📧 Setelah submit, Anda akan menerima email konfirmasi + QR Code untuk registrasi hari H.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Sistem Registrasi KTP — UI/UX Design v1.0</span>
+    <span>Hal. 13 / 13</span>
+  </div>
+</div>
+
+</body>
+</html>

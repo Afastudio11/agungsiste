@@ -1,0 +1,153 @@
+Section	Feature
+Log in page	"Log in menggunakan username dan password + ada 2 akses buat log in:
+- sebagai petugas
+- sebagai admin
+"
+PETUGAS	
+Halaman Petugas	"- Paling atas ada nama Petugas, Jabatan dan Daerahnya mana (Kabupaten), lalu ada tombol sign out
+- Ada daftar event yang aktif, petugas harus pilih event dulu untuk bisa akses halaman scan
+- Preview Event mengikuti pada halaman Admin, cuma tidak ada tombol edit"
+Halaman Scan	"Jika sistem registrasi on the spot:
+- ada scan KTP
+- ada section untuk semua data ktp (bisa terisi otomatis saat ktp di scan)
+- ada section kontak: nomor hp dan email
+- ada section keterangan (digunakan buat tagging audience)
+
+klik buat submit absen (ada notif berhasil), jika sudah maka akan kembali ke halaman scan kosong"
+	"Jika sistem RSVP (peserta regis sendiri di awal) :
+- ada scan barcode (ada notif jika berhasil)
+- jika gagal, maka ada tombol buat input data on the spot"
+ADMIN	
+Admin	"Setelah masuk, nanti akan ada menu untuk:
+1. Dashboard
+2. Event
+3. Petugas
+4. Peserta
+5. Pemetaan
+6. Pengaturan (if any)"
+Halaman: Event	
+Preview	"Langsung preview tab:
+- semua event
+- event aktif
+- selesai
+
+defaultnya tampilkan semua event"
+Menu	"Tombol paling atas ada:
+- Buat event
+- Bar pencarian event (nama event, ada filter waktu, filter jenis event)"
+Menu Buat Event	"- nama
+- Jenis
+- deskripsi
+- tanggal
+- waktu
+- lokasi
+- target peserta
+- RSVP atau tidak "
+Preview List Event	"Preview Event:
+- Judul Event
+- Ketagori Event
+- Tanggal
+- Lokasi
+- Peserta (jumlah peserta + target peserta)
+- Edit
+- status event: aktif, selesai"
+Jika pada preview list event di klik EDIT, maka akan menuju halaman ini	"1. Informasi event (judul, kategori, tanggal, lokasi)
+2. Kehadiran (kapasitas, terdaftar, hadir, prosentase kehadiran, terdaftar ==> jika sistemnya rsvp)
+3. Ada menu Peserta, jika di klik akan memperlihatkan data peserta yang hadir siapa saja
+4. Ada menu unduh laporan (jadi custom excel yang intinya menampilkan informasi event, kehadiran, dan siapa saja peserta yang hadir)"
+Sistem RSVP	"Ketika event dibuat sistem RSVP, maka otomatis akan generate link custom untuk bisa disebar di invitation. Nah pada halaman rsvp peserta tersebut tampilannya harus ada:
+- detail event
+- data diri mereka (scan ktp), nomor hp, email
+
+setelah submit, mereka bisa mendapatkan notifikasi di email terkait konfirmasi pendaftaran + QR code buat registrasi hari H"
+Halaman: Petugas	
+Preview	"1. Paling atas ada ringkasan:
+- Total Petugas
+- Total Peserta
+- Total Event
+
+2. Lalu ada Menu Kelola Petugas
+3. Tampilkan leaderboard petugas yang berisi:
+- ranking (inputan terbanyak)
+- nama + jabatan + kabupaten
+- Total input
+- total event
+
+4. Ada tombol buat export data performa petugas ini"
+Kelola Petugas	"Ini section untuk mengelola siapa saja petugas yang bisa melakukan input serta memuat profil mereka. Setidaknya ada:
+- menu tambah petugas
+- daftar petugas dan profilnya (bisa ada tombol delete petugas)
+- bisa filter berdasarkan wilayah/kabupaten"
+Profil Petugas	"- Nama
+- Wilayah
+- Jabatan
+- nomor HP
+- Jumlah input
+- jumlah event"
+Jika ingin menambahkan petugas perlu input data	"- Nama
+- Wilayah
+- Jabatan
+- nomor HP
+- username + password
+- catatan"
+Halaman: Peserta	
+Fitur	"- cari NIK atau nama (ini maunya bisa mengarah juga ke profesi, tagging, dsb)
+- filter wilayah (kabupaten, kecamatan, desa)
+- filter jenis kelamin
+- filter profesi
+- download data peserta "
+Ada Daftar Nama Peserta (database)	"- NIK
+- Nama Lengkap
+- Jenis Kelamin
+- Domisili (kabupaten, kecamatan, desa)
+- Jumlah Event
+
+NIK, Nama, Jumlah Event itu bisa di klik ke halaman Profil Peserta"
+Profil Peserta	"- data lengkap KTP
+- scan KTP
+- Daftar event yang pernah dia ikuti (nama event, tanggal, lokasi)"
+Halaman: Pemetaan	
+Preview	"Ringkasan
+- Jumlah Desa
+- Desa yang pernah ada eventnya
+- Prosentase
+"
+	"Ingin ada informasi per kabupaten yang menjelaskan:
+- jumlah desa
+- jumlah desa yang belum ada kegiatan
+- jumlah kecamatan
+- jumlah kecamatan yang belum ada kegiatan"
+Daftar Desa	"- nama desa
+- kecamatan
+- kabupaten
+- total input
+- total event
+
+Desanya bisa di klik buat lihat profilnya"
+Profil Desa	"- nama desa
+- kecamatan
+- kabupaten
+- total input
+- daftar event"
+Halaman: Dashboard	
+Preview	"Ringkasan
+- total input/peserta
+- total event
+- total desa dikunjungi
+
+Sebaran Peserta
+- dibuat berdasarkan kabupaten
+
+Profil Peserta
+- Jenis Kelamin
+- Usia
+
+Leaderboard
+- 5 Program dengan peserta terbanyak
+- 5 petugas dengan input terbanyak"
+Fitur	"- Filter (rentang waktu, jenis kegiatan, wilayah dari kabupaten sampe desa) ==> kalau filter diubah, maka data di dashboard akan berubah sesuai filternya
+- Export data"
+	"Setiap angka di ringkasan bisa di klik dan mengarah ke:
+- Peserta ==> halaman peserta
+- Event ==> event
+- desa ==> pemetaan"
