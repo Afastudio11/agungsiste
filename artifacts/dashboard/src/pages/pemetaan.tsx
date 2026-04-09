@@ -149,11 +149,11 @@ function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabD
 function DesaView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (kel: string) => void }) {
   const { data: desaData = [], isLoading } = useQuery<DesaRow[]>({
     queryKey: ["pemetaan-desa", kabupaten],
-    queryFn: () => fetch(`${BASE}/api/pemetaan/desa?kabupaten=${encodeURIComponent(kabupaten)}`, { credentials: "include" }).then((r) => r.json()),
+    queryFn: () => fetch(`${BASE}/api/pemetaan/desa?kabupaten=${encodeURIComponent(kabupaten)}`, { credentials: "include" }).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
   });
   const { data: kabData } = useQuery<KabupatenRow[]>({
     queryKey: ["pemetaan-kabupaten"],
-    queryFn: () => fetch(`${BASE}/api/pemetaan/kabupaten`, { credentials: "include" }).then((r) => r.json()),
+    queryFn: () => fetch(`${BASE}/api/pemetaan/kabupaten`, { credentials: "include" }).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
   });
   const kabInfo = kabData?.find((k) => k.kabupaten === kabupaten);
   const maxInput = Math.max(...desaData.map((d) => Number(d.totalInput)), 1);
@@ -317,7 +317,8 @@ function PesertaView({
     queryKey: ["pemetaan-peserta", kelurahan, eventId],
     queryFn: () =>
       fetch(`${BASE}/api/pemetaan/desa/${encodeURIComponent(kelurahan)}/event/${eventId}/participants`, { credentials: "include" })
-        .then((r) => r.json()),
+        .then((r) => r.json())
+        .then((d) => Array.isArray(d) ? d : []),
   });
 
   return (
@@ -427,7 +428,7 @@ export default function PemetaanPage() {
   });
   const { data: kabData = [] } = useQuery<KabupatenRow[]>({
     queryKey: ["pemetaan-kabupaten"],
-    queryFn: () => fetch(`${BASE}/api/pemetaan/kabupaten`, { credentials: "include" }).then((r) => r.json()),
+    queryFn: () => fetch(`${BASE}/api/pemetaan/kabupaten`, { credentials: "include" }).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
   });
 
   return (
