@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
-  MapPin, Globe, Building2, Home, ChevronRight, ArrowLeft,
+  MapPin, Globe, Building2, Home, ChevronRight, ChevronLeft, ArrowLeft,
   Users, CalendarDays, TrendingUp, User, Phone, Tag, Clock,
 } from "lucide-react";
 import Layout from "@/components/layout";
@@ -303,6 +303,8 @@ function DesaDetailView({
 }
 
 /* ─── VIEW 4: Peserta per event per desa ───────────────────────────────── */
+const PAGE_SIZE = 100;
+
 function PesertaView({
   eventId,
   eventName,
@@ -313,6 +315,8 @@ function PesertaView({
   kelurahan: string;
 }) {
   const [, navigate] = useLocation();
+  const [page, setPage] = useState(0);
+
   const { data: peserta = [], isLoading } = useQuery<Participant[]>({
     queryKey: ["pemetaan-peserta", kelurahan, eventId],
     queryFn: () =>
@@ -320,6 +324,10 @@ function PesertaView({
         .then((r) => r.json())
         .then((d) => Array.isArray(d) ? d : []),
   });
+
+  const totalPages = Math.ceil(peserta.length / PAGE_SIZE);
+  const paged = peserta.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const startNo = page * PAGE_SIZE;
 
   return (
     <div className="space-y-5">
@@ -360,7 +368,7 @@ function PesertaView({
           <div className="p-10 text-center text-slate-400 text-sm">Tidak ada peserta ditemukan</div>
         ) : (
           <div className="divide-y divide-slate-50">
-            {peserta.map((p, i) => (
+            {paged.map((p, i) => (
               <button
                 key={p.nik}
                 onClick={() => navigate(`/participants/${p.nik}`)}
@@ -368,7 +376,7 @@ function PesertaView({
               >
                 {/* Avatar / rank */}
                 <div className="h-9 w-9 rounded-xl bg-violet-50 group-hover:bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-sm shrink-0 transition">
-                  {i + 1}
+                  {startNo + i + 1}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -411,6 +419,44 @@ function PesertaView({
                 <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-violet-400 transition shrink-0" />
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between gap-3">
+            <span className="text-xs text-slate-400">
+              Menampilkan {startNo + 1}–{Math.min(startNo + PAGE_SIZE, peserta.length)} dari {peserta.length} peserta
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-violet-50 hover:border-violet-300 hover:text-violet-600 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              {Array.from({ length: totalPages }, (_, idx) => idx).map((idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setPage(idx)}
+                  className={`h-8 min-w-8 px-2 rounded-lg text-xs font-semibold border transition ${
+                    idx === page
+                      ? "bg-violet-600 text-white border-violet-600"
+                      : "border-slate-200 text-slate-500 hover:bg-violet-50 hover:border-violet-300 hover:text-violet-600"
+                  }`}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page === totalPages - 1}
+                className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-violet-50 hover:border-violet-300 hover:text-violet-600 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>
