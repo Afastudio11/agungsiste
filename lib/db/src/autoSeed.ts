@@ -166,8 +166,8 @@ export async function runSeedIfEmpty(): Promise<void> {
   ).returning();
   console.log(`[autoSeed] ${insertedEvents.length} events created`);
 
-  const TOTAL = 4000;
-  const BATCH = 200;
+  const TOTAL = 1000;
+  const BATCH = 100;
   const participantIds: number[] = [];
   const nikSet = new Set<string>();
 
@@ -218,36 +218,79 @@ export async function runSeedIfEmpty(): Promise<void> {
   }
 
   const registrationMap = new Set<string>();
-  const regValues: { eventId: number; participantId: number; staffName: string; registeredAt: Date }[] = [];
+  const regValues: {
+    eventId: number;
+    participantId: number;
+    staffName: string;
+    registeredAt: Date;
+    registrationType: string;
+    checkedInAt: Date | null;
+  }[] = [];
 
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 90);
+  const rsvpStart = new Date();
+  rsvpStart.setDate(rsvpStart.getDate() - 21); // RSVP opened 3 weeks ago
+  const rsvpEnd = new Date();
+  rsvpEnd.setDate(rsvpEnd.getDate() - 1); // RSVP closed yesterday
+  const checkinStart = new Date();
+  checkinStart.setHours(7, 0, 0, 0); // Event starts 07:00
+  const checkinEnd = new Date();
+  checkinEnd.setHours(17, 0, 0, 0); // Event ends 17:00
 
   for (const pid of participantIds) {
-    const numEvents = Math.random() < 0.20 ? 0
-                    : Math.random() < 0.60 ? 1
-                    : Math.random() < 0.80 ? 2
-                    : Math.random() < 0.90 ? 3 : 4;
+    // 15% don't register at all, rest register for 1-3 events
+    const numEvents = Math.random() < 0.15 ? 0
+                    : Math.random() < 0.55 ? 1
+                    : Math.random() < 0.85 ? 2 : 3;
 
     const shuffled = [...insertedEvents].sort(() => Math.random() - 0.5).slice(0, numEvents);
     for (const ev of shuffled) {
       const key = `${ev.id}-${pid}`;
       if (!registrationMap.has(key)) {
         registrationMap.add(key);
+        // All seed registrations are RSVP (pre-registered)
+        const registeredAt = randomDateInRange(rsvpStart, rsvpEnd);
+        // ~78% of registered people actually show up
+        const didAttend = Math.random() < 0.78;
+        const checkedInAt = didAttend ? randomDateInRange(checkinStart, checkinEnd) : null;
         regValues.push({
           eventId: ev.id,
           participantId: pid,
           staffName: rand(staffNames),
-          registeredAt: randomDateInRange(startDate, endDate),
+          registeredAt,
+          registrationType: "rsvp",
+          checkedInAt,
         });
       }
     }
   }
 
-  const REG_BATCH = 500;
+  const REG_BATCH = 200;
   for (let i = 0; i < regValues.length; i += REG_BATCH) {
     await db.insert(eventRegistrationsTable).values(regValues.slice(i, i + REG_BATCH));
+  }
+
+  // Add a small number of on-the-spot (walk-in) participants per event
+  // Pick ~8% of participants who didn't already register, and add them as onsite for 1 event
+  const walkInPool = participantIds.filter(() => Math.random() < 0.08);
+  const walkinValues: typeof regValues = [];
+  for (const pid of walkInPool) {
+    const ev = rand(insertedEvents);
+    const key = `${ev.id}-${pid}`;
+    if (!registrationMap.has(key)) {
+      registrationMap.add(key);
+      const walkinTime = randomDateInRange(checkinStart, checkinEnd);
+      walkinValues.push({
+        eventId: ev.id,
+        participantId: pid,
+        staffName: rand(staffNames),
+        registeredAt: walkinTime,
+        registrationType: "onsite",
+        checkedInAt: walkinTime, // onsite = always present
+      });
+    }
+  }
+  for (let i = 0; i < walkinValues.length; i += REG_BATCH) {
+    await db.insert(eventRegistrationsTable).values(walkinValues.slice(i, i + REG_BATCH));
   }
 
   console.log(`[autoSeed] Done! ${insertedEvents.length} events, ${participantIds.length} participants, ${regValues.length} registrations.`);

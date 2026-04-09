@@ -39,7 +39,7 @@ router.get("/kabupaten", async (_req, res) => {
     const data = await db
       .select({
         kabupaten: participantsTable.city,
-        totalInput: count(participantsTable.id),
+        totalInput: countDistinct(participantsTable.id),
         totalDesa: countDistinct(participantsTable.kelurahan),
         totalKecamatan: countDistinct(participantsTable.kecamatan),
         totalEvent: countDistinct(eventRegistrationsTable.eventId),
@@ -48,7 +48,7 @@ router.get("/kabupaten", async (_req, res) => {
       .leftJoin(eventRegistrationsTable, sql`${eventRegistrationsTable.participantId} = ${participantsTable.id}`)
       .where(sql`${participantsTable.city} is not null`)
       .groupBy(participantsTable.city)
-      .orderBy(sql`count(${participantsTable.id}) desc`);
+      .orderBy(sql`count(distinct ${participantsTable.id}) desc`);
     return res.json(data);
   } catch (e) {
     console.error(e);
@@ -67,16 +67,16 @@ router.get("/desa", async (req, res) => {
     const data = await db
       .select({
         kelurahan: participantsTable.kelurahan,
-        kecamatan: participantsTable.kecamatan,
-        kabupaten: participantsTable.city,
-        totalInput: count(participantsTable.id),
+        kecamatan: sql<string>`min(${participantsTable.kecamatan})`,
+        kabupaten: sql<string>`min(${participantsTable.city})`,
+        totalInput: countDistinct(participantsTable.id),
         totalEvent: countDistinct(eventRegistrationsTable.eventId),
       })
       .from(participantsTable)
       .leftJoin(eventRegistrationsTable, sql`${eventRegistrationsTable.participantId} = ${participantsTable.id}`)
       .where(sql`${conditions.reduce((a, b) => sql`${a} and ${b}`)}`)
-      .groupBy(participantsTable.kelurahan, participantsTable.kecamatan, participantsTable.city)
-      .orderBy(sql`count(${participantsTable.id}) desc`)
+      .groupBy(participantsTable.kelurahan)
+      .orderBy(sql`count(distinct ${participantsTable.id}) desc`)
       .limit(200);
     return res.json(data);
   } catch (e) {
@@ -91,15 +91,15 @@ router.get("/desa/:kelurahan", async (req, res) => {
     const [info] = await db
       .select({
         kelurahan: participantsTable.kelurahan,
-        kecamatan: participantsTable.kecamatan,
-        kabupaten: participantsTable.city,
-        totalInput: count(participantsTable.id),
+        kecamatan: sql<string>`min(${participantsTable.kecamatan})`,
+        kabupaten: sql<string>`min(${participantsTable.city})`,
+        totalInput: countDistinct(participantsTable.id),
         totalEvent: countDistinct(eventRegistrationsTable.eventId),
       })
       .from(participantsTable)
       .leftJoin(eventRegistrationsTable, sql`${eventRegistrationsTable.participantId} = ${participantsTable.id}`)
       .where(sql`lower(${participantsTable.kelurahan}) = lower(${kelurahan})`)
-      .groupBy(participantsTable.kelurahan, participantsTable.kecamatan, participantsTable.city);
+      .groupBy(participantsTable.kelurahan);
 
     const events = await db
       .select({
