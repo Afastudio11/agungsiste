@@ -7,7 +7,7 @@ import {
   getGetEventQueryKey,
   getListEventParticipantsQueryKey,
 } from "@workspace/api-client-react";
-import { CalendarDays, MapPin, Users, Search, ChevronLeft, Download } from "lucide-react";
+import { CalendarDays, MapPin, Users, Search, ChevronLeft, Download, ClipboardList } from "lucide-react";
 
 function exportCSV(participants: any[], eventName: string) {
   const headers = ["NIK", "Nama", "Kelamin", "Pekerjaan", "Kota", "Waktu Daftar", "Staf", "Tag", "Total Event"];
@@ -123,8 +123,17 @@ export default function EventDetailPage() {
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="flex gap-3 shrink-0">
+            {/* Stats + RSVP button */}
+            <div className="flex flex-col items-end gap-3 shrink-0">
+              {(event as any).isRsvp && (
+                <Link href={`/events/${id}/rsvp`}>
+                  <button className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+                    <ClipboardList size={13} />
+                    Kelola RSVP
+                  </button>
+                </Link>
+              )}
+              <div className="flex gap-3">
               <div className="rounded-xl bg-blue-50 px-4 py-3 text-center min-w-[80px]">
                 <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-blue-400 mb-1">Peserta</p>
                 <p className="text-[28px] font-extrabold text-blue-700" style={{ letterSpacing: "-0.04em" }}>
@@ -138,6 +147,7 @@ export default function EventDetailPage() {
                     <p className="text-[10px] text-blue-400 mt-0.5">{pct}% target</p>
                   </>
                 )}
+              </div>
               </div>
             </div>
           </div>

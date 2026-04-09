@@ -19,6 +19,7 @@ import HelpPage from "@/pages/help";
 import PetugasEventsPage from "@/pages/petugas-events";
 import PetugasScanPage from "@/pages/petugas-scan";
 import PetugasRsvpPage from "@/pages/petugas-rsvp";
+import EventRsvpPage from "@/pages/event-rsvp";
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -78,6 +79,7 @@ function AppRoutes() {
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/events" component={EventsPage} />
       <Route path="/events/:id" component={EventDetailPage} />
+      <Route path="/events/:id/rsvp" component={EventRsvpPage} />
       <Route path="/participants" component={ParticipantsPage} />
       <Route path="/participants/:nik" component={ParticipantDetailPage} />
       <Route path="/scan" component={ScanPage} />

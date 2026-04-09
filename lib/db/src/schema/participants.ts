@@ -64,6 +64,7 @@ export const eventRegistrationsTable = pgTable(
     email: text("email"),
     notes: text("notes"),
     tags: text("tags"),
+    registrationType: text("registration_type").default("onsite"),
     registeredAt: timestamp("registered_at").defaultNow().notNull(),
   },
   (t) => [unique("uq_event_participant").on(t.eventId, t.participantId)]

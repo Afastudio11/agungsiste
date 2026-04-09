@@ -169,6 +169,139 @@ router.get("/:id/participants", requireAuth, async (req, res) => {
   }
 });
 
+// RSVP: List all pre-registered (RSVP) participants for an event
+router.get("/:id/rsvp", requireAuth, async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.id);
+    const { participantsTable } = await import("@workspace/db");
+
+    const list = await db
+      .select({
+        nik: participantsTable.nik,
+        fullName: participantsTable.fullName,
+        gender: participantsTable.gender,
+        city: participantsTable.city,
+        phone: eventRegistrationsTable.phone,
+        email: eventRegistrationsTable.email,
+        notes: eventRegistrationsTable.notes,
+        registrationType: eventRegistrationsTable.registrationType,
+        registeredAt: eventRegistrationsTable.registeredAt,
+      })
+      .from(eventRegistrationsTable)
+      .innerJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+      .where(
+        and(
+          eq(eventRegistrationsTable.eventId, eventId),
+          eq(eventRegistrationsTable.registrationType, "rsvp")
+        )
+      )
+      .orderBy(participantsTable.fullName);
+
+    res.json(list);
+  } catch (err) {
+    req.log.error({ err }, "Error listing RSVP participants");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// RSVP: Bulk import pre-registered participants
+router.post("/:id/rsvp/import", requireAuth, async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.id);
+    const { participants: rows } = req.body as {
+      participants: { nik: string; fullName: string; phone?: string; email?: string; notes?: string }[];
+    };
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ error: "Data peserta tidak boleh kosong" });
+    }
+
+    const { participantsTable } = await import("@workspace/db");
+    const results = { inserted: 0, updated: 0, skipped: 0, errors: [] as string[] };
+
+    for (const row of rows) {
+      const nik = (row.nik ?? "").trim();
+      const fullName = (row.fullName ?? "").trim();
+      if (!nik || !fullName) {
+        results.errors.push(`Baris dilewati: NIK="${nik}" atau nama kosong`);
+        results.skipped++;
+        continue;
+      }
+
+      try {
+        // Upsert participant
+        const [participant] = await db
+          .insert(participantsTable)
+          .values({ nik, fullName })
+          .onConflictDoUpdate({ target: participantsTable.nik, set: { fullName } })
+          .returning({ id: participantsTable.id });
+
+        // Upsert registration as RSVP
+        await db
+          .insert(eventRegistrationsTable)
+          .values({
+            eventId,
+            participantId: participant.id,
+            phone: row.phone ?? null,
+            email: row.email ?? null,
+            notes: row.notes ?? null,
+            registrationType: "rsvp",
+            staffName: "RSVP Import",
+          })
+          .onConflictDoUpdate({
+            target: [eventRegistrationsTable.eventId, eventRegistrationsTable.participantId],
+            set: {
+              phone: row.phone ?? null,
+              email: row.email ?? null,
+              notes: row.notes ?? null,
+              registrationType: "rsvp",
+            },
+          });
+
+        results.inserted++;
+      } catch (e: any) {
+        results.errors.push(`NIK ${nik}: ${e.message}`);
+        results.skipped++;
+      }
+    }
+
+    res.json({ success: true, ...results });
+  } catch (err) {
+    req.log.error({ err }, "Error importing RSVP");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// RSVP: Delete a pre-registered participant by NIK
+router.delete("/:id/rsvp/:nik", requireAuth, async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.id);
+    const nik = req.params.nik.trim();
+    const { participantsTable } = await import("@workspace/db");
+
+    const participant = await db.query.participantsTable.findFirst({
+      where: (t, { eq }) => eq(t.nik, nik),
+    });
+
+    if (!participant) {
+      return res.status(404).json({ error: "Peserta tidak ditemukan" });
+    }
+
+    await db.delete(eventRegistrationsTable).where(
+      and(
+        eq(eventRegistrationsTable.eventId, eventId),
+        eq(eventRegistrationsTable.participantId, participant.id),
+        eq(eventRegistrationsTable.registrationType, "rsvp")
+      )
+    );
+
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Error deleting RSVP");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // RSVP: Verify a participant is registered in this event by NIK
 router.post("/:id/rsvp/check", requireAuth, async (req, res) => {
   try {
