@@ -7,6 +7,15 @@ import {
   getListEventsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Zap, Brain, AlertTriangle, Sun, Contrast, Eye } from "lucide-react";
+
+type QualityWarning = "dark" | "overexposed" | "blurry" | "low_contrast" | null;
+
+type KtpMeta = {
+  usedLLM: boolean;
+  tesseractScore: number;
+  qualityWarning: QualityWarning;
+};
 
 type KtpData = {
   nik?: string | null;
@@ -26,6 +35,14 @@ type KtpData = {
   city?: string | null;
   bloodType?: string | null;
   validUntil?: string | null;
+  _meta?: KtpMeta;
+};
+
+const qualityMessages: Record<string, { icon: React.ReactNode; text: string; color: string }> = {
+  dark: { icon: <Sun className="h-3.5 w-3.5" />, text: "Gambar terlalu gelap — coba foto di tempat lebih terang", color: "bg-amber-50 border-amber-200 text-amber-800" },
+  overexposed: { icon: <Sun className="h-3.5 w-3.5" />, text: "Gambar terlalu terang — hindari cahaya langsung di KTP", color: "bg-amber-50 border-amber-200 text-amber-800" },
+  blurry: { icon: <Eye className="h-3.5 w-3.5" />, text: "Gambar kurang tajam — tahan kamera lebih stabil saat foto", color: "bg-amber-50 border-amber-200 text-amber-800" },
+  low_contrast: { icon: <Contrast className="h-3.5 w-3.5" />, text: "Kontras rendah — foto mungkin dari fotokopi pudar", color: "bg-amber-50 border-amber-200 text-amber-800" },
 };
 
 export default function ScanPage() {
@@ -38,7 +55,6 @@ export default function ScanPage() {
   const [result, setResult] = useState<{ success: boolean; message: string; totalEventsJoined?: number } | null>(null);
   const [isDuplicate, setIsDuplicate] = useState(false);
 
-  // Read user settings from localStorage
   const getSettings = () => {
     try {
       const raw = localStorage.getItem("ktp_dashboard_settings");
@@ -53,22 +69,17 @@ export default function ScanPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    setKtpData(null);
-    setEditedData({});
-    setResult(null);
-    setIsDuplicate(false);
-
+    setKtpData(null); setEditedData({}); setResult(null); setIsDuplicate(false);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
-
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const base64 = (ev.target?.result as string).split(",")[1];
       try {
         const data = await scanKtp.mutateAsync({ data: { imageBase64: base64 } });
-        setKtpData(data);
-        setEditedData(data as KtpData);
+        setKtpData(data as KtpData);
+        const { _meta, ...rest } = data as KtpData;
+        setEditedData(rest);
       } catch {
         setKtpData({});
         setEditedData({});
@@ -85,10 +96,7 @@ export default function ScanPage() {
     if (!selectedEventId) return alert("Pilih event terlebih dahulu");
     if (!editedData.nik) return alert("NIK tidak boleh kosong");
     if (!editedData.fullName) return alert("Nama lengkap tidak boleh kosong");
-
-    setResult(null);
-    setIsDuplicate(false);
-
+    setResult(null); setIsDuplicate(false);
     try {
       const res = await registerKtp.mutateAsync({
         data: {
@@ -100,22 +108,14 @@ export default function ScanPage() {
         },
       });
       const s = getSettings();
-      const msg = s.showTotalOnSuccess === false
-        ? "Peserta berhasil didaftarkan"
-        : res.message;
+      const msg = s.showTotalOnSuccess === false ? "Peserta berhasil didaftarkan" : res.message;
       setResult({ success: true, message: msg, totalEventsJoined: res.totalEventsJoined });
-      if (s.autoResetForm) {
-        setTimeout(() => handleReset(), 2500);
-      }
+      if (s.autoResetForm) setTimeout(() => handleReset(), 2500);
     } catch (err: any) {
       const body = err?.response?.data ?? err?.data;
       if (body?.error && body?.totalEventsJoined !== undefined) {
         setIsDuplicate(true);
-        setResult({
-          success: false,
-          message: `Peserta sudah terdaftar di event ini. Total event diikuti: ${body.totalEventsJoined}`,
-          totalEventsJoined: body.totalEventsJoined,
-        });
+        setResult({ success: false, message: `Peserta sudah terdaftar di event ini. Total event diikuti: ${body.totalEventsJoined}`, totalEventsJoined: body.totalEventsJoined });
       } else {
         setResult({ success: false, message: "Terjadi kesalahan. Coba lagi." });
       }
@@ -123,12 +123,8 @@ export default function ScanPage() {
   };
 
   const handleReset = () => {
-    setPreviewUrl(null);
-    setKtpData(null);
-    setEditedData({});
-    setResult(null);
-    setIsDuplicate(false);
-    setSelectedEventId(null);
+    setPreviewUrl(null); setKtpData(null); setEditedData({});
+    setResult(null); setIsDuplicate(false); setSelectedEventId(null);
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -151,6 +147,9 @@ export default function ScanPage() {
     { key: "bloodType", label: "Golongan Darah" },
   ];
 
+  const meta = ktpData?._meta;
+  const qw = meta?.qualityWarning;
+
   return (
     <Layout role="any">
       <div className="space-y-5">
@@ -158,14 +157,12 @@ export default function ScanPage() {
           <h1 className="text-[22px] md:text-[26px] font-extrabold text-slate-900 leading-tight" style={{ letterSpacing: "-0.03em" }}>
             Scan KTP
           </h1>
-          <p className="mt-1 text-sm text-slate-400 font-medium">Upload foto KTP, AI akan membaca data secara otomatis</p>
+          <p className="mt-1 text-sm text-slate-400 font-medium">Upload foto KTP, sistem akan membaca data secara otomatis</p>
         </div>
 
         {/* Staff name bar */}
         <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_1px_4px_rgba(0,0,0,0.06)] flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-          <label className="text-[12px] font-bold uppercase tracking-[0.08em] text-slate-400 whitespace-nowrap">
-            Nama Staf
-          </label>
+          <label className="text-[12px] font-bold uppercase tracking-[0.08em] text-slate-400 whitespace-nowrap">Nama Staf</label>
           <input
             type="text"
             placeholder="Masukkan nama Anda sebelum mulai scan..."
@@ -176,22 +173,11 @@ export default function ScanPage() {
         </div>
 
         {result && (
-          <div
-            className={`rounded-lg border p-4 ${
-              result.success
-                ? "border-green-200 bg-green-50 text-green-900"
-                : isDuplicate
-                ? "border-amber-200 bg-amber-50 text-amber-900"
-                : "border-red-200 bg-red-50 text-red-900"
-            }`}
-          >
+          <div className={`rounded-lg border p-4 ${result.success ? "border-green-200 bg-green-50 text-green-900" : isDuplicate ? "border-amber-200 bg-amber-50 text-amber-900" : "border-red-200 bg-red-50 text-red-900"}`}>
             <p className="font-medium">{result.success ? "Berhasil!" : isDuplicate ? "Peringatan Duplikat" : "Gagal"}</p>
             <p className="mt-1 text-sm">{result.message}</p>
             {result.success && (
-              <button
-                onClick={handleReset}
-                className="mt-3 rounded-md bg-green-700 px-4 py-2 text-xs font-medium text-white hover:bg-green-800"
-              >
+              <button onClick={handleReset} className="mt-3 rounded-md bg-green-700 px-4 py-2 text-xs font-medium text-white hover:bg-green-800">
                 Scan KTP Berikutnya
               </button>
             )}
@@ -202,10 +188,8 @@ export default function ScanPage() {
           <div className="grid gap-5 lg:grid-cols-2">
             <div className="space-y-4">
               <div className="rounded-lg border bg-card p-5">
-                <h2 className="mb-3 text-sm font-semibold">Upload Foto KTP</h2>
-                <p className="mb-3 text-xs text-muted-foreground">
-                  Foto KTP hanya digunakan untuk membaca data. Gambar tidak akan disimpan.
-                </p>
+                <h2 className="mb-1 text-sm font-semibold">Upload Foto KTP</h2>
+                <p className="mb-3 text-xs text-muted-foreground">Foto hanya digunakan untuk membaca data, tidak disimpan.</p>
                 <input
                   ref={fileRef}
                   type="file"
@@ -225,6 +209,29 @@ export default function ScanPage() {
                     Membaca data KTP...
                   </div>
                 )}
+
+                {/* Quality warning */}
+                {qw && qualityMessages[qw] && (
+                  <div className={`mt-3 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs font-medium ${qualityMessages[qw].color}`}>
+                    {qualityMessages[qw].icon}
+                    <span>{qualityMessages[qw].text}</span>
+                  </div>
+                )}
+
+                {/* OCR method badge */}
+                {meta && (
+                  <div className="mt-3 flex items-center gap-2">
+                    {meta.usedLLM ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-2.5 py-1 text-[11px] font-bold text-purple-700">
+                        <Brain className="h-3 w-3" /> AI (LLM) — foto kurang jelas
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-bold text-green-700">
+                        <Zap className="h-3 w-3" /> OCR Gratis — skor {meta.tesseractScore}/100
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {ktpData !== null && (
@@ -237,9 +244,7 @@ export default function ScanPage() {
                   >
                     <option value="">-- Pilih Event --</option>
                     {events?.map((ev) => (
-                      <option key={ev.id} value={ev.id}>
-                        {ev.name} ({ev.eventDate})
-                      </option>
+                      <option key={ev.id} value={ev.id}>{ev.name} ({ev.eventDate})</option>
                     ))}
                   </select>
                   <button
@@ -256,9 +261,7 @@ export default function ScanPage() {
             <div className="rounded-lg border bg-card p-5">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-semibold">Data KTP Terdeteksi</h2>
-                {ktpData !== null && (
-                  <span className="text-xs text-muted-foreground">Edit jika ada yang salah</span>
-                )}
+                {ktpData !== null && <span className="text-xs text-muted-foreground">Edit jika ada yang salah</span>}
               </div>
               {ktpData === null ? (
                 <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
@@ -273,7 +276,10 @@ export default function ScanPage() {
                         type="text"
                         value={(editedData[f.key] as string) ?? ""}
                         onChange={(e) => handleField(f.key, e.target.value)}
-                        className="flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        className={`flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring ${
+                          !editedData[f.key] ? "border-slate-200 bg-slate-50 text-slate-400 italic" : ""
+                        }`}
+                        placeholder="Tidak terdeteksi"
                       />
                     </div>
                   ))}
