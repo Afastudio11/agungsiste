@@ -468,7 +468,7 @@ function PesertaView({
 /* ─── Main page ────────────────────────────────────────────────────────── */
 export default function PemetaanPage() {
   const [view, setView] = useState<View>({ type: "kabupaten" });
-  const [tab, setTab] = useState<"tabel" | "peta">("tabel");
+  const [tab, setTab] = useState<"tabel" | "peta">("peta");
 
   const { data: summary } = useQuery<Summary>({
     queryKey: ["pemetaan-summary"],
