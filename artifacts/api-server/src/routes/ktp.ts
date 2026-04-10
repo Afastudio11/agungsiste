@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import OpenAI from "openai";
 import { createWorker } from "tesseract.js";
+import sharp from "sharp";
 
 const router = Router();
 
@@ -40,6 +41,37 @@ const RegisterBody = z.object({
   city: z.string().optional(),
   bloodType: z.string().optional(),
 });
+
+// ─── Image preprocessing with Sharp ─────────────────────────────────────────
+
+async function preprocessKtpImage(imageBase64: string): Promise<Buffer> {
+  const inputBuffer = Buffer.from(imageBase64, "base64");
+
+  const meta = await sharp(inputBuffer).metadata();
+  const width = meta.width ?? 800;
+
+  // Scale up small images for better OCR accuracy
+  const targetWidth = Math.max(width, 1600);
+
+  const processed = await sharp(inputBuffer)
+    // Scale up if needed
+    .resize({ width: targetWidth, kernel: sharp.kernel.lanczos3 })
+    // Convert to grayscale
+    .grayscale()
+    // Normalize contrast (stretch histogram)
+    .normalize()
+    // Sharpen text edges
+    .sharpen({ sigma: 1.5, m1: 1.0, m2: 2.0 })
+    // Boost contrast further with linear adjustment
+    .linear(1.3, -20)
+    // Denoise slightly
+    .median(1)
+    // Output as high-quality PNG for OCR
+    .png({ quality: 100 })
+    .toBuffer();
+
+  return processed;
+}
 
 // ─── Tesseract OCR helper ────────────────────────────────────────────────────
 
@@ -179,6 +211,9 @@ function scoreKtpData(data: Record<string, string | null>): number {
 async function ocrWithTesseract(
   imageBase64: string
 ): Promise<{ data: Record<string, string | null>; score: number; rawText: string }> {
+  // Preprocess image first for better accuracy
+  const processedBuffer = await preprocessKtpImage(imageBase64);
+
   const worker = await createWorker(["ind", "eng"], 1, {
     workerPath: undefined,
     langPath: undefined,
@@ -191,8 +226,7 @@ async function ocrWithTesseract(
       tessedit_pageseg_mode: "6" as any, // Assume uniform block of text
     });
 
-    const imgBuffer = Buffer.from(imageBase64, "base64");
-    const { data } = await worker.recognize(imgBuffer);
+    const { data } = await worker.recognize(processedBuffer);
     const parsed = parseKtpText(data.text);
     const score = scoreKtpData(parsed);
 
