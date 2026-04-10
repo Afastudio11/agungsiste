@@ -56,6 +56,29 @@ router.get("/kabupaten", async (_req, res) => {
   }
 });
 
+router.get("/kecamatan", async (req, res) => {
+  try {
+    const { kabupaten } = req.query as Record<string, string>;
+    const conditions: ReturnType<typeof sql>[] = [sql`${participantsTable.kecamatan} is not null`];
+    if (kabupaten) conditions.push(sql`${participantsTable.city} ilike ${"%" + kabupaten + "%"}`);
+    const data = await db
+      .select({
+        kecamatan: participantsTable.kecamatan,
+        kabupaten: sql<string>`min(${participantsTable.city})`,
+        totalInput: countDistinct(participantsTable.id),
+        totalDesa: countDistinct(participantsTable.kelurahan),
+      })
+      .from(participantsTable)
+      .where(sql`${conditions.reduce((a, b) => sql`${a} and ${b}`)}`)
+      .groupBy(participantsTable.kecamatan)
+      .orderBy(sql`count(distinct ${participantsTable.id}) desc`);
+    return res.json(data);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.get("/desa", async (req, res) => {
   try {
     const { kabupaten, kecamatan, search } = req.query as Record<string, string>;

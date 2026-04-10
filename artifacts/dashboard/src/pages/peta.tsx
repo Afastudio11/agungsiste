@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MapContainer, TileLayer, GeoJSON, ZoomControl } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import osmtogeojson from "osmtogeojson";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Map } from "lucide-react";
-import { useLocation } from "wouter";
+import { ChevronLeft } from "lucide-react";
 import { jatimKabupatenGeo } from "@/data/jatim-geo";
+import { jatimKecamatanGeo } from "@/data/jatim-kecamatan-geo";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -15,16 +14,10 @@ L.Icon.Default.mergeOptions({
 });
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-const CACHE_KEY_PREFIX = "ktp_geo_v3_";
 const MAP_CENTER: [number, number] = [-7.87, 111.45];
 
-interface KabupatenRow {
-  kabupaten: string;
-  totalInput: number;
-  totalDesa: number;
-  totalKecamatan: number;
-  totalEvent: number;
-}
+interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: number; totalKecamatan: number; totalEvent: number; }
+interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; }
 
 function getColor(count: number, max: number): string {
   if (!count || max === 0) return "#e2e8f0";
@@ -36,59 +29,44 @@ function getColor(count: number, max: number): string {
   return "#1d4ed8";
 }
 
-async function fetchKecamatanGeo(kabupaten: string): Promise<any> {
-  const key = CACHE_KEY_PREFIX + kabupaten;
-  try {
-    const cached = sessionStorage.getItem(key);
-    if (cached) return JSON.parse(cached);
-  } catch {}
-  const query = `[out:json][timeout:60];area["name"="${kabupaten}"]["admin_level"="5"]->.a;relation["boundary"="administrative"]["admin_level"="6"](area.a);out geom;`;
-  const res = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    body: "data=" + encodeURIComponent(query),
-  });
-  if (!res.ok) throw new Error("Overpass error: " + res.status);
-  const osm = await res.json();
-  const geo = osmtogeojson(osm);
-  try { sessionStorage.setItem(key, JSON.stringify(geo)); } catch {}
-  return geo;
-}
-
 export default function PetaMapContent() {
-  const [, navigate] = useLocation();
   const [view, setView] = useState<"kabupaten" | "kecamatan">("kabupaten");
   const [selectedKab, setSelectedKab] = useState<string | null>(null);
-  const [kecGeo, setKecGeo] = useState<any>(null);
-  const [loadingKec, setLoadingKec] = useState(false);
-  const [kecError, setKecError] = useState(false);
 
   const { data: kabData = [] } = useQuery<KabupatenRow[]>({
     queryKey: ["pemetaan-kabupaten"],
-    queryFn: () =>
-      fetch(`${BASE}/api/pemetaan/kabupaten`, { credentials: "include" })
-        .then((r) => r.json())
-        .then((d) => (Array.isArray(d) ? d : [])),
+    queryFn: () => fetch(`${BASE}/api/pemetaan/kabupaten`, { credentials: "include" }).then(r => r.json()).then(d => Array.isArray(d) ? d : []),
   });
 
-  const countByKab = Object.fromEntries(kabData.map((k) => [k.kabupaten, k.totalInput]));
-  const maxCount = Math.max(...kabData.map((k) => k.totalInput), 1);
+  const { data: kecData = [] } = useQuery<KecamatanRow[]>({
+    queryKey: ["pemetaan-kecamatan"],
+    queryFn: () => fetch(`${BASE}/api/pemetaan/kecamatan`, { credentials: "include" }).then(r => r.json()).then(d => Array.isArray(d) ? d : []),
+  });
 
-  useEffect(() => {
-    if (!selectedKab) return;
-    setKecError(false);
-    setLoadingKec(true);
-    fetchKecamatanGeo(selectedKab)
-      .then((geo) => { setKecGeo(geo); setLoadingKec(false); })
-      .catch(() => { setLoadingKec(false); setKecError(true); });
-  }, [selectedKab]);
+  const countByKab = Object.fromEntries(kabData.map(k => [k.kabupaten, k.totalInput]));
+  const maxKab = Math.max(...kabData.map(k => k.totalInput), 1);
+
+  const countByKec = Object.fromEntries(kecData.map(k => [k.kecamatan.toLowerCase(), k.totalInput]));
+  const kecInSelectedKab = kecData.filter(k => k.kabupaten?.toLowerCase() === selectedKab?.toLowerCase());
+  const maxKec = Math.max(...kecInSelectedKab.map(k => k.totalInput), 1);
+
+  // Filter kecamatan GeoJSON features for selected kabupaten
+  const kecFeatures = selectedKab
+    ? (jatimKecamatanGeo as any).features.filter((f: any) =>
+        f.properties?.kabupaten?.toLowerCase() === selectedKab.toLowerCase())
+    : [];
+  const kecGeoFiltered = { type: "FeatureCollection", features: kecFeatures };
 
   function onEachKab(feature: any, layer: L.Layer) {
     const name = feature.properties?.name || "";
     const count = countByKab[name] || 0;
+    const isSelected = name === selectedKab;
     const path = layer as L.Path;
+    const opacity = view === "kecamatan" ? (isSelected ? 0.1 : 0.15) : 0.82;
     path.setStyle({
-      fillColor: getColor(count, maxCount),
-      weight: 2, opacity: 1, color: "white", fillOpacity: 0.82,
+      fillColor: getColor(count, maxKab),
+      weight: view === "kecamatan" ? 1 : 2,
+      opacity: 1, color: "white", fillOpacity: opacity,
     });
     layer.bindTooltip(
       `<div style="font-family:sans-serif;font-size:13px"><b>${name}</b><br/><span style="color:#64748b">${count.toLocaleString()} peserta</span></div>`,
@@ -96,27 +74,31 @@ export default function PetaMapContent() {
     );
     layer.on({
       click: () => { setSelectedKab(name); setView("kecamatan"); },
-      mouseover: (e) => (e.target as L.Path).setStyle({ weight: 3, fillOpacity: 0.94 }),
-      mouseout: (e) => (e.target as L.Path).setStyle({ weight: 2, fillOpacity: 0.82 }),
+      mouseover: (e) => view === "kabupaten" && (e.target as L.Path).setStyle({ weight: 3, fillOpacity: 0.94 }),
+      mouseout: (e) => view === "kabupaten" && (e.target as L.Path).setStyle({ weight: 2, fillOpacity: 0.82 }),
     });
   }
 
   function onEachKec(feature: any, layer: L.Layer) {
     const name = feature.properties?.name || "";
+    const count = countByKec[name.toLowerCase()] || 0;
     (layer as L.Path).setStyle({
-      fillColor: "#3b82f6", weight: 1.5, opacity: 1, color: "white", fillOpacity: 0.55,
+      fillColor: getColor(count, maxKec),
+      weight: 1.5, opacity: 1, color: "white", fillOpacity: 0.78,
     });
-    layer.bindTooltip(`<b>${name}</b>`, { sticky: true });
+    layer.bindTooltip(
+      `<div style="font-family:sans-serif;font-size:13px"><b>${name}</b><br/><span style="color:#64748b">${count.toLocaleString()} peserta</span></div>`,
+      { sticky: true }
+    );
     layer.on({
-      click: () => navigate(`/pemetaan`),
-      mouseover: (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.8, weight: 2.5 }),
-      mouseout: (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.55, weight: 1.5 }),
+      mouseover: (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.95, weight: 2.5 }),
+      mouseout: (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.78, weight: 1.5 }),
     });
   }
 
-  function goBack() { setView("kabupaten"); setSelectedKab(null); setKecGeo(null); setKecError(false); }
+  function goBack() { setView("kabupaten"); setSelectedKab(null); }
 
-  const selectedInfo = kabData.find((k) => k.kabupaten === selectedKab);
+  const selectedInfo = kabData.find(k => k.kabupaten === selectedKab);
 
   return (
     <div className="flex flex-col gap-4">
@@ -135,13 +117,13 @@ export default function PetaMapContent() {
       </div>
 
       {/* Map */}
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden relative" style={{ height: 420 }}>
+      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden" style={{ height: 420 }}>
         <MapContainer
           center={MAP_CENTER}
           zoom={view === "kecamatan" ? 10 : 9}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
-          key={view}
+          key={view === "kecamatan" ? `kec-${selectedKab}` : "kab"}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
@@ -149,75 +131,81 @@ export default function PetaMapContent() {
           />
           <ZoomControl position="bottomright" />
 
-          {/* kabupaten layer — always rendered from static data */}
+          {/* Kabupaten layer — always visible */}
           <GeoJSON
             key={`kab-${view}-${JSON.stringify(countByKab)}`}
             data={jatimKabupatenGeo as any}
             onEachFeature={onEachKab}
-            style={(feature) => ({
-              fillColor: getColor(countByKab[feature?.properties?.name] || 0, maxCount),
-              weight: view === "kecamatan" && feature?.properties?.name !== selectedKab ? 1 : 2,
-              color: "white",
-              fillOpacity: view === "kecamatan" && feature?.properties?.name !== selectedKab ? 0.25 : 0.82,
-            })}
           />
 
-          {/* kecamatan layer — loaded from Overpass on demand */}
-          {view === "kecamatan" && !loadingKec && kecGeo && (
-            <GeoJSON key={`kec-${selectedKab}`} data={kecGeo} onEachFeature={onEachKec} />
+          {/* Kecamatan layer — shown when drilling into a kabupaten */}
+          {view === "kecamatan" && kecFeatures.length > 0 && (
+            <GeoJSON
+              key={`kec-${selectedKab}-${JSON.stringify(countByKec)}`}
+              data={kecGeoFiltered as any}
+              onEachFeature={onEachKec}
+            />
           )}
         </MapContainer>
-
-        {/* Loading kecamatan overlay */}
-        {view === "kecamatan" && loadingKec && (
-          <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-[1000]">
-            <div className="bg-white rounded-xl shadow-lg px-5 py-3 flex items-center gap-3">
-              <div className="h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm font-semibold text-slate-700">Memuat kecamatan dari OSM…</span>
-            </div>
-          </div>
-        )}
-        {view === "kecamatan" && kecError && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-orange-50 border border-orange-200 text-orange-700 text-xs font-semibold px-4 py-2 rounded-xl z-[1000]">
-            Gagal memuat batas kecamatan — tampil kabupaten saja
-          </div>
-        )}
       </div>
 
-      {/* Legend + stats cards */}
-      {view === "kabupaten" && (
-        <div className="space-y-3">
-          <div className="bg-white rounded-2xl border border-slate-100 px-4 py-3 flex items-center gap-3 flex-wrap">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">Kepadatan</span>
-            {[
-              { bg: "#e2e8f0", label: "0" },
-              { bg: "#dbeafe", label: "Sedikit" },
-              { bg: "#93c5fd", label: "" },
-              { bg: "#60a5fa", label: "" },
-              { bg: "#3b82f6", label: "Sedang" },
-              { bg: "#1d4ed8", label: "Banyak" },
-            ].map(({ bg, label }, i) => (
-              <div key={i} className="flex items-center gap-1">
-                <div className="h-4 w-6 rounded" style={{ background: bg }} />
-                {label && <span className="text-xs text-slate-500">{label}</span>}
-              </div>
-            ))}
+      {/* Legend */}
+      <div className="bg-white rounded-2xl border border-slate-100 px-4 py-3 flex items-center gap-3 flex-wrap">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">Kepadatan</span>
+        {[
+          { bg: "#e2e8f0", label: "0" },
+          { bg: "#dbeafe", label: "Sedikit" },
+          { bg: "#93c5fd", label: "" },
+          { bg: "#60a5fa", label: "" },
+          { bg: "#3b82f6", label: "Sedang" },
+          { bg: "#1d4ed8", label: "Banyak" },
+        ].map(({ bg, label }, i) => (
+          <div key={i} className="flex items-center gap-1">
+            <div className="h-4 w-6 rounded" style={{ background: bg }} />
+            {label && <span className="text-xs text-slate-500">{label}</span>}
           </div>
+        ))}
+      </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            {kabData.map((k) => (
-              <button
-                key={k.kabupaten}
-                onClick={() => { setSelectedKab(k.kabupaten); setView("kecamatan"); }}
-                className="bg-white rounded-xl border border-slate-100 p-3 text-left hover:border-blue-300 hover:shadow-sm transition"
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: getColor(k.totalInput, maxCount) }} />
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">{k.kabupaten}</span>
+      {/* Stats cards */}
+      {view === "kabupaten" && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          {kabData.map(k => (
+            <button
+              key={k.kabupaten}
+              onClick={() => { setSelectedKab(k.kabupaten); setView("kecamatan"); }}
+              className="bg-white rounded-xl border border-slate-100 p-3 text-left hover:border-blue-300 hover:shadow-sm transition"
+            >
+              <div className="flex items-center gap-1.5 mb-1">
+                <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: getColor(k.totalInput, maxKab) }} />
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">{k.kabupaten}</span>
+              </div>
+              <div className="text-xl font-extrabold text-slate-900">{k.totalInput.toLocaleString()}</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">{k.totalDesa} desa · {k.totalKecamatan} kec</div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Kecamatan table when drilling down */}
+      {view === "kecamatan" && (
+        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+            <span className="text-sm font-bold text-slate-700">Kecamatan di Kab. {selectedKab}</span>
+            <span className="text-xs text-slate-400">{kecInSelectedKab.length} kecamatan</span>
+          </div>
+          <div className="divide-y divide-slate-50 max-h-48 overflow-y-auto">
+            {kecInSelectedKab.map(k => (
+              <div key={k.kecamatan} className="px-4 py-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full shrink-0" style={{ background: getColor(k.totalInput, maxKec) }} />
+                  <span className="text-sm text-slate-700">{k.kecamatan}</span>
                 </div>
-                <div className="text-xl font-extrabold text-slate-900">{k.totalInput.toLocaleString()}</div>
-                <div className="text-[11px] text-slate-400 mt-0.5">{k.totalDesa} desa · {k.totalKecamatan} kec</div>
-              </button>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-slate-900">{k.totalInput.toLocaleString()}</span>
+                  <span className="text-xs text-slate-400 ml-1">{k.totalDesa} desa</span>
+                </div>
+              </div>
             ))}
           </div>
         </div>
