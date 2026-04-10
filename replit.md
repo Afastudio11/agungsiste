@@ -32,6 +32,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - Officers (Petugas) management: view all users, "Petugas Aktif" count, leaderboard
 - Staff statistics page (`/staff`): top-performing staff with input/event counts
 - KTP Scan admin page: scan KTP image with AI OCR, register to event, auto-reset form
+- Pemetaan page (`/pemetaan`): participant density by kabupaten/kecamatan/desa with pagination (100/page)
+- Peta Interaktif page (`/peta`): Leaflet choropleth map, 5 kabupaten Jawa Timur, kabupaten→kecamatan drill-down, data from Overpass API (client-side, sessionStorage cached)
 - Settings: autoResetForm, showTotalOnSuccess stored in localStorage
 
 ### Petugas (Staff) Role

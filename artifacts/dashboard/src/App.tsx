@@ -14,6 +14,7 @@ import ScanPage from "@/pages/scan";
 import StaffPage from "@/pages/staff";
 import OfficersPage from "@/pages/officers";
 import PemetaanPage from "@/pages/pemetaan";
+import PetaPage from "@/pages/peta";
 import SettingsPage from "@/pages/settings";
 import HelpPage from "@/pages/help";
 import PetugasEventsPage from "@/pages/petugas-events";
@@ -26,7 +27,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const ADMIN_PATHS = [
   "/dashboard", "/events", "/participants", "/scan", "/staff",
-  "/officers", "/pemetaan", "/settings", "/help",
+  "/officers", "/pemetaan", "/peta", "/settings", "/help",
 ];
 
 function AppRoutes() {
@@ -86,6 +87,7 @@ function AppRoutes() {
       <Route path="/staff" component={StaffPage} />
       <Route path="/officers" component={OfficersPage} />
       <Route path="/pemetaan" component={PemetaanPage} />
+      <Route path="/peta" component={PetaPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/help" component={HelpPage} />
 

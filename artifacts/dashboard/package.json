@@ -78,6 +78,7 @@
     "@clerk/react": "^6.2.0",
     "@types/leaflet": "^1.9.21",
     "leaflet": "^1.9.4",
+    "osmtogeojson": "3.0.0-beta.5",
     "react-leaflet": "^5.0.0"
   }
 }
