@@ -4,8 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import osmtogeojson from "osmtogeojson";
 import { useQuery } from "@tanstack/react-query";
-import Layout from "@/components/layout";
-import { ChevronLeft, MapPin, Users, Map } from "lucide-react";
+import { ChevronLeft, Map } from "lucide-react";
 import { useLocation } from "wouter";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -55,7 +54,7 @@ async function fetchOverpassGeo(query: string): Promise<any> {
   return geo;
 }
 
-export default function PetaPage() {
+export default function PetaMapContent() {
   const [, navigate] = useLocation();
   const [view, setView] = useState<"kabupaten" | "kecamatan">("kabupaten");
   const [selectedKab, setSelectedKab] = useState<string | null>(null);
@@ -132,23 +131,19 @@ export default function PetaPage() {
   const selectedInfo = kabData.find((k) => k.kabupaten === selectedKab);
 
   return (
-    <Layout>
-      <div className="flex flex-col h-full p-4 md:p-6 gap-4">
-        {/* Header */}
-        <div className="flex items-center gap-3 flex-shrink-0">
+    <div className="flex flex-col gap-4" style={{ minHeight: 0 }}>
+        {/* Sub-header */}
+        <div className="flex items-center gap-3">
           {view === "kecamatan" && (
             <button onClick={goBack} className="h-9 w-9 rounded-xl bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition shrink-0">
               <ChevronLeft className="h-5 w-5 text-slate-600" />
             </button>
           )}
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-              {view === "kecamatan" ? `Kab. ${selectedKab}` : "Peta Wilayah"}
-            </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm font-semibold text-slate-700">
               {view === "kecamatan"
-                ? `${selectedInfo?.totalKecamatan ?? "..."} kecamatan · ${selectedInfo?.totalInput.toLocaleString() ?? "..."} peserta`
-                : "5 Kabupaten Jawa Timur — klik kabupaten untuk detail"}
+                ? `Kab. ${selectedKab} — ${selectedInfo?.totalKecamatan ?? "..."} kecamatan · ${selectedInfo?.totalInput.toLocaleString() ?? "..."} peserta`
+                : "5 Kabupaten Jawa Timur — klik kabupaten untuk detail kecamatan"}
             </p>
           </div>
         </div>
@@ -249,7 +244,6 @@ export default function PetaPage() {
             </div>
           </div>
         )}
-      </div>
-    </Layout>
+    </div>
   );
 }

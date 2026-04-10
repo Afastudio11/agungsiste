@@ -9,7 +9,6 @@ import {
   HelpCircle,
   UserCheck,
   Map,
-  Globe,
   LogOut,
   Shield,
   BarChart2,
@@ -28,7 +27,6 @@ const adminNav = [
   { href: "/staff", label: "Statistik Staf", icon: BarChart2 },
   { href: "/scan", label: "Scan KTP", icon: ScanLine },
   { href: "/pemetaan", label: "Pemetaan", icon: Map },
-  { href: "/peta", label: "Peta Interaktif", icon: Globe },
 ];
 
 const adminNavBottom = [
