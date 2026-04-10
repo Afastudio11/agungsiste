@@ -4,6 +4,7 @@ import { participantsTable, eventRegistrationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import OpenAI from "openai";
+import { createWorker } from "tesseract.js";
 
 const router = Router();
 
@@ -40,19 +41,185 @@ const RegisterBody = z.object({
   bloodType: z.string().optional(),
 });
 
-router.post("/scan", async (req, res) => {
+// ─── Tesseract OCR helper ────────────────────────────────────────────────────
+
+function parseKtpText(text: string): Record<string, string | null> {
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  const raw = lines.join("\n");
+
+  const find = (patterns: RegExp[]): string | null => {
+    for (const re of patterns) {
+      const m = raw.match(re);
+      if (m?.[1]?.trim()) return m[1].trim();
+    }
+    return null;
+  };
+
+  const nik = find([
+    /NIK\s*[:\-]?\s*(\d{14,16})/i,
+    /(\d{16})/,
+    /(\d{14,15})/,
+  ]);
+
+  const fullName = find([
+    /Nama\s*[:\-]?\s*([A-Z][A-Z\s'\.]{2,40})/i,
+    /Name\s*[:\-]?\s*([A-Z][A-Z\s'\.]{2,40})/i,
+  ]);
+
+  const birthRaw = find([
+    /Tempat\s*[\/\-]?\s*Tgl\.?\s*Lahir\s*[:\-]?\s*([A-Za-z,\s\d\-\/]+)/i,
+    /Lahir\s*[:\-]?\s*([A-Za-z,\s\d\-\/]+)/i,
+  ]);
+  let birthPlace: string | null = null;
+  let birthDate: string | null = null;
+  if (birthRaw) {
+    const parts = birthRaw.split(/[,\/]/);
+    if (parts.length >= 2) {
+      birthPlace = parts[0].trim();
+      birthDate = parts.slice(1).join("-").trim();
+    } else {
+      birthPlace = birthRaw;
+    }
+  }
+
+  const gender = find([
+    /Jenis\s*Kelamin\s*[:\-]?\s*(Laki[- ]Laki|Perempuan)/i,
+    /(Laki[- ]Laki|Perempuan)/i,
+  ]);
+
+  const address = find([
+    /Alamat\s*[:\-]?\s*([A-Za-z0-9\s\.,\/\-\#]{5,80})/i,
+  ]);
+
+  const rtRw = find([
+    /RT\s*[\/\-]?\s*RW\s*[:\-]?\s*(\d{3}\s*[\/\-]\s*\d{3})/i,
+    /(\d{3})[\/\-](\d{3})/,
+  ]);
+
+  const kelurahan = find([
+    /(?:Kel\.?\/Desa|Kelurahan|Desa)\s*[:\-]?\s*([A-Za-z\s]{3,40})/i,
+  ]);
+
+  const kecamatan = find([
+    /Kecamatan\s*[:\-]?\s*([A-Za-z\s]{3,40})/i,
+  ]);
+
+  const city = find([
+    /(?:Kab(?:upaten)?\.?|Kota)\s*[:\-]?\s*([A-Za-z\s]{3,40})/i,
+  ]);
+
+  const province = find([
+    /Provinsi\s*[:\-]?\s*([A-Za-z\s]{3,40})/i,
+    /(?:PROVINSI|PROV)\s+([A-Za-z\s]+)/i,
+  ]);
+
+  const religion = find([
+    /Agama\s*[:\-]?\s*(Islam|Kristen|Katolik|Hindu|Buddha|Konghucu)/i,
+  ]);
+
+  const maritalStatus = find([
+    /Status\s*Perkawinan\s*[:\-]?\s*(Kawin|Belum Kawin|Cerai Hidup|Cerai Mati)/i,
+    /Perkawinan\s*[:\-]?\s*(Kawin|Belum Kawin|Cerai)/i,
+  ]);
+
+  const occupation = find([
+    /Pekerjaan\s*[:\-]?\s*([A-Za-z\s\/\-]{3,50})/i,
+  ]);
+
+  const bloodType = find([
+    /Gol(?:\.?\s*Darah)?\s*[:\-]?\s*([ABO]{1,2}[+-]?)/i,
+    /\b([ABO]{1,2}[+-])\b/,
+  ]);
+
+  const validUntil = find([
+    /Berlaku\s*Hingga\s*[:\-]?\s*([\d\-\/]+|SEUMUR\s*HIDUP)/i,
+  ]);
+
+  const nationality = find([
+    /Kewarganegaraan\s*[:\-]?\s*([A-Za-z\s]{2,20})/i,
+  ]);
+
+  return {
+    nik,
+    fullName,
+    address,
+    birthPlace,
+    birthDate,
+    gender,
+    religion,
+    maritalStatus,
+    occupation,
+    nationality,
+    rtRw,
+    kelurahan,
+    kecamatan,
+    province,
+    city,
+    bloodType,
+    validUntil,
+  };
+}
+
+function scoreKtpData(data: Record<string, string | null>): number {
+  const critical = ["nik", "fullName"];
+  const important = ["address", "birthDate", "gender", "kecamatan", "city"];
+  const bonus = ["religion", "maritalStatus", "occupation", "bloodType"];
+
+  let score = 0;
+  for (const f of critical) if (data[f]) score += 40;
+  for (const f of important) if (data[f]) score += 8;
+  for (const f of bonus) if (data[f]) score += 2;
+
+  // NIK must be exactly 16 digits
+  if (data.nik && !/^\d{16}$/.test(data.nik)) score -= 30;
+
+  return Math.min(score, 100);
+}
+
+async function ocrWithTesseract(
+  imageBase64: string
+): Promise<{ data: Record<string, string | null>; score: number; rawText: string }> {
+  const worker = await createWorker(["ind", "eng"], 1, {
+    workerPath: undefined,
+    langPath: undefined,
+    corePath: undefined,
+    logger: () => {},
+  });
+
   try {
-    const { imageBase64 } = ScanBody.parse(req.body);
-    const response = await openai.chat.completions.create({
-      model: "gpt-5.2",
-      max_completion_tokens: 2000,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Extract all data from this Indonesian KTP (Identity Card) image. Return ONLY a valid JSON object with these exact fields (use null if not found):
+    await worker.setParameters({
+      tessedit_pageseg_mode: "6" as any, // Assume uniform block of text
+    });
+
+    const imgBuffer = Buffer.from(imageBase64, "base64");
+    const { data } = await worker.recognize(imgBuffer);
+    const parsed = parseKtpText(data.text);
+    const score = scoreKtpData(parsed);
+
+    return { data: parsed, score, rawText: data.text };
+  } finally {
+    await worker.terminate();
+  }
+}
+
+async function ocrWithLLM(
+  imageBase64: string,
+  rawText?: string
+): Promise<Record<string, string | null>> {
+  const contextHint = rawText
+    ? `\n\nBelow is a partial OCR result from Tesseract (may have errors, use as hint only):\n${rawText.substring(0, 800)}`
+    : "";
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-5.2",
+    max_completion_tokens: 2000,
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `Extract all data from this Indonesian KTP (Identity Card) image. Return ONLY a valid JSON object with these exact fields (use null if not found):
 {
   "nik": string or null,
   "fullName": string or null,
@@ -72,30 +239,64 @@ router.post("/scan", async (req, res) => {
   "bloodType": string or null,
   "validUntil": string or null
 }
-Return only the JSON, no explanation, no markdown.`,
-            },
-            {
-              type: "image_url",
-              image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: "high" },
-            },
-          ],
-        },
-      ],
-    });
+Return only the JSON, no explanation, no markdown.${contextHint}`,
+          },
+          {
+            type: "image_url",
+            image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: "high" },
+          },
+        ],
+      },
+    ],
+  });
 
-    const content = response.choices[0]?.message?.content ?? "{}";
+  const content = response.choices[0]?.message?.content ?? "{}";
+  try {
+    return JSON.parse(content.replace(/```json\n?|```/g, "").trim());
+  } catch {
+    return {};
+  }
+}
+
+// ─── Main scan endpoint ───────────────────────────────────────────────────────
+
+router.post("/scan", async (req, res) => {
+  try {
+    const { imageBase64 } = ScanBody.parse(req.body);
+
+    // Stage 1: Try Tesseract.js (free, no API call)
     let ktpData: Record<string, string | null> = {};
+    let usedLLM = false;
+    let tesseractScore = 0;
+
     try {
-      ktpData = JSON.parse(content.replace(/```json\n?|```/g, "").trim());
-    } catch {
-      req.log.warn({ content }, "Failed to parse KTP extraction response");
+      const { data, score, rawText } = await ocrWithTesseract(imageBase64);
+      tesseractScore = score;
+
+      if (score >= 70) {
+        // Tesseract succeeded — use result directly
+        ktpData = data;
+        req.log.info({ score }, "KTP scan via Tesseract.js");
+      } else {
+        // Score too low — fall back to LLM with raw text as hint
+        req.log.info({ score }, "Tesseract score low, falling back to LLM");
+        ktpData = await ocrWithLLM(imageBase64, rawText);
+        usedLLM = true;
+      }
+    } catch (tessErr) {
+      req.log.warn({ tessErr }, "Tesseract failed, falling back to LLM");
+      ktpData = await ocrWithLLM(imageBase64);
+      usedLLM = true;
     }
-    res.json(ktpData);
+
+    return res.json({ ...ktpData, _meta: { usedLLM, tesseractScore } });
   } catch (err) {
     req.log.error({ err }, "Error scanning KTP");
-    res.status(500).json({ error: "Failed to scan KTP" });
+    return res.status(500).json({ error: "Failed to scan KTP" });
   }
 });
+
+// ─── Register endpoint ────────────────────────────────────────────────────────
 
 router.post("/register", async (req, res) => {
   try {
@@ -143,7 +344,7 @@ router.post("/register", async (req, res) => {
       tags: tags ?? null,
     }).returning();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       participantId: participant.id,
       registrationId: registration.id,
@@ -155,7 +356,7 @@ router.post("/register", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Error registering KTP");
-    res.status(400).json({ error: "Data tidak valid" });
+    return res.status(400).json({ error: "Data tidak valid" });
   }
 });
 
