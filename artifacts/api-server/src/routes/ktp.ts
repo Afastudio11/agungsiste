@@ -5,6 +5,12 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { createWorker } from "tesseract.js";
 import sharp from "sharp";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Local tessdata directory (pre-downloaded .gz files, avoids network on every scan)
+const _thisDir = path.dirname(fileURLToPath(import.meta.url));
+const TESSDATA_DIR = path.resolve(_thisDir, "..", "tessdata");
 
 const router = Router();
 
@@ -288,6 +294,8 @@ async function ocrWithTesseract(imageBase64: string): Promise<{
 
   const worker = await createWorker(["ind", "eng"], 1, {
     logger: () => {},
+    langPath: TESSDATA_DIR,
+    gzip: true,
   });
 
   try {
