@@ -287,7 +287,7 @@ async function ocrWithTesseract(imageBase64: string): Promise<{
   const { buffer, width, height } = await preprocessKtpImage(imageBase64);
 
   const worker = await createWorker(["ind", "eng"], 1, {
-    workerPath: undefined, langPath: undefined, corePath: undefined, logger: () => {},
+    logger: () => {},
   });
 
   try {
