@@ -3,16 +3,10 @@ import { db } from "@workspace/db";
 import { participantsTable, eventRegistrationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import OpenAI from "openai";
 import { createWorker } from "tesseract.js";
 import sharp from "sharp";
 
 const router = Router();
-
-const openai = new OpenAI({
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-});
 
 const ScanBody = z.object({ imageBase64: z.string() });
 
@@ -90,12 +84,33 @@ async function preprocessKtpImage(imageBase64: string): Promise<{ buffer: Buffer
   return { buffer: processed, width: finalMeta.width ?? targetWidth, height: finalMeta.height ?? height };
 }
 
+// ─── Extra preprocessing pass for low-confidence results ─────────────────────
+
+async function preprocessKtpImageEnhanced(imageBase64: string): Promise<{ buffer: Buffer; width: number; height: number }> {
+  const inputBuffer = Buffer.from(imageBase64, "base64");
+  const rotated = await sharp(inputBuffer).rotate().toBuffer();
+  const meta = await sharp(rotated).metadata();
+  const width = meta.width ?? 800;
+  const targetWidth = Math.max(width, 2000);
+
+  const processed = await sharp(rotated)
+    .resize({ width: targetWidth, kernel: sharp.kernel.lanczos3 })
+    .grayscale()
+    .normalize()
+    .sharpen({ sigma: 2.5, m1: 2.0, m2: 4.0 })
+    .linear(1.5, -30)
+    .median(1)
+    .threshold(128)
+    .png({ quality: 100 })
+    .toBuffer();
+
+  const finalMeta = await sharp(processed).metadata();
+  return { buffer: processed, width: finalMeta.width ?? targetWidth, height: finalMeta.height ?? (meta.height ?? 500) };
+}
+
 // ─── Zone-based crop helpers ──────────────────────────────────────────────────
-// Indonesian KTP layout: left ~30% = photo + flag, right ~70% = all text fields.
-// NIK is always in the top ~22% of the text area.
 
 async function cropTextZone(buffer: Buffer, w: number, h: number): Promise<Buffer> {
-  // Crop right 72% of image — where all text fields live
   const left = Math.floor(w * 0.28);
   return sharp(buffer)
     .extract({ left, top: 0, width: w - left, height: h })
@@ -103,12 +118,10 @@ async function cropTextZone(buffer: Buffer, w: number, h: number): Promise<Buffe
 }
 
 async function cropNikZone(buffer: Buffer, w: number, h: number): Promise<Buffer> {
-  // NIK is typically in the top 22% of the text area on the right
   const left = Math.floor(w * 0.28);
   const zoneH = Math.floor(h * 0.22);
   return sharp(buffer)
     .extract({ left, top: 0, width: w - left, height: zoneH })
-    // Extra sharpen for NIK digits
     .sharpen({ sigma: 2, m1: 1.5, m2: 3 })
     .toBuffer();
 }
@@ -220,7 +233,6 @@ function scoreKtpData(data: Record<string, string | null>): number {
   if (data.fullName) score += 30;
   for (const f of ["address", "birthDate", "gender", "kecamatan", "city"]) if (data[f]) score += 5;
   for (const f of ["religion", "maritalStatus", "occupation", "bloodType"]) if (data[f]) score += 2;
-  // NIK must be 16 digits
   if (data.nik && !/^\d{16}$/.test(data.nik)) score -= 35;
   return Math.min(score, 100);
 }
@@ -229,7 +241,6 @@ function mergeKtpData(a: Record<string, string | null>, b: Record<string, string
   const result = { ...a };
   for (const key of Object.keys(b)) {
     if (!result[key] && b[key]) result[key] = b[key];
-    // Prefer 16-digit NIK
     if (key === "nik" && b[key] && /^\d{16}$/.test(b[key]!) && (!result[key] || !/^\d{16}$/.test(result[key]!))) {
       result[key] = b[key];
     }
@@ -238,6 +249,31 @@ function mergeKtpData(a: Record<string, string | null>, b: Record<string, string
 }
 
 // ─── OCR with Tesseract ───────────────────────────────────────────────────────
+
+async function runTesseractOcr(buffer: Buffer, worker: Awaited<ReturnType<typeof createWorker>>, width: number, height: number): Promise<{
+  merged: Record<string, string | null>;
+  score: number;
+  rawText: string;
+}> {
+  await worker.setParameters({ tessedit_pageseg_mode: "6" as any });
+
+  const { data: fullData } = await worker.recognize(buffer);
+  const fullParsed = parseKtpText(fullData.text);
+
+  const textZone = await cropTextZone(buffer, width, height);
+  const { data: zoneData } = await worker.recognize(textZone);
+  const zoneParsed = parseKtpText(zoneData.text);
+
+  const nikZone = await cropNikZone(buffer, width, height);
+  const { data: nikData } = await worker.recognize(nikZone);
+  const nikParsed = parseKtpText(nikData.text);
+
+  const merged = mergeKtpData(mergeKtpData(fullParsed, zoneParsed), { nik: nikParsed.nik });
+  const score = scoreKtpData(merged);
+  const rawText = [fullData.text, zoneData.text].join("\n---\n");
+
+  return { merged, score, rawText };
+}
 
 async function ocrWithTesseract(imageBase64: string): Promise<{
   data: Record<string, string | null>;
@@ -255,83 +291,24 @@ async function ocrWithTesseract(imageBase64: string): Promise<{
   });
 
   try {
-    await worker.setParameters({ tessedit_pageseg_mode: "6" as any });
+    const { merged, score, rawText } = await runTesseractOcr(buffer, worker, width, height);
 
-    // Full image OCR
-    const { data: fullData } = await worker.recognize(buffer);
-    const fullParsed = parseKtpText(fullData.text);
-
-    // Zone OCR: right text area (higher precision for fields)
-    const textZone = await cropTextZone(buffer, width, height);
-    const { data: zoneData } = await worker.recognize(textZone);
-    const zoneParsed = parseKtpText(zoneData.text);
-
-    // NIK-specific zone (extra precision for 16-digit number)
-    const nikZone = await cropNikZone(buffer, width, height);
-    const { data: nikData } = await worker.recognize(nikZone);
-    const nikParsed = parseKtpText(nikData.text);
-
-    // Merge results — zone takes priority, then NIK zone for NIK specifically
-    const merged = mergeKtpData(mergeKtpData(fullParsed, zoneParsed), { nik: nikParsed.nik });
-    const score = scoreKtpData(merged);
-    const rawText = [fullData.text, zoneData.text].join("\n---\n");
+    // If score is low, try a second pass with enhanced preprocessing
+    if (score < 50) {
+      try {
+        const enhanced = await preprocessKtpImageEnhanced(imageBase64);
+        const { merged: merged2, score: score2 } = await runTesseractOcr(enhanced.buffer, worker, enhanced.width, enhanced.height);
+        if (score2 > score) {
+          return { data: mergeKtpData(merged, merged2), score: score2, rawText, qualityWarning };
+        }
+      } catch {
+        // ignore enhanced pass error, use original
+      }
+    }
 
     return { data: merged, score, rawText, qualityWarning };
   } finally {
     await worker.terminate();
-  }
-}
-
-// ─── OCR with LLM fallback ────────────────────────────────────────────────────
-
-async function ocrWithLLM(imageBase64: string, rawText?: string): Promise<Record<string, string | null>> {
-  const contextHint = rawText
-    ? `\n\nPartial OCR hint (may have errors):\n${rawText.substring(0, 600)}`
-    : "";
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-5.2",
-    max_completion_tokens: 2000,
-    messages: [{
-      role: "user",
-      content: [
-        {
-          type: "text",
-          text: `Extract all data from this Indonesian KTP (Identity Card) image. Return ONLY a valid JSON object with these exact fields (use null if not found):
-{
-  "nik": string or null,
-  "fullName": string or null,
-  "address": string or null,
-  "birthPlace": string or null,
-  "birthDate": string or null,
-  "gender": string or null,
-  "religion": string or null,
-  "maritalStatus": string or null,
-  "occupation": string or null,
-  "nationality": string or null,
-  "rtRw": string or null,
-  "kelurahan": string or null,
-  "kecamatan": string or null,
-  "province": string or null,
-  "city": string or null,
-  "bloodType": string or null,
-  "validUntil": string or null
-}
-Return only the JSON, no explanation, no markdown.${contextHint}`,
-        },
-        {
-          type: "image_url",
-          image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: "high" },
-        },
-      ],
-    }],
-  });
-
-  const content = response.choices[0]?.message?.content ?? "{}";
-  try {
-    return JSON.parse(content.replace(/```json\n?|```/g, "").trim());
-  } catch {
-    return {};
   }
 }
 
@@ -341,37 +318,19 @@ router.post("/scan", async (req, res) => {
   try {
     const { imageBase64 } = ScanBody.parse(req.body);
 
-    let ktpData: Record<string, string | null> = {};
-    let usedLLM = false;
-    let tesseractScore = 0;
-    let qualityWarning: QualityWarning = null;
+    const { data, score, qualityWarning } = await ocrWithTesseract(imageBase64);
 
-    try {
-      const { data, score, rawText, qualityWarning: qw } = await ocrWithTesseract(imageBase64);
-      tesseractScore = score;
-      qualityWarning = qw;
+    const lowConfidence = score < 65;
 
-      if (score >= 65) {
-        ktpData = data;
-        req.log.info({ score, qualityWarning }, "KTP scan via Tesseract (free)");
-      } else {
-        req.log.info({ score }, "Tesseract score low, using LLM fallback");
-        ktpData = await ocrWithLLM(imageBase64, rawText);
-        usedLLM = true;
-      }
-    } catch (tessErr) {
-      req.log.warn({ tessErr }, "Tesseract failed, using LLM fallback");
-      ktpData = await ocrWithLLM(imageBase64);
-      usedLLM = true;
-    }
+    req.log.info({ score, qualityWarning, lowConfidence }, "KTP scan via Tesseract OCR");
 
     return res.json({
-      ...ktpData,
-      _meta: { usedLLM, tesseractScore, qualityWarning },
+      ...data,
+      _meta: { tesseractScore: score, qualityWarning, lowConfidence },
     });
   } catch (err) {
     req.log.error({ err }, "Error scanning KTP");
-    return res.status(500).json({ error: "Failed to scan KTP" });
+    return res.status(500).json({ error: "Gagal membaca KTP" });
   }
 });
 

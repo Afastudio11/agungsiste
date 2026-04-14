@@ -7,14 +7,15 @@ import {
   getListEventsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Zap, Brain, AlertTriangle, Sun, Contrast, Eye } from "lucide-react";
+import { Camera, Upload, AlertTriangle, Sun, Contrast, Eye, Zap } from "lucide-react";
+import KtpCamera from "@/components/ktp-camera";
 
 type QualityWarning = "dark" | "overexposed" | "blurry" | "low_contrast" | null;
 
 type KtpMeta = {
-  usedLLM: boolean;
   tesseractScore: number;
   qualityWarning: QualityWarning;
+  lowConfidence: boolean;
 };
 
 type KtpData = {
@@ -54,6 +55,7 @@ export default function ScanPage() {
   const [staffName, setStaffName] = useState("");
   const [result, setResult] = useState<{ success: boolean; message: string; totalEventsJoined?: number } | null>(null);
   const [isDuplicate, setIsDuplicate] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
 
   const getSettings = () => {
     try {
@@ -66,26 +68,36 @@ export default function ScanPage() {
   const scanKtp = useScanKtp();
   const registerKtp = useRegisterKtp();
 
+  const processBase64 = async (base64: string, previewSrc?: string) => {
+    setKtpData(null); setEditedData({}); setResult(null); setIsDuplicate(false);
+    if (previewSrc) setPreviewUrl(previewSrc);
+    try {
+      const data = await scanKtp.mutateAsync({ data: { imageBase64: base64 } });
+      setKtpData(data as KtpData);
+      const { _meta, ...rest } = data as KtpData;
+      setEditedData(rest);
+    } catch {
+      setKtpData({});
+      setEditedData({});
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setKtpData(null); setEditedData({}); setResult(null); setIsDuplicate(false);
     const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const base64 = (ev.target?.result as string).split(",")[1];
-      try {
-        const data = await scanKtp.mutateAsync({ data: { imageBase64: base64 } });
-        setKtpData(data as KtpData);
-        const { _meta, ...rest } = data as KtpData;
-        setEditedData(rest);
-      } catch {
-        setKtpData({});
-        setEditedData({});
-      }
+      await processBase64(base64, url);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleCameraCapture = async (base64: string) => {
+    setShowCamera(false);
+    const previewSrc = `data:image/jpeg;base64,${base64}`;
+    await processBase64(base64, previewSrc);
   };
 
   const handleField = (key: keyof KtpData, val: string) => {
@@ -152,12 +164,19 @@ export default function ScanPage() {
 
   return (
     <Layout role="any">
+      {showCamera && (
+        <KtpCamera
+          onCapture={handleCameraCapture}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
+
       <div className="space-y-5">
         <div>
           <h1 className="text-[22px] md:text-[26px] font-extrabold text-slate-900 leading-tight" style={{ letterSpacing: "-0.03em" }}>
             Scan KTP
           </h1>
-          <p className="mt-1 text-sm text-slate-400 font-medium">Upload foto KTP, sistem akan membaca data secara otomatis</p>
+          <p className="mt-1 text-sm text-slate-400 font-medium">Upload atau foto KTP, sistem akan membaca data secara otomatis</p>
         </div>
 
         {/* Staff name bar */}
@@ -188,21 +207,40 @@ export default function ScanPage() {
           <div className="grid gap-5 lg:grid-cols-2">
             <div className="space-y-4">
               <div className="rounded-lg border bg-card p-5">
-                <h2 className="mb-1 text-sm font-semibold">Upload Foto KTP</h2>
+                <h2 className="mb-1 text-sm font-semibold">Foto KTP</h2>
                 <p className="mb-3 text-xs text-muted-foreground">Foto hanya digunakan untuk membaca data, tidak disimpan.</p>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleFileChange}
-                  className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-xs file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
-                />
+
+                {/* Camera & upload buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowCamera(true)}
+                    className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors"
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                    Buka Kamera
+                  </button>
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload File
+                  </button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+
                 {previewUrl && (
                   <div className="mt-4">
                     <img src={previewUrl} alt="Preview KTP" className="max-h-48 w-full rounded-md object-contain border" />
                   </div>
                 )}
+
                 {scanKtp.isPending && (
                   <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
@@ -218,18 +256,25 @@ export default function ScanPage() {
                   </div>
                 )}
 
-                {/* OCR method badge */}
+                {/* Low confidence warning */}
+                {meta?.lowConfidence && !qw && (
+                  <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-800">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>Kepercayaan OCR rendah (skor {meta.tesseractScore}/100). Periksa & perbaiki data di bawah.</span>
+                  </div>
+                )}
+
+                {/* OCR score badge */}
                 {meta && (
-                  <div className="mt-3 flex items-center gap-2">
-                    {meta.usedLLM ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-2.5 py-1 text-[11px] font-bold text-purple-700">
-                        <Brain className="h-3 w-3" /> AI (LLM) — foto kurang jelas
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-bold text-green-700">
-                        <Zap className="h-3 w-3" /> OCR Gratis — skor {meta.tesseractScore}/100
-                      </span>
-                    )}
+                  <div className="mt-3">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                      meta.lowConfidence
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-green-100 text-green-700"
+                    }`}>
+                      <Zap className="h-3 w-3" />
+                      OCR Tesseract — skor {meta.tesseractScore}/100
+                    </span>
                   </div>
                 )}
               </div>
@@ -265,7 +310,7 @@ export default function ScanPage() {
               </div>
               {ktpData === null ? (
                 <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-                  Upload foto KTP untuk melihat data yang terdeteksi
+                  Buka kamera atau upload foto KTP untuk melihat data
                 </div>
               ) : (
                 <div className="space-y-2">

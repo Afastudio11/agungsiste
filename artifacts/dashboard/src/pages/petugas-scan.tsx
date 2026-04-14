@@ -1,14 +1,15 @@
 import { useState, useRef, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Camera, Upload, CheckCircle2, AlertCircle, Phone, Mail, Tag, FileText, User, Users, Zap, Brain, Sun, Eye, Contrast } from "lucide-react";
+import { ArrowLeft, Camera, Upload, CheckCircle2, AlertCircle, AlertTriangle, Phone, Mail, Tag, FileText, User, Users, Zap, Sun, Eye, Contrast } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import KtpCamera from "@/components/ktp-camera";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type QualityWarning = "dark" | "overexposed" | "blurry" | "low_contrast" | null;
 
-interface KtpMeta { usedLLM: boolean; tesseractScore: number; qualityWarning: QualityWarning; }
+interface KtpMeta { tesseractScore: number; qualityWarning: QualityWarning; lowConfidence: boolean; }
 
 interface KtpData {
   nik?: string; fullName?: string; address?: string; birthPlace?: string;
@@ -46,6 +47,7 @@ export default function PetugasScanPage() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [ocrMeta, setOcrMeta] = useState<KtpMeta | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
 
   const [ktp, setKtp] = useState<KtpData>({});
   const [phone, setPhone] = useState("");
@@ -60,7 +62,7 @@ export default function PetugasScanPage() {
     enabled: eventId > 0,
   });
 
-  const processImage = useCallback(async (base64: string) => {
+  const processBase64 = useCallback(async (base64: string) => {
     setScanning(true);
     setError("");
     setOcrMeta(null);
@@ -78,7 +80,7 @@ export default function PetugasScanPage() {
       setKtp(rest);
       setStep("form");
     } catch {
-      setError("Gagal membaca KTP. Coba upload foto yang lebih jelas.");
+      setError("Gagal membaca KTP. Coba foto ulang dengan pencahayaan yang lebih baik.");
     } finally {
       setScanning(false);
     }
@@ -88,7 +90,7 @@ export default function PetugasScanPage() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = (e.target?.result as string).split(",")[1];
-      processImage(base64);
+      processBase64(base64);
     };
     reader.readAsDataURL(file);
   };
@@ -96,6 +98,11 @@ export default function PetugasScanPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) handleFile(file);
+  };
+
+  const handleCameraCapture = (base64: string) => {
+    setShowCamera(false);
+    processBase64(base64);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -153,6 +160,13 @@ export default function PetugasScanPage() {
 
   return (
     <div className="min-h-screen bg-[#f0f4ff] pb-8" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {showCamera && (
+        <KtpCamera
+          onCapture={handleCameraCapture}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
+
       {/* Top bar */}
       <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
         <button onClick={() => navigate("/petugas")} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
@@ -175,12 +189,12 @@ export default function PetugasScanPage() {
         {/* STEP: Upload */}
         {step === "upload" && (
           <div>
-            <div
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-              onClick={() => !scanning && fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition ${
-                scanning ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50/30"
+            {/* Camera button (primary) */}
+            <button
+              onClick={() => !scanning && setShowCamera(true)}
+              disabled={scanning}
+              className={`w-full border-2 rounded-2xl p-8 text-center transition ${
+                scanning ? "border-blue-300 bg-blue-50 cursor-wait" : "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
               }`}
             >
               <div className="flex justify-center mb-3">
@@ -189,31 +203,42 @@ export default function PetugasScanPage() {
                     <Camera className="h-6 w-6 text-blue-600" />
                   </div>
                 ) : (
-                  <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center">
-                    <Camera className="h-6 w-6 text-slate-500" />
+                  <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center">
+                    <Camera className="h-6 w-6 text-white" />
                   </div>
                 )}
               </div>
               <div className="font-bold text-sm text-slate-800 mb-1">
-                {scanning ? "Membaca KTP..." : "Upload Foto KTP"}
+                {scanning ? "Membaca KTP..." : "Buka Kamera"}
               </div>
               <div className="text-xs text-slate-500 mb-4">
-                {scanning ? "Mohon tunggu beberapa saat" : "Klik atau drag & drop foto KTP di sini"}
+                {scanning ? "Mohon tunggu beberapa saat" : "Foto KTP langsung dari kamera dengan panduan bingkai"}
               </div>
               {!scanning && (
                 <div className="flex gap-2 justify-center">
                   <div className="flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-xl">
-                    <Upload className="h-3.5 w-3.5" />
-                    Pilih Foto
+                    <Camera className="h-3.5 w-3.5" />
+                    Buka Kamera
                   </div>
                 </div>
               )}
               <div className="text-[10px] text-slate-400 mt-3 flex items-center justify-center gap-1">
                 <Zap className="h-3 w-3 text-green-500" />
-                OCR otomatis — hemat biaya, backup AI jika diperlukan
+                OCR otomatis — Tesseract tanpa AI
               </div>
+            </button>
+
+            {/* Upload from file (secondary) */}
+            <div
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+              onClick={() => !scanning && fileInputRef.current?.click()}
+              className="mt-3 border border-dashed border-slate-200 rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition"
+            >
+              <Upload className="h-4 w-4 text-slate-400 shrink-0" />
+              <span className="text-xs text-slate-500">Atau upload dari galeri / file</span>
             </div>
-            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
 
             {/* Tips kualitas foto */}
             <div className="mt-3 bg-white rounded-xl border border-slate-100 px-4 py-3">
@@ -222,7 +247,7 @@ export default function PetugasScanPage() {
                 {[
                   { icon: <Sun className="h-3 w-3 text-amber-500" />, tip: "Foto di tempat terang, hindari bayangan" },
                   { icon: <Eye className="h-3 w-3 text-blue-500" />, tip: "Tahan kamera stabil, jangan blur" },
-                  { icon: <Camera className="h-3 w-3 text-slate-500" />, tip: "KTP rata menghadap kamera, tidak miring" },
+                  { icon: <Camera className="h-3 w-3 text-slate-500" />, tip: "Masukkan KTP ke dalam bingkai, pastikan terbaca jelas" },
                 ].map(({ icon, tip }, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-slate-500">
                     {icon} {tip}
@@ -247,25 +272,25 @@ export default function PetugasScanPage() {
             <div className="bg-blue-900 rounded-2xl p-4 text-white">
               <div className="flex items-start justify-between mb-2">
                 <div className="text-[10px] font-bold tracking-widest opacity-70">KARTU TANDA PENDUDUK</div>
-                {/* OCR method badge */}
+                {/* OCR score badge */}
                 {ocrMeta && (
-                  ocrMeta.usedLLM ? (
-                    <span className="flex items-center gap-1 text-[10px] font-bold bg-purple-500/30 text-purple-200 px-2 py-0.5 rounded-full">
-                      <Brain className="h-2.5 w-2.5" /> AI
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-[10px] font-bold bg-green-500/30 text-green-200 px-2 py-0.5 rounded-full">
-                      <Zap className="h-2.5 w-2.5" /> OCR {ocrMeta.tesseractScore}%
-                    </span>
-                  )
+                  <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    ocrMeta.lowConfidence
+                      ? "bg-amber-500/30 text-amber-200"
+                      : "bg-green-500/30 text-green-200"
+                  }`}>
+                    <Zap className="h-2.5 w-2.5" /> OCR {ocrMeta.tesseractScore}%
+                  </span>
                 )}
               </div>
 
-              {/* Quality warning inside card */}
-              {qw && qualityMessages[qw] && (
+              {/* Quality / confidence warning */}
+              {(qw || ocrMeta?.lowConfidence) && (
                 <div className="flex items-center gap-1.5 bg-amber-400/20 text-amber-200 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg mb-3">
-                  {qualityMessages[qw].icon}
-                  <span>{qualityMessages[qw].text}</span>
+                  {qw ? qualityMessages[qw].icon : <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+                  <span>
+                    {qw ? qualityMessages[qw].text : `Kepercayaan rendah (${ocrMeta?.tesseractScore}%) — periksa data di bawah`}
+                  </span>
                 </div>
               )}
 
