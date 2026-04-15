@@ -16,6 +16,7 @@ type KtpMeta = {
   tesseractScore: number;
   qualityWarning: QualityWarning;
   lowConfidence: boolean;
+  engine?: string;
 };
 
 type KtpData = {
@@ -278,7 +279,7 @@ export default function ScanPage() {
                         : "bg-green-100 text-green-700"
                     }`}>
                       <Zap className="h-3 w-3" />
-                      OCR Tesseract — skor {meta.tesseractScore}/100
+                      OCR {meta.engine === "gemini-flash" ? "Gemini AI" : meta.engine === "python-opencv" ? "OpenCV" : "Tesseract"} — skor {meta.tesseractScore}/100
                     </span>
                   </div>
                 )}

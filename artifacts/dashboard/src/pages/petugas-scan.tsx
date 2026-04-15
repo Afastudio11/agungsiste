@@ -9,7 +9,7 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type QualityWarning = "dark" | "overexposed" | "blurry" | "low_contrast" | null;
 
-interface KtpMeta { tesseractScore: number; qualityWarning: QualityWarning; lowConfidence: boolean; }
+interface KtpMeta { tesseractScore: number; qualityWarning: QualityWarning; lowConfidence: boolean; engine?: string; }
 
 interface KtpData {
   nik?: string; fullName?: string; address?: string; birthPlace?: string;
@@ -284,7 +284,7 @@ export default function PetugasScanPage() {
                       ? "bg-amber-500/30 text-amber-200"
                       : "bg-green-500/30 text-green-200"
                   }`}>
-                    <Zap className="h-2.5 w-2.5" /> OCR {ocrMeta.tesseractScore}%
+                    <Zap className="h-2.5 w-2.5" /> {ocrMeta.engine === "gemini-flash" ? "Gemini AI" : ocrMeta.engine === "python-opencv" ? "OpenCV" : "Tesseract"} {ocrMeta.tesseractScore}%
                   </span>
                 )}
               </div>

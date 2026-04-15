@@ -17,9 +17,13 @@ import {
   PROVINCES, KABUPATEN,
 } from "../data/regions.js";
 import { requireAuth } from "../middlewares/auth";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const _thisDir = path.dirname(fileURLToPath(import.meta.url));
 const _objectStorage = new ObjectStorageService();
+const _gemini = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  : null;
 const TESSDATA_DIR = path.resolve(_thisDir, "..", "tessdata");
 
 const router = Router();
@@ -1237,7 +1241,77 @@ async function ocrWithTesseract(imageBase64: string): Promise<{
   return result;
 }
 
-// ─── Python scanner (primary) ─────────────────────────────────────────────────
+// ─── Gemini Vision scanner (primary) ─────────────────────────────────────────
+const GEMINI_KTP_PROMPT = `Kamu adalah sistem pembaca KTP Indonesia yang sangat teliti.
+Ekstrak semua data dari foto KTP ini dan kembalikan HANYA JSON valid tanpa komentar, tanpa markdown, tanpa backtick.
+
+Format JSON yang harus dikembalikan:
+{
+  "nik": "16 digit NIK (hanya angka)",
+  "fullName": "NAMA LENGKAP (huruf kapital)",
+  "birthPlace": "TEMPAT LAHIR (huruf kapital)",
+  "birthDate": "DD-MM-YYYY",
+  "gender": "LAKI-LAKI atau PEREMPUAN",
+  "bloodType": "golongan darah (A/B/AB/O atau null)",
+  "address": "ALAMAT LENGKAP (huruf kapital)",
+  "rtRw": "RT/RW (contoh: 001/002)",
+  "kelurahan": "KELURAHAN/DESA (huruf kapital)",
+  "kecamatan": "KECAMATAN (huruf kapital)",
+  "city": "KABUPATEN/KOTA (huruf kapital, tanpa kata KABUPATEN/KOTA di depan)",
+  "province": "PROVINSI (huruf kapital, tanpa kata PROVINSI di depan)",
+  "religion": "AGAMA (huruf kapital)",
+  "maritalStatus": "STATUS PERKAWINAN (huruf kapital)",
+  "occupation": "PEKERJAAN (huruf kapital)",
+  "nationality": "WNI"
+}
+
+Aturan penting:
+- NIK harus tepat 16 digit angka saja, jangan ada spasi atau karakter lain
+- Jika field tidak terbaca/tidak ada, gunakan null (bukan string kosong)
+- Jangan mengarang data yang tidak ada di foto
+- Nama jangan diisi dengan jabatan/pekerjaan
+- Kembalikan HANYA JSON, tidak ada teks lain`;
+
+async function scanWithGemini(imageBase64: string): Promise<Record<string, unknown>> {
+  if (!_gemini) throw new Error("GEMINI_API_KEY not configured");
+
+  let rawB64 = imageBase64;
+  const durlMatch = rawB64.match(/^data:([^;]+);base64,(.+)$/);
+  const mimeType = durlMatch ? (durlMatch[1] as "image/jpeg" | "image/png" | "image/webp") : "image/jpeg";
+  if (durlMatch) rawB64 = durlMatch[2];
+
+  const model = _gemini.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+  const result = await model.generateContent({
+    contents: [{
+      role: "user",
+      parts: [
+        { inlineData: { mimeType, data: rawB64 } },
+        { text: GEMINI_KTP_PROMPT },
+      ],
+    }],
+    generationConfig: {
+      temperature: 0,
+      maxOutputTokens: 1024,
+    },
+  });
+
+  const text = result.response.text().trim();
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error(`Gemini returned no JSON: ${text.slice(0, 200)}`);
+
+  const parsed = JSON.parse(jsonMatch[0]);
+
+  // Clean NIK: keep only digits
+  if (typeof parsed.nik === "string") {
+    parsed.nik = parsed.nik.replace(/\D/g, "");
+    if (parsed.nik.length !== 16) parsed.nik = null;
+  }
+
+  return parsed;
+}
+
+// ─── Python scanner (fallback) ────────────────────────────────────────────────
 const PYTHON_SCRIPT = path.resolve(_thisDir, "..", "src", "ktp_scanner.py");
 
 function scanWithPython(imageBase64: string): Promise<Record<string, unknown>> {
@@ -1309,19 +1383,39 @@ router.post("/scan", async (req, res) => {
   try {
     const { imageBase64 } = ScanBody.parse(req.body);
 
-    // Try Python scanner first (better preprocessing + CLAHE + OpenCV)
     let data: Record<string, string | null>;
     let score: number;
     let qualityWarning: QualityWarning = null;
-    let engine = "python-opencv";
+    let engine = "gemini-flash";
 
+    // 1. Try Gemini Vision (best accuracy)
+    if (_gemini) {
+      try {
+        const geminiResult = await scanWithGemini(imageBase64);
+        data = applyRegionMatching(geminiResult);
+        // Gemini confidence: count non-null fields
+        const filledFields = Object.values(data).filter((v) => v !== null && v !== "").length;
+        score = Math.round((filledFields / 16) * 100);
+        req.log.info({ score, engine }, "KTP scan via Gemini");
+        return res.json({
+          ...data,
+          _meta: { tesseractScore: score, qualityWarning: null, lowConfidence: score < 50, engine },
+        });
+      } catch (geminiErr) {
+        req.log.warn({ err: geminiErr }, "Gemini scan failed, falling back to Python OCR");
+        engine = "python-opencv";
+      }
+    }
+
+    // 2. Fallback: Python OpenCV + Tesseract
     try {
       const pyResult = await scanWithPython(imageBase64);
       if (pyResult.error) throw new Error(String(pyResult.error));
       data = applyRegionMatching(pyResult);
       score = typeof pyResult.score === "number" ? pyResult.score : 0;
+      engine = "python-opencv";
     } catch (pyErr) {
-      // Fallback to Tesseract.js
+      // 3. Last resort: Tesseract.js
       req.log.warn({ err: pyErr }, "Python scanner failed, falling back to Tesseract.js");
       const tessResult = await ocrWithTesseract(imageBase64);
       data = tessResult.data;
@@ -1334,7 +1428,7 @@ router.post("/scan", async (req, res) => {
     req.log.info({ score, qualityWarning, lowConfidence, engine }, "KTP scan");
     return res.json({
       ...data,
-      _meta: { tesseractScore: score, qualityWarning, lowConfidence },
+      _meta: { tesseractScore: score, qualityWarning, lowConfidence, engine },
     });
   } catch (err) {
     req.log.error({ err }, "KTP scan error");
