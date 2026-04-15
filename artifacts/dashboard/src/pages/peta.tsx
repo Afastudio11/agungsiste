@@ -10,6 +10,8 @@ import { jatimKecamatanGeo } from "@/data/jatim-kecamatan-geo";
 const TOOLTIP_STYLE = `
   .leaflet-tooltip { border: none !important; outline: none !important; box-shadow: 0 4px 20px rgba(0,0,0,0.13) !important; border-radius: 10px !important; background: #fff !important; padding: 8px 12px !important; }
   .leaflet-tooltip::before { display: none !important; }
+  .leaflet-container:focus, .leaflet-container:focus-visible { outline: none !important; box-shadow: none !important; }
+  .leaflet-container { outline: none !important; }
 `;
 
 function InjectTooltipStyle() {
