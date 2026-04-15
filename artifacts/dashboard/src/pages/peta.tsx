@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, GeoJSON, ZoomControl } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -6,6 +6,21 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
 import { jatimKabupatenGeo } from "@/data/jatim-geo";
 import { jatimKecamatanGeo } from "@/data/jatim-kecamatan-geo";
+
+const TOOLTIP_STYLE = `
+  .leaflet-tooltip { border: none !important; outline: none !important; box-shadow: 0 4px 20px rgba(0,0,0,0.13) !important; border-radius: 10px !important; background: #fff !important; padding: 8px 12px !important; }
+  .leaflet-tooltip::before { display: none !important; }
+`;
+
+function InjectTooltipStyle() {
+  useEffect(() => {
+    const el = document.getElementById("ktp-tooltip-style") || document.createElement("style");
+    el.id = "ktp-tooltip-style";
+    el.textContent = TOOLTIP_STYLE;
+    if (!document.getElementById("ktp-tooltip-style")) document.head.appendChild(el);
+  }, []);
+  return null;
+}
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -108,6 +123,7 @@ export default function PetaMapContent() {
 
   return (
     <div className="flex flex-col gap-4">
+      <InjectTooltipStyle />
       {/* Sub-header */}
       <div className="flex items-center gap-3">
         {view === "kecamatan" && (
