@@ -71,7 +71,7 @@ export default function PetaMapContent() {
     });
     layer.bindTooltip(
       `<div style="font-family:sans-serif;font-size:13px"><b>${name}</b><br/><span style="color:#64748b">${count.toLocaleString()} peserta</span></div>`,
-      { sticky: true }
+      { sticky: true, className: "ktp-tooltip" }
     );
     layer.on({
       click: () => { setSelectedKab(name); setView("kecamatan"); },
@@ -94,7 +94,7 @@ export default function PetaMapContent() {
         <span style="color:#3b82f6">👥 ${count.toLocaleString()} peserta</span><br/>
         <span style="color:#64748b">📅 ${events} event</span>
       </div>`,
-      { sticky: true }
+      { sticky: true, className: "ktp-tooltip" }
     );
     layer.on({
       mouseover: (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.95, weight: 2.5 }),

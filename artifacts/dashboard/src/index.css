@@ -207,13 +207,19 @@
   }
 }
 
-.leaflet-tooltip {
+.leaflet-tooltip,
+.ktp-tooltip.leaflet-tooltip {
   border: none !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.14) !important;
   border-radius: 10px !important;
   padding: 8px 12px !important;
+  background: #ffffff !important;
 }
 
-.leaflet-tooltip::before {
+.leaflet-tooltip::before,
+.ktp-tooltip.leaflet-tooltip::before {
   display: none !important;
+  border: none !important;
 }
