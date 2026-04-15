@@ -22,13 +22,13 @@ const router = Router();
 
 type TessWorker = Awaited<ReturnType<typeof createWorker>>;
 
-const workers: Record<string, TessWorker | null> = { a: null, b: null, c: null };
-const workerInits: Record<string, Promise<TessWorker> | null> = { a: null, b: null, c: null };
+const workers: Record<string, TessWorker | null> = { a: null, b: null, c: null, d: null };
+const workerInits: Record<string, Promise<TessWorker> | null> = { a: null, b: null, c: null, d: null };
 
-function initWorker(key: string): Promise<TessWorker> {
+function initWorker(key: string, langs: string[] = ["ind", "eng"]): Promise<TessWorker> {
   if (workers[key]) return Promise.resolve(workers[key]!);
   if (workerInits[key]) return workerInits[key]!;
-  workerInits[key] = createWorker(["ind", "eng"], 1, {
+  workerInits[key] = createWorker(langs, 1, {
     logger: () => {},
     langPath: TESSDATA_DIR,
     gzip: true,
@@ -40,6 +40,7 @@ function initWorker(key: string): Promise<TessWorker> {
 initWorker("a").catch(() => {});
 initWorker("b").catch(() => {});
 initWorker("c").catch(() => {});
+initWorker("d").catch(() => {});
 
 let _scanChain: Promise<unknown> = Promise.resolve();
 
@@ -87,14 +88,23 @@ async function detectImageQuality(buffer: Buffer): Promise<{ warning: QualityWar
   } catch { return { warning: null, mean: 128, stdev: 50 }; }
 }
 
-// ─── Preprocessing with text-region cropping ─────────────────────────────────
-// KTP layout: photo on left ~28%, text fields on right ~72%.
-// Cropping the right side eliminates garbage from the photo area.
+// ─── Preprocessing with zone-based field extraction ──────────────────────────
+// KTP has a fixed layout:
+//   - Header (province, kabupaten): top ~12%
+//   - Photo area: left ~28%, top 12%-85%
+//   - NIK: right ~72%, row ~12%-20%
+//   - Text fields (name, birth, etc.): right ~72%, rows 20%-85%
+//   - The entire right side for general text parsing
 
-async function preprocessKtpImage(imageBase64: string): Promise<{
-  fullNormal: Buffer; fullBinary: Buffer; fullEnhanced: Buffer;
-  cropNormal: Buffer; cropBinary: Buffer; cropBinaryLow: Buffer;
-}> {
+interface KtpZones {
+  full: Buffer;
+  header: Buffer;
+  nikZone: Buffer;
+  textFields: Buffer;
+  rightSide: Buffer;
+}
+
+async function buildBaseImage(imageBase64: string): Promise<{ base: Buffer; w: number; h: number }> {
   let raw = imageBase64;
   const dataUrlMatch = raw.match(/^data:[^;]+;base64,(.+)$/);
   if (dataUrlMatch) raw = dataUrlMatch[1];
@@ -109,45 +119,101 @@ async function preprocessKtpImage(imageBase64: string): Promise<{
     oriented = await sharp(rotated).rotate(90).toBuffer();
   }
 
-  const targetW = origW < 800 ? 2200 : origW < 1200 ? 2000 : 1800;
+  const targetW = Math.max(2400, origW < 800 ? 2800 : origW < 1200 ? 2400 : 2200);
 
-  const baseFull = await sharp(oriented)
+  const base = await sharp(oriented)
     .resize({ width: targetW, kernel: sharp.kernel.lanczos3 })
     .grayscale()
-    .normalize()
     .toBuffer();
 
-  const fullMeta = await sharp(baseFull).metadata();
-  const fullH = fullMeta.height!;
-  const fullW = fullMeta.width!;
+  const baseMeta = await sharp(base).metadata();
+  return { base, w: baseMeta.width!, h: baseMeta.height! };
+}
 
-  const cropLeft = Math.floor(fullW * 0.27);
-  const cropW = fullW - cropLeft;
+function safeExtract(w: number, h: number, left: number, top: number, width: number, height: number) {
+  const l = Math.max(0, Math.min(left, w - 1));
+  const t = Math.max(0, Math.min(top, h - 1));
+  const ew = Math.max(1, Math.min(width, w - l));
+  const eh = Math.max(1, Math.min(height, h - t));
+  return { left: l, top: t, width: ew, height: eh };
+}
 
-  const baseCrop = await sharp(baseFull)
-    .extract({ left: cropLeft, top: 0, width: cropW, height: fullH })
-    .toBuffer();
+async function extractZones(base: Buffer, w: number, h: number): Promise<KtpZones> {
+  const headerH = Math.floor(h * 0.14);
+  const rightLeft = Math.floor(w * 0.26);
+  const rightW = w - rightLeft;
+  const nikTop = Math.floor(h * 0.12);
+  const nikH = Math.floor(h * 0.12);
+  const textTop = Math.floor(h * 0.20);
+  const textH = Math.floor(h * 0.68);
 
-  const [fullNormal, fullBinary, fullEnhanced, cropNormal, cropBinary, cropBinaryLow] =
-    await Promise.all([
-      sharp(baseFull).sharpen({ sigma: 0.8 }).png().toBuffer(),
-      sharp(baseFull).sharpen({ sigma: 1.0 }).threshold(140).png().toBuffer(),
-      sharp(baseFull).sharpen({ sigma: 1.5 }).linear(1.3, -15).png().toBuffer(),
-      sharp(baseCrop).sharpen({ sigma: 0.8 }).png().toBuffer(),
-      sharp(baseCrop).sharpen({ sigma: 1.0 }).threshold(140).png().toBuffer(),
-      sharp(baseCrop).sharpen({ sigma: 1.0 }).threshold(100).png().toBuffer(),
-    ]);
+  const [header, nikZone, textFields, rightSide] = await Promise.all([
+    sharp(base).extract(safeExtract(w, h, 0, 0, w, headerH)).toBuffer(),
+    sharp(base).extract(safeExtract(w, h, rightLeft, nikTop, rightW, nikH)).toBuffer(),
+    sharp(base).extract(safeExtract(w, h, rightLeft, textTop, rightW, textH)).toBuffer(),
+    sharp(base).extract(safeExtract(w, h, rightLeft, 0, rightW, h)).toBuffer(),
+  ]);
 
-  return { fullNormal, fullBinary, fullEnhanced, cropNormal, cropBinary, cropBinaryLow };
+  return { full: base, header, nikZone, textFields, rightSide };
+}
+
+async function makeVariants(buf: Buffer): Promise<{
+  normal: Buffer; highContrast: Buffer; binary: Buffer; binaryLow: Buffer; enhanced: Buffer;
+}> {
+  const [normal, highContrast, binary, binaryLow, enhanced] = await Promise.all([
+    sharp(buf).normalize().sharpen({ sigma: 1.0 }).png().toBuffer(),
+    sharp(buf).normalize().linear(1.6, -30).sharpen({ sigma: 1.2 }).png().toBuffer(),
+    sharp(buf).normalize().sharpen({ sigma: 1.0 }).threshold(140).png().toBuffer(),
+    sharp(buf).normalize().sharpen({ sigma: 1.0 }).threshold(110).png().toBuffer(),
+    sharp(buf).normalize().linear(1.3, -10).sharpen({ sigma: 1.5 }).png().toBuffer(),
+  ]);
+  return { normal, highContrast, binary, binaryLow, enhanced };
+}
+
+async function preprocessKtpImage(imageBase64: string): Promise<{
+  fullNormal: Buffer; fullBinary: Buffer; fullEnhanced: Buffer;
+  cropNormal: Buffer; cropBinary: Buffer; cropBinaryLow: Buffer;
+  nikNormal: Buffer; nikBinary: Buffer; nikHighContrast: Buffer;
+  headerNormal: Buffer; headerBinary: Buffer;
+  textNormal: Buffer; textHighContrast: Buffer; textBinary: Buffer;
+}> {
+  const { base, w, h } = await buildBaseImage(imageBase64);
+  const zones = await extractZones(base, w, h);
+
+  const [fullV, nikV, headerV, textV, rightV] = await Promise.all([
+    makeVariants(zones.full),
+    makeVariants(zones.nikZone),
+    makeVariants(zones.header),
+    makeVariants(zones.textFields),
+    makeVariants(zones.rightSide),
+  ]);
+
+  return {
+    fullNormal: fullV.normal,
+    fullBinary: fullV.binary,
+    fullEnhanced: fullV.enhanced,
+    cropNormal: rightV.normal,
+    cropBinary: rightV.binary,
+    cropBinaryLow: rightV.binaryLow,
+    nikNormal: nikV.normal,
+    nikBinary: nikV.binary,
+    nikHighContrast: nikV.highContrast,
+    headerNormal: headerV.normal,
+    headerBinary: headerV.binary,
+    textNormal: textV.normal,
+    textHighContrast: textV.highContrast,
+    textBinary: textV.binary,
+  };
 }
 
 // ─── Word-confidence filtering ────────────────────────────────────────────────
-function filterByConfidence(words: Word[] | undefined, rawText: string, minConf = 10): string {
+function filterByConfidence(words: Word[] | undefined, rawText: string, minConf = 5): string {
   if (!words?.length) return rawText;
   const lineMap = new Map<number, string[]>();
   for (const word of words) {
     if (word.confidence < minConf || !word.text.trim()) continue;
-    const lineKey = Math.round(word.bbox.y0 / 14);
+    if (word.text.trim().length < 1) continue;
+    const lineKey = Math.round(word.bbox.y0 / 12);
     if (!lineMap.has(lineKey)) lineMap.set(lineKey, []);
     lineMap.get(lineKey)!.push(word.text);
   }
@@ -155,7 +221,7 @@ function filterByConfidence(words: Word[] | undefined, rawText: string, minConf 
     .sort((a, b) => a[0] - b[0])
     .map(([, ws]) => ws.join(" "))
     .join("\n");
-  return filtered.trim().length > rawText.length * 0.25 ? filtered : rawText;
+  return filtered.trim().length > rawText.length * 0.2 ? filtered : rawText;
 }
 
 // ─── NIK extraction (aggressive) ─────────────────────────────────────────────
@@ -412,8 +478,15 @@ function cleanPlace(raw: string | null, maxLen = 40): string | null {
 function cleanAddress(raw: string | null): string | null {
   if (!raw) return null;
   let c = raw.trim().toUpperCase();
+  c = c.replace(/[=\-_~]{2,}/g, " ");
+  c = c.replace(/^[\s\-=_~.]+/, "");
+  c = c.replace(/[\s\-=_~.]+$/, "");
   c = c.replace(/\s{2,}/g, " ");
-  if (c.length < 5 || c.length > 150) return null;
+  c = c.replace(/[^A-Z0-9\s.\-\/,']/g, "").trim();
+  if (c.length < 3 || c.length > 150) return null;
+  const words = c.split(/\s+/);
+  const alphaWords = words.filter(w => /[A-Z]/.test(w));
+  if (alphaWords.length < 1) return null;
   return c;
 }
 
@@ -476,7 +549,7 @@ function parseKtpText(text: string): Record<string, string | null> {
 
   const nik = validateNik(extractNik(text));
 
-  // ── Name: look for "Nama" label, then contextual fallback
+  // ── Name: multi-strategy extraction
   let nameRaw = findLabel(/^Nama\s*[:\-]?\s*(.{3,60})$/i);
   if (!nameRaw) {
     nameRaw = findFuzzy(["Nama", "Nam"],
@@ -484,7 +557,20 @@ function parseKtpText(text: string): Record<string, string | null> {
   }
   if (!nameRaw) {
     for (const line of lines) {
-      const m = line.match(/[:\-\*]\s*([A-Z][A-Z\s\-'.]{5,50})$/);
+      const m = line.match(/(?:Nama\s*(?:Lengkap)?|Nam\S*)\s*[:\-\*=]?\s*([A-Z][A-Z\s\-'.]{3,55})/i);
+      if (m) {
+        const candidate = m[1].trim();
+        const words = candidate.split(/\s+/);
+        if (words.length >= 1 && !NOT_A_NAME.has(words[0])) {
+          nameRaw = candidate;
+          break;
+        }
+      }
+    }
+  }
+  if (!nameRaw) {
+    for (const line of lines) {
+      const m = line.match(/[:\-\*=]\s*([A-Z][A-Z\s\-'.]{5,50})$/);
       if (m) {
         const candidate = m[1].trim();
         const words = candidate.split(/\s+/);
@@ -498,17 +584,31 @@ function parseKtpText(text: string): Record<string, string | null> {
   if (!nameRaw) {
     const nikLineIdx = lines.findIndex(l => /\d{10,}/.test(l.replace(/[.\- ]/g, "")));
     const from = nikLineIdx >= 0 ? nikLineIdx + 1 : 0;
-    for (let i = from; i < Math.min(from + 5, lines.length); i++) {
+    for (let i = from; i < Math.min(from + 6, lines.length); i++) {
       const l = lines[i].trim();
       if (/Tempat|Lahir|Tgl/i.test(l)) break;
-      const words = l.split(/\s+/);
-      if (/^[A-Z][A-Z\s\-'.]{4,49}$/.test(l) && words.length >= 2
+      if (/^\d{10,}/.test(l)) continue;
+      const cleaned = l.replace(/^(Nama\s*(?:Lengkap)?\s*[:\-\*=]?\s*)/i, "").trim();
+      const words = cleaned.split(/\s+/);
+      if (/^[A-Z][A-Z\s\-'.]{3,49}$/.test(cleaned) && words.length >= 1
           && words.every(w => w.replace(/['.]/g, "").length >= 2)
           && !NOT_A_NAME.has(words[0])) {
-        nameRaw = l;
+        nameRaw = cleaned;
         break;
       }
     }
+  }
+  if (!nameRaw) {
+    const allCapsLines = lines.filter(l => {
+      const w = l.trim().split(/\s+/);
+      return w.length >= 2 && w.length <= 5
+        && /^[A-Z\s\-'.]{4,50}$/.test(l.trim())
+        && w.every(x => x.length >= 2 && /[AIUEO]/.test(x))
+        && !w.some(x => NOT_A_NAME.has(x))
+        && !/\d/.test(l)
+        && !/PROVINSI|KABUPATEN|KOTA|REPUBLIK/i.test(l);
+    });
+    if (allCapsLines.length > 0) nameRaw = allCapsLines[0].trim();
   }
   const fullName = cleanName(nameRaw);
 
@@ -821,9 +921,49 @@ function crossValidate(data: Record<string, string | null>): Record<string, stri
   return d;
 }
 
-// ─── OCR orchestration — 6 passes across 3 workers ──────────────────────────
-// Round 1: header + NIK from full image, text fields from cropped image
-// Round 2: binary variants for both full and cropped
+// ─── OCR orchestration — zone-based extraction ──────────────────────────────
+// Strategy:
+//   Round 1: Dedicated NIK zone OCR (digits whitelist), header OCR, text fields OCR, full image OCR
+//   Round 2: Binary variants of each zone
+//   Round 3: Additional fallback passes with different thresholds
+// Each zone is OCR'd independently with optimal settings for that content type.
+
+async function extractNikFromZone(worker: TessWorker, images: Awaited<ReturnType<typeof preprocessKtpImage>>): Promise<string | null> {
+  await worker.setParameters({
+    tessedit_pageseg_mode: "7" as any,
+    tessedit_char_whitelist: "0123456789",
+  } as any);
+
+  const nikBuffers = [images.nikNormal, images.nikBinary, images.nikHighContrast];
+  for (const buf of nikBuffers) {
+    const result = await worker.recognize(buf);
+    const text = result.data.text.replace(/[\s\n]/g, "");
+    if (/^\d{16}$/.test(text) && validateNik(text)) return text;
+    const sub16 = text.match(/\d{16}/);
+    if (sub16 && validateNik(sub16[0])) return sub16[0];
+  }
+
+  await worker.setParameters({
+    tessedit_pageseg_mode: "6" as any,
+    tessedit_char_whitelist: "0123456789 .",
+  } as any);
+  for (const buf of nikBuffers) {
+    const result = await worker.recognize(buf);
+    const joined = result.data.text.replace(/[\s.\-]/g, "");
+    if (/^\d{16}$/.test(joined) && validateNik(joined)) return joined;
+    for (let i = 0; i <= joined.length - 16; i++) {
+      const sub = joined.substring(i, i + 16);
+      if (/^\d{16}$/.test(sub) && validateNik(sub)) return sub;
+    }
+  }
+
+  await worker.setParameters({
+    tessedit_pageseg_mode: "6" as any,
+    tessedit_char_whitelist: "",
+    preserve_interword_spaces: "1",
+  } as any);
+  return null;
+}
 
 async function runOcrPasses(imageBase64: string): Promise<{
   data: Record<string, string | null>; score: number; qualityWarning: QualityWarning;
@@ -838,45 +978,85 @@ async function runOcrPasses(imageBase64: string): Promise<{
     preprocessKtpImage(rawB64),
   ]);
 
-  const [wA, wB, wC] = await Promise.all([initWorker("a"), initWorker("b"), initWorker("c")]);
+  const [wA, wB, wC, wD] = await Promise.all([
+    initWorker("a"), initWorker("b"), initWorker("c"), initWorker("d"),
+  ]);
 
-  // Round 1: full normal PSM6, crop normal PSM4, full binary PSM6
+  const zoneNik = extractNikFromZone(wD, images);
+
+  await Promise.all([
+    wA.setParameters({ tessedit_pageseg_mode: "6" as any, preserve_interword_spaces: "1" as any }),
+    wB.setParameters({ tessedit_pageseg_mode: "4" as any, preserve_interword_spaces: "1" as any }),
+    wC.setParameters({ tessedit_pageseg_mode: "6" as any, preserve_interword_spaces: "1" as any }),
+  ]);
+  const [rFullNorm, rTextNorm, rHeaderNorm] = await Promise.all([
+    wA.recognize(images.fullNormal),
+    wB.recognize(images.textNormal),
+    wC.recognize(images.headerNormal),
+  ]);
+
   await Promise.all([
     wA.setParameters({ tessedit_pageseg_mode: "6" as any }),
     wB.setParameters({ tessedit_pageseg_mode: "4" as any }),
     wC.setParameters({ tessedit_pageseg_mode: "6" as any }),
   ]);
-  const [r1, r2, r3] = await Promise.all([
-    wA.recognize(images.fullNormal),
-    wB.recognize(images.cropNormal),
-    wC.recognize(images.fullBinary),
+  const [rFullBin, rTextHC, rHeaderBin] = await Promise.all([
+    wA.recognize(images.fullBinary),
+    wB.recognize(images.textHighContrast),
+    wC.recognize(images.headerBinary),
   ]);
 
-  // Round 2: crop binary PSM4, full enhanced PSM11, crop binary low PSM6
   await Promise.all([
     wA.setParameters({ tessedit_pageseg_mode: "4" as any }),
-    wB.setParameters({ tessedit_pageseg_mode: "11" as any }),
-    wC.setParameters({ tessedit_pageseg_mode: "6" as any }),
+    wB.setParameters({ tessedit_pageseg_mode: "6" as any }),
+    wC.setParameters({ tessedit_pageseg_mode: "11" as any }),
   ]);
-  const [r4, r5, r6] = await Promise.all([
-    wA.recognize(images.cropBinary),
-    wB.recognize(images.fullEnhanced),
-    wC.recognize(images.cropBinaryLow),
+  const [rCropNorm, rCropBin, rFullEnh] = await Promise.all([
+    wA.recognize(images.cropNormal),
+    wB.recognize(images.cropBinary),
+    wC.recognize(images.fullEnhanced),
   ]);
 
-  const allResults = [r1, r2, r3, r4, r5, r6];
+  await Promise.all([
+    wA.setParameters({ tessedit_pageseg_mode: "6" as any }),
+    wB.setParameters({ tessedit_pageseg_mode: "4" as any }),
+  ]);
+  const [rCropBinLow, rTextBin] = await Promise.all([
+    wA.recognize(images.cropBinaryLow),
+    wB.recognize(images.textBinary),
+  ]);
+
+  const zoneNikResult = await zoneNik;
+
+  const allResults = [
+    rFullNorm, rTextNorm, rHeaderNorm,
+    rFullBin, rTextHC, rHeaderBin,
+    rCropNorm, rCropBin, rFullEnh,
+    rCropBinLow, rTextBin,
+  ];
 
   const filteredTexts = allResults.map(r =>
-    filterByConfidence(r.data.words, r.data.text, 10)
+    filterByConfidence(r.data.words, r.data.text, 8)
   );
   const rawTexts = allResults.map(r => r.data.text);
 
-  const parsed = filteredTexts.map(t => parseKtpText(t));
+  const headerTexts = [
+    filteredTexts[2], rawTexts[2],
+    filteredTexts[5], rawTexts[5],
+  ];
+  const textFieldTexts = [
+    filteredTexts[1], rawTexts[1],
+    filteredTexts[4], rawTexts[4],
+    filteredTexts[10], rawTexts[10],
+  ];
 
-  // Also parse raw texts as fallback
+  const parsed = filteredTexts.map(t => parseKtpText(t));
   const parsedRaw = rawTexts.map(t => parseKtpText(t));
 
-  // If no pass found a NIK, try all raw texts
+  if (zoneNikResult) {
+    parsed[0].nik = zoneNikResult;
+  }
+
   const nikFound = [...parsed, ...parsedRaw].some(p => p.nik);
   if (!nikFound) {
     for (const rawT of rawTexts) {
@@ -897,12 +1077,50 @@ async function runOcrPasses(imageBase64: string): Promise<{
     }
   }
 
+  for (const headerText of headerTexts) {
+    const headerParsed = parseKtpText(headerText);
+    if (headerParsed.province && !parsed.some(p => p.province)) {
+      parsed[0].province = headerParsed.province;
+    }
+    if (headerParsed.city && !parsed.some(p => p.city)) {
+      parsed[0].city = headerParsed.city;
+    }
+  }
+
+  for (const tfText of textFieldTexts) {
+    const tfParsed = parseKtpText(tfText);
+    for (const key of ["fullName", "birthPlace", "birthDate", "gender", "religion",
+      "maritalStatus", "occupation", "address", "rtRw", "kelurahan", "kecamatan"] as const) {
+      if (tfParsed[key] && !parsed.some(p => p[key])) {
+        parsed[0][key] = tfParsed[key];
+      }
+    }
+  }
+
   const allParsed = [...parsed, ...parsedRaw];
+  const basePassTypes: ("full" | "crop")[] = [
+    "full",  // rFullNorm
+    "crop",  // rTextNorm
+    "full",  // rHeaderNorm
+    "full",  // rFullBin
+    "crop",  // rTextHC
+    "full",  // rHeaderBin
+    "crop",  // rCropNorm
+    "crop",  // rCropBin
+    "full",  // rFullEnh
+    "crop",  // rCropBinLow
+    "crop",  // rTextBin
+  ];
   const passTypes: ("full" | "crop")[] = [
-    "full", "crop", "full", "crop", "full", "crop",
-    "full", "crop", "full", "crop", "full", "crop",
+    ...basePassTypes,
+    ...basePassTypes,
   ];
   const merged = smartMerge(allParsed, passTypes);
+
+  if (zoneNikResult && (!merged.nik || !validateNik(merged.nik))) {
+    merged.nik = zoneNikResult;
+  }
+
   const validated = crossValidate(merged);
   const score = scoreKtpData(validated);
 
