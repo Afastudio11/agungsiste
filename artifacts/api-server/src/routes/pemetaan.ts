@@ -67,8 +67,10 @@ router.get("/kecamatan", async (req, res) => {
         kabupaten: sql<string>`min(${participantsTable.city})`,
         totalInput: countDistinct(participantsTable.id),
         totalDesa: countDistinct(participantsTable.kelurahan),
+        totalEvent: countDistinct(eventRegistrationsTable.eventId),
       })
       .from(participantsTable)
+      .leftJoin(eventRegistrationsTable, sql`${eventRegistrationsTable.participantId} = ${participantsTable.id}`)
       .where(sql`${conditions.reduce((a, b) => sql`${a} and ${b}`)}`)
       .groupBy(participantsTable.kecamatan)
       .orderBy(sql`count(distinct ${participantsTable.id}) desc`);

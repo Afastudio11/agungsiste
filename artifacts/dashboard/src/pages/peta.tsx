@@ -17,7 +17,7 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const MAP_CENTER: [number, number] = [-7.87, 111.45];
 
 interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: number; totalKecamatan: number; totalEvent: number; }
-interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; }
+interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalEvent: number; }
 
 function getColor(count: number, max: number): string {
   if (!count || max === 0) return "#e2e8f0";
@@ -47,6 +47,7 @@ export default function PetaMapContent() {
   const maxKab = Math.max(...kabData.map(k => k.totalInput), 1);
 
   const countByKec = Object.fromEntries(kecData.map(k => [k.kecamatan.toLowerCase(), k.totalInput]));
+  const eventByKec = Object.fromEntries(kecData.map(k => [k.kecamatan.toLowerCase(), k.totalEvent ?? 0]));
   const kecInSelectedKab = kecData.filter(k => k.kabupaten?.toLowerCase() === selectedKab?.toLowerCase());
   const maxKec = Math.max(...kecInSelectedKab.map(k => k.totalInput), 1);
 
@@ -82,12 +83,17 @@ export default function PetaMapContent() {
   function onEachKec(feature: any, layer: L.Layer) {
     const name = feature.properties?.name || "";
     const count = countByKec[name.toLowerCase()] || 0;
+    const events = eventByKec[name.toLowerCase()] || 0;
     (layer as L.Path).setStyle({
       fillColor: getColor(count, maxKec),
       weight: 1.5, opacity: 1, color: "white", fillOpacity: 0.78,
     });
     layer.bindTooltip(
-      `<div style="font-family:sans-serif;font-size:13px"><b>${name}</b><br/><span style="color:#64748b">${count.toLocaleString()} peserta</span></div>`,
+      `<div style="font-family:sans-serif;font-size:13px;line-height:1.5">
+        <b style="font-size:14px">${name}</b><br/>
+        <span style="color:#3b82f6">👥 ${count.toLocaleString()} peserta</span><br/>
+        <span style="color:#64748b">📅 ${events} event</span>
+      </div>`,
       { sticky: true }
     );
     layer.on({
@@ -199,9 +205,10 @@ export default function PetaMapContent() {
               <thead className="sticky top-0 bg-slate-50 z-10">
                 <tr className="border-b border-slate-100">
                   <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Kecamatan</th>
-                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Peserta Terdaftar</th>
-                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Jumlah Desa</th>
-                  <th className="px-5 py-2.5 w-32 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Sebaran</th>
+                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Peserta</th>
+                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Event</th>
+                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Desa</th>
+                  <th className="px-5 py-2.5 w-28 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Sebaran</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -222,6 +229,10 @@ export default function PetaMapContent() {
                         <span className="text-[10px] text-slate-400 ml-1">orang</span>
                       </td>
                       <td className="px-5 py-3 text-right">
+                        <span className="text-sm font-semibold text-indigo-600">{k.totalEvent ?? 0}</span>
+                        <span className="text-[10px] text-slate-400 ml-1">event</span>
+                      </td>
+                      <td className="px-5 py-3 text-right">
                         <span className="text-sm text-slate-600">{k.totalDesa}</span>
                         <span className="text-[10px] text-slate-400 ml-1">desa</span>
                       </td>
@@ -238,7 +249,7 @@ export default function PetaMapContent() {
                 })}
                 {kecInSelectedKab.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-400">Tidak ada data kecamatan</td>
+                    <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-400">Tidak ada data kecamatan</td>
                   </tr>
                 )}
               </tbody>
