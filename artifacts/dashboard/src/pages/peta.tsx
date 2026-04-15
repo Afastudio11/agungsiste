@@ -190,23 +190,59 @@ export default function PetaMapContent() {
       {/* Kecamatan table when drilling down */}
       {view === "kecamatan" && (
         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-            <span className="text-sm font-bold text-slate-700">Kecamatan di Kab. {selectedKab}</span>
-            <span className="text-xs text-slate-400">{kecInSelectedKab.length} kecamatan</span>
+          <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+            <span className="text-sm font-bold text-slate-900">Kecamatan di Kab. {selectedKab}</span>
+            <span className="text-xs font-semibold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg">{kecInSelectedKab.length} kecamatan</span>
           </div>
-          <div className="divide-y divide-slate-50 max-h-48 overflow-y-auto">
-            {kecInSelectedKab.map(k => (
-              <div key={k.kecamatan} className="px-4 py-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full shrink-0" style={{ background: getColor(k.totalInput, maxKec) }} />
-                  <span className="text-sm text-slate-700">{k.kecamatan}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-bold text-slate-900">{k.totalInput.toLocaleString()}</span>
-                  <span className="text-xs text-slate-400 ml-1">{k.totalDesa} desa</span>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto max-h-72 overflow-y-auto">
+            <table className="w-full">
+              <thead className="sticky top-0 bg-slate-50 z-10">
+                <tr className="border-b border-slate-100">
+                  <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Kecamatan</th>
+                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Peserta Terdaftar</th>
+                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Jumlah Desa</th>
+                  <th className="px-5 py-2.5 w-32 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Sebaran</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {kecInSelectedKab.map((k, i) => {
+                  const pct = Math.round((Number(k.totalInput) / maxKec) * 100);
+                  return (
+                    <tr key={k.kecamatan} className="hover:bg-blue-50/30 transition-colors">
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-5 w-5 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                            <span className="text-[9px] font-bold text-blue-500">{i + 1}</span>
+                          </div>
+                          <span className="text-sm font-semibold text-slate-800">{k.kecamatan}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <span className="text-sm font-bold text-slate-900">{Number(k.totalInput).toLocaleString()}</span>
+                        <span className="text-[10px] text-slate-400 ml-1">orang</span>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <span className="text-sm text-slate-600">{k.totalDesa}</span>
+                        <span className="text-[10px] text-slate-400 ml-1">desa</span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                            <div className="h-full rounded-full bg-blue-400 transition-all" style={{ width: `${pct}%`, background: getColor(Number(k.totalInput), maxKec) }} />
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-400 w-7 text-right">{pct}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {kecInSelectedKab.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-400">Tidak ada data kecamatan</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
