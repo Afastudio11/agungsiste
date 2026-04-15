@@ -20,18 +20,33 @@ import PetugasEventsPage from "@/pages/petugas-events";
 import PetugasScanPage from "@/pages/petugas-scan";
 import PetugasRsvpPage from "@/pages/petugas-rsvp";
 import EventRsvpPage from "@/pages/event-rsvp";
+import PrizesPage from "@/pages/prizes";
+import PublicRegisterPage from "@/pages/public-register";
 
 const queryClient = new QueryClient();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const ADMIN_PATHS = [
   "/dashboard", "/events", "/participants", "/scan", "/staff",
-  "/officers", "/pemetaan", "/settings", "/help",
+  "/officers", "/pemetaan", "/settings", "/help", "/prizes",
 ];
+
+const PUBLIC_PATHS = ["/p/register", "/p/attend"];
 
 function AppRoutes() {
   const { user, loading } = useAuth();
   const [location] = useLocation();
+
+  const isPublicPath = PUBLIC_PATHS.some((p) => location.startsWith(p));
+  if (isPublicPath) {
+    return (
+      <Switch>
+        <Route path="/p/register/:token" component={PublicRegisterPage} />
+        <Route path="/p/attend/:token" component={PublicRegisterPage} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
 
   if (loading) {
     return (
@@ -49,7 +64,6 @@ function AppRoutes() {
     return <Redirect to="/" />;
   }
 
-  // Role guard: petugas cannot access admin routes
   if (user?.role === "petugas") {
     const isAdminPath = ADMIN_PATHS.some(
       (p) => location === p || location.startsWith(p + "/")
@@ -59,7 +73,6 @@ function AppRoutes() {
     }
   }
 
-  // Role guard: admin cannot access petugas routes
   if (user?.role === "admin" || user?.role === "supervisor") {
     if (location.startsWith("/petugas")) {
       return <Redirect to="/dashboard" />;
@@ -70,12 +83,10 @@ function AppRoutes() {
     <Switch>
       <Route path="/login" component={LoginPage} />
 
-      {/* Role-based root redirect */}
       <Route path="/">
         {user?.role === "petugas" ? <Redirect to="/petugas" /> : <Redirect to="/dashboard" />}
       </Route>
 
-      {/* Admin routes */}
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/events" component={EventsPage} />
       <Route path="/events/:id" component={EventDetailPage} />
@@ -86,10 +97,10 @@ function AppRoutes() {
       <Route path="/staff" component={StaffPage} />
       <Route path="/officers" component={OfficersPage} />
       <Route path="/pemetaan" component={PemetaanPage} />
+      <Route path="/prizes" component={PrizesPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/help" component={HelpPage} />
 
-      {/* Petugas routes */}
       <Route path="/petugas" component={PetugasEventsPage} />
       <Route path="/petugas/scan/:id" component={PetugasScanPage} />
       <Route path="/petugas/scan-rsvp/:id" component={PetugasRsvpPage} />

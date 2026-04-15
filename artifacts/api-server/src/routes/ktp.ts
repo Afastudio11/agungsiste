@@ -13,6 +13,7 @@ import {
   lookupProvinceByNik, lookupKabupatenByNik,
   PROVINCES, KABUPATEN,
 } from "../data/regions.js";
+import { requireAuth } from "../middlewares/auth";
 
 const _thisDir = path.dirname(fileURLToPath(import.meta.url));
 const TESSDATA_DIR = path.resolve(_thisDir, "..", "tessdata");
@@ -989,6 +990,70 @@ router.post("/register", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Register error");
     return res.status(400).json({ error: "Data tidak valid" });
+  }
+});
+
+router.post("/save-image", async (req, res) => {
+  try {
+    const { nik, imageBase64, eventToken } = req.body;
+    if (!nik || !imageBase64) return res.status(400).json({ error: "NIK and image required" });
+
+    const isAuthed = !!(req as any).session?.userId;
+    if (!isAuthed) {
+      if (!eventToken) return res.status(401).json({ error: "Token event diperlukan" });
+      const { eventsTable } = await import("@workspace/db");
+      const { or } = await import("drizzle-orm");
+      const evt = await db.query.eventsTable.findFirst({
+        where: or(eq(eventsTable.registrationToken, eventToken), eq(eventsTable.attendanceToken, eventToken)),
+      });
+      if (!evt) return res.status(403).json({ error: "Token tidak valid" });
+    }
+
+    const participant = await db.query.participantsTable.findFirst({
+      where: eq(participantsTable.nik, nik),
+    });
+    if (!participant) return res.status(404).json({ error: "Peserta tidak ditemukan" });
+    if (participant.ktpImagePath) {
+      return res.json({ success: true, message: "KTP image sudah tersimpan", path: participant.ktpImagePath });
+    }
+
+    let rawB64 = imageBase64;
+    const durlMatch = rawB64.match(/^data:[^;]+;base64,(.+)$/);
+    if (durlMatch) rawB64 = durlMatch[1];
+    const inputBuf = Buffer.from(rawB64, "base64");
+
+    const compressed = await sharp(inputBuf)
+      .resize(800, 500, { fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 60 })
+      .toBuffer();
+
+    const compressedB64 = compressed.toString("base64");
+    const imagePath = `ktp_${nik}_${Date.now()}.jpg`;
+
+    await db.update(participantsTable)
+      .set({ ktpImagePath: `data:image/jpeg;base64,${compressedB64}` })
+      .where(eq(participantsTable.id, participant.id));
+
+    req.log.info({ nik, size: compressed.length }, "KTP image saved");
+    return res.json({ success: true, path: imagePath, sizeKb: Math.round(compressed.length / 1024) });
+  } catch (err) {
+    req.log.error({ err }, "Save KTP image error");
+    return res.status(500).json({ error: "Gagal menyimpan gambar KTP" });
+  }
+});
+
+router.get("/image/:nik", requireAuth, async (req, res) => {
+  try {
+    const participant = await db.query.participantsTable.findFirst({
+      where: eq(participantsTable.nik, req.params.nik),
+    });
+    if (!participant || !participant.ktpImagePath) {
+      return res.status(404).json({ error: "Gambar KTP tidak ditemukan" });
+    }
+    return res.json({ image: participant.ktpImagePath });
+  } catch (err) {
+    req.log.error({ err }, "Get KTP image error");
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

@@ -12,6 +12,7 @@ import {
   LogOut,
   Shield,
   BarChart2,
+  Gift,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
@@ -26,6 +27,7 @@ const adminNav = [
   { href: "/officers", label: "Petugas", icon: UserCheck },
   { href: "/staff", label: "Statistik Staf", icon: BarChart2 },
   { href: "/scan", label: "Scan KTP", icon: ScanLine },
+  { href: "/prizes", label: "Hadiah", icon: Gift },
   { href: "/pemetaan", label: "Pemetaan", icon: Map },
 ];
 

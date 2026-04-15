@@ -29,13 +29,22 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ### Admin Role
 - Dashboard with stats (total registrations, events, participants, officers)
 - Event management: create, edit, delete, view participant lists, export CSV
+- Event detail: QR code/link generation for public registration and attendance (token-based)
 - Participant management: search by NIK/name, city fix (uses `city` not `nationality`), export CSV
+- Participant detail: KTP image viewer (show/hide toggle for stored KTP photos)
 - Officers (Petugas) management: view all users, "Petugas Aktif" count, leaderboard
 - Staff statistics page (`/staff`): top-performing staff with input/event counts
 - KTP Scan admin page: scan KTP image with Tesseract.js OCR (dual persistent workers, parallel PSM-6+PSM-11, ~1.8s), register to event, auto-reset form
+- Prize monitoring page (`/prizes`): CRUD for event prizes, distribution tracking with progress bars
 - Pemetaan page (`/pemetaan`): participant density by kabupaten/kecamatan/desa with pagination (100/page)
 - Peta Interaktif page (`/peta`): Leaflet choropleth map, 5 kabupaten Jawa Timur, kabupaten→kecamatan drill-down, data from Overpass API (client-side, sessionStorage cached)
 - Settings: autoResetForm, showTotalOnSuccess stored in localStorage
+
+### Public Pages (No Auth Required)
+- Public registration page (`/p/register/:token`): multi-step flow — check prior registration → NIK-only or scan KTP → form → submit
+- Public attendance page (`/p/attend/:token`): same flow but marks attendance with check-in timestamp
+- KTP photo capture and storage during registration (compressed with sharp, deduplicated)
+- Token-scoped access: all public endpoints validate event token
 
 ### Petugas (Staff) Role
 - Select event to work on
@@ -44,15 +53,20 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 ### Security
 - All `/api/users` endpoints require auth (`requireAuth` middleware)
+- KTP image viewing requires auth (`GET /api/ktp/image/:nik` protected)
+- KTP image saving requires either auth or valid event token
+- Public NIK lookup requires valid event token (prevents enumeration)
 - Role-based route guards in React: petugas → `/petugas`, admin → `/dashboard`
 - Session stored server-side; credentials: "include" on all API calls
 
 ## Database Tables
 
 - `users` — admin/petugas accounts with role field
-- `participants` — unique per NIK; fields: nik, fullName, gender, province, city, kecamatan, kelurahan, occupation, nationality
-- `events` — event records; fields: name, category, isRsvp, startTime, endTime, targetParticipants, status, location, description
-- `event_registrations` — junction table; unique constraint (event_id, participant_id); stores staffName
+- `participants` — unique per NIK; fields: nik, fullName, gender, province, city, kecamatan, kelurahan, occupation, nationality, ktpImagePath (compressed base64 data URI)
+- `events` — event records; fields: name, category, isRsvp, startTime, endTime, targetParticipants, status, location, description, registrationToken, attendanceToken
+- `event_registrations` — junction table; unique constraint (event_id, participant_id); stores staffName, registrationType (rsvp/onsite)
+- `prizes` — event prizes; fields: eventId, name, quantity, distributedCount
+- `prize_distributions` — prize distribution tracking; fields: prizeId, participantId, distributedAt, staffName
 
 ## API Endpoints (Key)
 
@@ -67,6 +81,15 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `GET /api/participants` — list all participants (includes city)
 - `POST /api/ktp/scan` — Tesseract.js OCR scan of KTP image
 - `POST /api/ktp/register` — register scanned KTP to event
+- `POST /api/ktp/save-image` — save compressed KTP photo (requires auth or event token)
+- `GET /api/ktp/image/:nik` — get stored KTP image (requireAuth)
+- `POST /api/events/:id/generate-tokens` — generate registration/attendance tokens
+- `GET /api/events/:id/qrcode/:type` — get QR code for event link
+- `GET /api/events/public/by-token/:token` — get event info by token (public)
+- `POST /api/events/public/check-nik` — check if NIK exists (requires event token)
+- `POST /api/events/public/register/:token` — register/attend via public link
+- `GET/POST/PUT/DELETE /api/prizes` — prize CRUD
+- `POST /api/prizes/:id/distribute` — distribute prize to participant
 - `GET /api/users` — list all petugas users with stats (requireAuth)
 - `GET /api/dashboard/stats` — admin dashboard stats
 - `GET /api/dashboard/staff` — staff performance stats

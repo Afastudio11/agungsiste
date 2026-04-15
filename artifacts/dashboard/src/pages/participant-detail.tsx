@@ -1,10 +1,11 @@
+import { useState, useEffect } from "react";
 import { Link, useParams } from "wouter";
 import Layout from "@/components/layout";
 import {
   useGetParticipantByNik,
   getGetParticipantByNikQueryKey,
 } from "@workspace/api-client-react";
-import { CalendarDays, MapPin, Download, User } from "lucide-react";
+import { CalendarDays, MapPin, Download, User, ImageIcon, Eye, EyeOff } from "lucide-react";
 
 function KtpCard({ profile }: { profile: NonNullable<ReturnType<typeof useGetParticipantByNik>["data"]> }) {
   return (
@@ -156,6 +157,44 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
+const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function KtpImageViewer({ nik }: { nik: string }) {
+  const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showImage, setShowImage] = useState(false);
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/api/ktp/image/${nik}`, { credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.image) setImage(d.image); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [nik]);
+
+  if (loading) return null;
+  if (!image) return (
+    <div className="bg-slate-50 rounded-xl p-4 text-center text-sm text-slate-400">
+      <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+      Foto KTP belum tersimpan
+    </div>
+  );
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-100 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Foto KTP Asli</span>
+        <button onClick={() => setShowImage(!showImage)}
+          className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600">
+          {showImage ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          {showImage ? "Sembunyikan" : "Tampilkan"}
+        </button>
+      </div>
+      {showImage && <img src={image} alt="Foto KTP" className="rounded-lg w-full" />}
+    </div>
+  );
+}
+
 export default function ParticipantDetailPage() {
   const params = useParams();
   const nik = params.nik as string;
@@ -206,6 +245,9 @@ export default function ParticipantDetailPage() {
               <Download className="h-3.5 w-3.5" />
               Unduh KTP Digital
             </button>
+            <div className="mt-4 w-full">
+              <KtpImageViewer nik={nik} />
+            </div>
           </div>
 
           {/* Event history + extra info */}

@@ -1,6 +1,7 @@
 import { Router } from "express";
+import crypto from "crypto";
 import { db } from "@workspace/db";
-import { eventsTable, eventRegistrationsTable } from "@workspace/db";
+import { eventsTable, eventRegistrationsTable, participantsTable } from "@workspace/db";
 import { eq, sql, and, gte, lte, ilike, or } from "drizzle-orm";
 import {
   CreateEventBody,
@@ -13,6 +14,7 @@ import {
   ListEventParticipantsQueryParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import QRCode from "qrcode";
 
 const router = Router();
 
@@ -39,6 +41,8 @@ router.get("/", requireAuth, async (req, res) => {
         targetParticipants: eventsTable.targetParticipants,
         isRsvp: eventsTable.isRsvp,
         status: eventsTable.status,
+        registrationToken: eventsTable.registrationToken,
+        attendanceToken: eventsTable.attendanceToken,
         createdAt: eventsTable.createdAt,
         participantCount: sql<number>`cast(count(${eventRegistrationsTable.id}) as integer)`,
       })
@@ -82,6 +86,8 @@ router.get("/:id", requireAuth, async (req, res) => {
         targetParticipants: eventsTable.targetParticipants,
         isRsvp: eventsTable.isRsvp,
         status: eventsTable.status,
+        registrationToken: eventsTable.registrationToken,
+        attendanceToken: eventsTable.attendanceToken,
         createdAt: eventsTable.createdAt,
         participantCount: sql<number>`cast(count(${eventRegistrationsTable.id}) as integer)`,
       })
@@ -376,6 +382,234 @@ router.post("/:id/rsvp/check", requireAuth, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Error checking RSVP");
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:id/generate-tokens", requireAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { type } = req.body;
+
+    const updates: any = {};
+    if (!type || type === "registration") {
+      updates.registrationToken = crypto.randomBytes(12).toString("hex");
+    }
+    if (!type || type === "attendance") {
+      updates.attendanceToken = crypto.randomBytes(12).toString("hex");
+    }
+
+    const [event] = await db.update(eventsTable).set(updates).where(eq(eventsTable.id, id)).returning();
+    if (!event) return res.status(404).json({ error: "Event not found" });
+
+    res.json({
+      registrationToken: event.registrationToken,
+      attendanceToken: event.attendanceToken,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error generating tokens");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:id/qrcode/:type", requireAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const type = req.params.type as "registration" | "attendance";
+
+    const [event] = await db.select().from(eventsTable).where(eq(eventsTable.id, id));
+    if (!event) return res.status(404).json({ error: "Event not found" });
+
+    const token = type === "registration" ? event.registrationToken : event.attendanceToken;
+    if (!token) return res.status(400).json({ error: `${type} token belum dibuat` });
+
+    const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost";
+    const protocol = req.headers["x-forwarded-proto"] || "https";
+    const basePath = type === "registration" ? "p/register" : "p/attend";
+    const url = `${protocol}://${host}/${basePath}/${token}`;
+
+    const qrDataUrl = await QRCode.toDataURL(url, { width: 400, margin: 2 });
+    res.json({ url, qrDataUrl, token });
+  } catch (err) {
+    req.log.error({ err }, "Error generating QR code");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/public/by-token/:token", async (req, res) => {
+  try {
+    const token = req.params.token;
+    const [event] = await db
+      .select({
+        id: eventsTable.id,
+        name: eventsTable.name,
+        description: eventsTable.description,
+        category: eventsTable.category,
+        location: eventsTable.location,
+        eventDate: eventsTable.eventDate,
+        startTime: eventsTable.startTime,
+        endTime: eventsTable.endTime,
+        status: eventsTable.status,
+        registrationToken: eventsTable.registrationToken,
+        attendanceToken: eventsTable.attendanceToken,
+      })
+      .from(eventsTable)
+      .where(
+        or(
+          eq(eventsTable.registrationToken, token),
+          eq(eventsTable.attendanceToken, token)
+        )
+      );
+
+    if (!event) return res.status(404).json({ error: "Event tidak ditemukan" });
+
+    const isRegistration = event.registrationToken === token;
+    const isAttendance = event.attendanceToken === token;
+
+    res.json({
+      id: event.id,
+      name: event.name,
+      description: event.description,
+      category: event.category,
+      location: event.location,
+      eventDate: event.eventDate,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      status: event.status,
+      mode: isRegistration ? "registration" : "attendance",
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error fetching public event");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/public/check-nik", async (req, res) => {
+  try {
+    const { nik, eventToken } = req.body;
+    if (!nik) return res.status(400).json({ error: "NIK diperlukan" });
+    if (!eventToken) return res.status(400).json({ error: "Token event diperlukan" });
+
+    const tokenEvent = await db.query.eventsTable.findFirst({
+      where: or(eq(eventsTable.registrationToken, eventToken), eq(eventsTable.attendanceToken, eventToken)),
+    });
+    if (!tokenEvent) return res.status(403).json({ error: "Token tidak valid" });
+
+    const participant = await db.query.participantsTable.findFirst({
+      where: eq(participantsTable.nik, nik),
+    });
+
+    if (!participant) {
+      return res.json({ found: false, eventCount: 0 });
+    }
+
+    const eventCount = await db.$count(
+      eventRegistrationsTable,
+      eq(eventRegistrationsTable.participantId, participant.id)
+    );
+
+    res.json({
+      found: true,
+      eventCount,
+      hasKtpImage: !!participant.ktpImagePath,
+      participant: {
+        id: participant.id,
+        nik: participant.nik,
+        fullName: participant.fullName,
+        gender: participant.gender,
+        address: participant.address,
+        province: participant.province,
+        city: participant.city,
+      },
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error checking NIK");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/public/register/:token", async (req, res) => {
+  try {
+    const token = req.params.token;
+    const { nik, fullName, phone, email, ...rest } = req.body;
+
+    if (!nik || !fullName) {
+      return res.status(400).json({ error: "NIK dan nama lengkap diperlukan" });
+    }
+
+    const [event] = await db
+      .select()
+      .from(eventsTable)
+      .where(
+        or(
+          eq(eventsTable.registrationToken, token),
+          eq(eventsTable.attendanceToken, token)
+        )
+      );
+
+    if (!event) return res.status(404).json({ error: "Event tidak ditemukan" });
+
+    const isAttendance = event.attendanceToken === token;
+    const regType = isAttendance ? "onsite" : "rsvp";
+
+    let participant = await db.query.participantsTable.findFirst({
+      where: eq(participantsTable.nik, nik),
+    });
+
+    if (!participant) {
+      const [p] = await db.insert(participantsTable).values({
+        nik, fullName,
+        address: rest.address || null,
+        birthPlace: rest.birthPlace || null,
+        birthDate: rest.birthDate || null,
+        gender: rest.gender || null,
+        religion: rest.religion || null,
+        maritalStatus: rest.maritalStatus || null,
+        occupation: rest.occupation || null,
+        nationality: rest.nationality || null,
+        rtRw: rest.rtRw || null,
+        kelurahan: rest.kelurahan || null,
+        kecamatan: rest.kecamatan || null,
+        province: rest.province || null,
+        city: rest.city || null,
+        bloodType: rest.bloodType || null,
+      }).returning();
+      participant = p;
+    } else {
+      await db.update(participantsTable)
+        .set({ fullName, ...rest, updatedAt: new Date() })
+        .where(eq(participantsTable.id, participant.id));
+    }
+
+    const existing = await db.query.eventRegistrationsTable.findFirst({
+      where: (t, { and: a, eq: e }) => a(e(t.eventId, event.id), e(t.participantId, participant!.id)),
+    });
+
+    if (existing) {
+      if (isAttendance && !existing.checkedInAt) {
+        await db.update(eventRegistrationsTable)
+          .set({ checkedInAt: new Date() })
+          .where(eq(eventRegistrationsTable.id, existing.id));
+        return res.json({ success: true, message: "Absensi berhasil dicatat", alreadyRegistered: true, checkedIn: true });
+      }
+      return res.status(409).json({ error: "Sudah terdaftar di event ini" });
+    }
+
+    await db.insert(eventRegistrationsTable).values({
+      eventId: event.id,
+      participantId: participant.id,
+      registrationType: regType,
+      phone: phone || null,
+      email: email || null,
+      checkedInAt: isAttendance ? new Date() : null,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: isAttendance ? "Absensi berhasil dicatat" : "Registrasi berhasil",
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error public registration");
+    res.status(500).json({ error: "Gagal mendaftar" });
   }
 });
 

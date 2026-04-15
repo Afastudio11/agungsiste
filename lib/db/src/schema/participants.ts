@@ -33,6 +33,7 @@ export const participantsTable = pgTable("participants", {
   province: text("province"),
   city: text("city"),
   bloodType: text("blood_type"),
+  ktpImagePath: text("ktp_image_path"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -49,6 +50,8 @@ export const eventsTable = pgTable("events", {
   targetParticipants: integer("target_participants"),
   isRsvp: boolean("is_rsvp").default(false),
   status: text("status").default("active"),
+  registrationToken: text("registration_token").unique(),
+  attendanceToken: text("attendance_token").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -71,6 +74,25 @@ export const eventRegistrationsTable = pgTable(
   (t) => [unique("uq_event_participant").on(t.eventId, t.participantId)]
 );
 
+export const prizesTable = pgTable("prizes", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull().references(() => eventsTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  quantity: integer("quantity").notNull().default(1),
+  distributedCount: integer("distributed_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const prizeDistributionsTable = pgTable("prize_distributions", {
+  id: serial("id").primaryKey(),
+  prizeId: integer("prize_id").notNull().references(() => prizesTable.id, { onDelete: "cascade" }),
+  participantId: integer("participant_id").notNull().references(() => participantsTable.id, { onDelete: "cascade" }),
+  distributedBy: text("distributed_by"),
+  distributedAt: timestamp("distributed_at").defaultNow().notNull(),
+  notes: text("notes"),
+});
+
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, createdAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof usersTable.$inferSelect;
@@ -86,3 +108,11 @@ export type Event = typeof eventsTable.$inferSelect;
 export const insertEventRegistrationSchema = createInsertSchema(eventRegistrationsTable).omit({ id: true, registeredAt: true });
 export type InsertEventRegistration = z.infer<typeof insertEventRegistrationSchema>;
 export type EventRegistration = typeof eventRegistrationsTable.$inferSelect;
+
+export const insertPrizeSchema = createInsertSchema(prizesTable).omit({ id: true, createdAt: true, distributedCount: true });
+export type InsertPrize = z.infer<typeof insertPrizeSchema>;
+export type Prize = typeof prizesTable.$inferSelect;
+
+export const insertPrizeDistributionSchema = createInsertSchema(prizeDistributionsTable).omit({ id: true, distributedAt: true });
+export type InsertPrizeDistribution = z.infer<typeof insertPrizeDistributionSchema>;
+export type PrizeDistribution = typeof prizeDistributionsTable.$inferSelect;

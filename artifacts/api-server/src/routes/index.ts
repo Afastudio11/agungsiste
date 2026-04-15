@@ -7,6 +7,7 @@ import dashboardRouter from "./dashboard";
 import authRouter from "./auth";
 import usersRouter from "./users";
 import pemetaanRouter from "./pemetaan";
+import prizesRouter from "./prizes";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use("/participants", participantsRouter);
 router.use("/ktp", ktpRouter);
 router.use("/dashboard", dashboardRouter);
 router.use("/pemetaan", pemetaanRouter);
+router.use("/prizes", prizesRouter);
 
 export default router;

@@ -7,7 +7,8 @@ import {
   getGetEventQueryKey,
   getListEventParticipantsQueryKey,
 } from "@workspace/api-client-react";
-import { CalendarDays, MapPin, Users, Search, ChevronLeft, Download, ClipboardList, ClipboardCheck, ScanLine, CheckCircle2, Clock } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { CalendarDays, MapPin, Users, Search, ChevronLeft, Download, ClipboardList, ClipboardCheck, ScanLine, CheckCircle2, Clock, QrCode, LinkIcon, Copy, Check, RefreshCw } from "lucide-react";
 
 type TabType = "rsvp" | "onsite";
 
@@ -33,6 +34,112 @@ function exportCSV(participants: any[], eventName: string, label: string) {
   a.download = `${label}_${eventName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function EventLinksSection({ eventId, event }: { eventId: number; event: any }) {
+  const [qrData, setQrData] = useState<Record<string, { url: string; qrDataUrl: string } | null>>({});
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const generateTokens = async () => {
+    setGenerating(true);
+    try {
+      await fetch(`${BASE}/api/events/${eventId}/generate-tokens`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({}),
+      });
+      setQrData({});
+      queryClient.invalidateQueries({ queryKey: getGetEventQueryKey(eventId) });
+    } catch {}
+    setGenerating(false);
+  };
+
+  const loadQr = async (type: "registration" | "attendance") => {
+    try {
+      const res = await fetch(`${BASE}/api/events/${eventId}/qrcode/${type}`, { credentials: "include" });
+      const data = await res.json();
+      setQrData((prev) => ({ ...prev, [type]: data }));
+    } catch {}
+  };
+
+  const copyLink = (url: string, key: string) => {
+    navigator.clipboard.writeText(url);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const hasTokens = event.registrationToken || event.attendanceToken;
+
+  return (
+    <div className="rounded-2xl bg-white border border-slate-100 px-6 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <QrCode className="h-4 w-4 text-indigo-600" />
+          <h3 className="text-[15px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>Link & QR Code</h3>
+        </div>
+        <button onClick={generateTokens} disabled={generating}
+          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
+          <RefreshCw className={`h-3.5 w-3.5 ${generating ? "animate-spin" : ""}`} />
+          {hasTokens ? "Generate Ulang" : "Generate Link"}
+        </button>
+      </div>
+
+      {!hasTokens ? (
+        <p className="text-sm text-slate-400">Klik "Generate Link" untuk membuat link registrasi dan absensi</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {event.registrationToken && (
+            <LinkCard label="Registrasi Online" type="registration" token={event.registrationToken}
+              qr={qrData.registration} onLoadQr={() => loadQr("registration")}
+              onCopy={(url: string) => copyLink(url, "reg")} isCopied={copied === "reg"} />
+          )}
+          {event.attendanceToken && (
+            <LinkCard label="Absensi di Lokasi" type="attendance" token={event.attendanceToken}
+              qr={qrData.attendance} onLoadQr={() => loadQr("attendance")}
+              onCopy={(url: string) => copyLink(url, "att")} isCopied={copied === "att"} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LinkCard({ label, type, token, qr, onLoadQr, onCopy, isCopied }: {
+  label: string; type: string; token: string; qr: any; onLoadQr: () => void; onCopy: (url: string) => void; isCopied: boolean;
+}) {
+  const color = type === "registration" ? "blue" : "orange";
+  const bgColor = type === "registration" ? "bg-blue-50" : "bg-orange-50";
+  const textColor = type === "registration" ? "text-blue-700" : "text-orange-700";
+
+  return (
+    <div className={`${bgColor} rounded-xl p-4`}>
+      <p className={`text-xs font-bold ${textColor} mb-2`}>{label}</p>
+      {qr ? (
+        <div className="space-y-3">
+          <div className="bg-white rounded-lg p-3 flex justify-center">
+            <img src={qr.qrDataUrl} alt="QR Code" className="w-40 h-40" />
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="text" readOnly value={qr.url} className="flex-1 text-xs bg-white rounded-lg px-3 py-2 border-0 text-slate-600 truncate" />
+            <button onClick={() => onCopy(qr.url)}
+              className="shrink-0 p-2 bg-white rounded-lg hover:bg-slate-50">
+              {isCopied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5 text-slate-400" />}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={onLoadQr}
+          className={`w-full py-2.5 bg-white rounded-lg text-sm font-medium ${textColor} hover:bg-white/80 flex items-center justify-center gap-2`}>
+          <QrCode className="h-4 w-4" /> Tampilkan QR Code
+        </button>
+      )}
+    </div>
+  );
 }
 
 export default function EventDetailPage() {
@@ -215,6 +322,9 @@ export default function EventDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Links & QR Codes */}
+        <EventLinksSection eventId={id} event={event} />
 
         {/* Participants table */}
         <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
