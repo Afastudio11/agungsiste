@@ -284,7 +284,7 @@ export default function PetugasScanPage() {
                       ? "bg-amber-500/30 text-amber-200"
                       : "bg-green-500/30 text-green-200"
                   }`}>
-                    <Zap className="h-2.5 w-2.5" /> {ocrMeta.engine === "gemini-flash" ? "Gemini AI" : ocrMeta.engine === "python-opencv" ? "OpenCV" : "Tesseract"} {ocrMeta.tesseractScore}%
+                    <Zap className="h-2.5 w-2.5" /> {ocrMeta.engine?.startsWith("gemini") ? "Gemini 2.5 Flash" : ocrMeta.engine === "python-opencv" ? "OpenCV" : "Tesseract"} {ocrMeta.tesseractScore}%
                   </span>
                 )}
               </div>

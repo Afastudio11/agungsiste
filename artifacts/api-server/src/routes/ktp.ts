@@ -17,12 +17,12 @@ import {
   PROVINCES, KABUPATEN,
 } from "../data/regions.js";
 import { requireAuth } from "../middlewares/auth";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 const _thisDir = path.dirname(fileURLToPath(import.meta.url));
 const _objectStorage = new ObjectStorageService();
 const _gemini = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 const TESSDATA_DIR = path.resolve(_thisDir, "..", "tessdata");
 
@@ -1277,12 +1277,11 @@ async function scanWithGemini(imageBase64: string): Promise<Record<string, unkno
 
   let rawB64 = imageBase64;
   const durlMatch = rawB64.match(/^data:([^;]+);base64,(.+)$/);
-  const mimeType = durlMatch ? (durlMatch[1] as "image/jpeg" | "image/png" | "image/webp") : "image/jpeg";
+  const mimeType = durlMatch ? durlMatch[1] : "image/jpeg";
   if (durlMatch) rawB64 = durlMatch[2];
 
-  const model = _gemini.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-  const result = await model.generateContent({
+  const result = await _gemini.models.generateContent({
+    model: "gemini-2.5-flash",
     contents: [{
       role: "user",
       parts: [
@@ -1290,13 +1289,13 @@ async function scanWithGemini(imageBase64: string): Promise<Record<string, unkno
         { text: GEMINI_KTP_PROMPT },
       ],
     }],
-    generationConfig: {
+    config: {
       temperature: 0,
       maxOutputTokens: 1024,
     },
   });
 
-  const text = result.response.text().trim();
+  const text = (result.text ?? "").trim();
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error(`Gemini returned no JSON: ${text.slice(0, 200)}`);
 
@@ -1386,7 +1385,7 @@ router.post("/scan", async (req, res) => {
     let data: Record<string, string | null>;
     let score: number;
     let qualityWarning: QualityWarning = null;
-    let engine = "gemini-flash";
+    let engine = "gemini-2.5-flash";
 
     // 1. Try Gemini Vision (best accuracy)
     if (_gemini) {
