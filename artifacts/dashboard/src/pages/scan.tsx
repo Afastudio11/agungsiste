@@ -242,9 +242,14 @@ export default function ScanPage() {
                 )}
 
                 {scanKtp.isPending && (
-                  <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                    Membaca data KTP...
+                  <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-3">
+                    <div className="flex items-center gap-2.5 text-sm font-medium text-blue-700">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                      Membaca data KTP...
+                    </div>
+                    <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-blue-100">
+                      <div className="h-full rounded-full bg-blue-500 animate-pulse" style={{ width: "70%", animation: "pulse 1.5s ease-in-out infinite" }}></div>
+                    </div>
                   </div>
                 )}
 

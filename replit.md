@@ -31,14 +31,14 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - Participant management: search by NIK/name, city fix (uses `city` not `nationality`), export CSV
 - Officers (Petugas) management: view all users, "Petugas Aktif" count, leaderboard
 - Staff statistics page (`/staff`): top-performing staff with input/event counts
-- KTP Scan admin page: scan KTP image with Tesseract.js OCR (3-pass, persistent worker, ~5s), register to event, auto-reset form
+- KTP Scan admin page: scan KTP image with Tesseract.js OCR (dual persistent workers, parallel PSM-6+PSM-11, ~1.8s), register to event, auto-reset form
 - Pemetaan page (`/pemetaan`): participant density by kabupaten/kecamatan/desa with pagination (100/page)
 - Peta Interaktif page (`/peta`): Leaflet choropleth map, 5 kabupaten Jawa Timur, kabupaten→kecamatan drill-down, data from Overpass API (client-side, sessionStorage cached)
 - Settings: autoResetForm, showTotalOnSuccess stored in localStorage
 
 ### Petugas (Staff) Role
 - Select event to work on
-- Scan KTP on-the-spot with AI OCR (photo upload)
+- Scan KTP on-the-spot with Tesseract.js OCR (photo upload)
 - RSVP verification: enter NIK to check if participant is registered
 
 ### Security
@@ -64,7 +64,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `GET /api/events/:id/participants` — list participants for event (includes city, staffName)
 - `POST /api/events/:id/rsvp/check` — check if NIK is registered for event (RSVP verification)
 - `GET /api/participants` — list all participants (includes city)
-- `POST /api/ktp/scan` — AI OCR scan of KTP image
+- `POST /api/ktp/scan` — Tesseract.js OCR scan of KTP image
 - `POST /api/ktp/register` — register scanned KTP to event
 - `GET /api/users` — list all petugas users with stats (requireAuth)
 - `GET /api/dashboard/stats` — admin dashboard stats

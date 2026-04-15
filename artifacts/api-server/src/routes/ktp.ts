@@ -14,34 +14,34 @@ const TESSDATA_DIR = path.resolve(_thisDir, "..", "tessdata");
 
 const router = Router();
 
-// ─── Persistent Tesseract worker (created once, reused for all scans) ─────────
-// Serializes concurrent scans so only one runs at a time.
+// ─── Dual persistent workers for parallel OCR passes ──────────────────────────
+type TessWorker = Awaited<ReturnType<typeof createWorker>>;
 
-let _workerInstance: Awaited<ReturnType<typeof createWorker>> | null = null;
-let _workerStarting: Promise<Awaited<ReturnType<typeof createWorker>>> | null = null;
-// Simple serial queue: each scan waits for the previous one to finish
-let _scanChain: Promise<unknown> = Promise.resolve();
+const workers: { a: TessWorker | null; b: TessWorker | null } = { a: null, b: null };
+const workerInits: { a: Promise<TessWorker> | null; b: Promise<TessWorker> | null } = { a: null, b: null };
 
-async function getWorker(): Promise<Awaited<ReturnType<typeof createWorker>>> {
-  if (_workerInstance) return _workerInstance;
-  if (_workerStarting) return _workerStarting;
-  _workerStarting = createWorker(["ind", "eng"], 1, {
+function initWorker(key: "a" | "b"): Promise<TessWorker> {
+  if (workers[key]) return Promise.resolve(workers[key]!);
+  if (workerInits[key]) return workerInits[key]!;
+  workerInits[key] = createWorker(["ind", "eng"], 1, {
     logger: () => {},
     langPath: TESSDATA_DIR,
     gzip: true,
   }).then(w => {
-    _workerInstance = w;
-    _workerStarting = null;
+    workers[key] = w;
+    workerInits[key] = null;
     return w;
   }).catch(err => {
-    _workerStarting = null;
+    workerInits[key] = null;
     throw err;
   });
-  return _workerStarting;
+  return workerInits[key]!;
 }
 
-// Warm up worker at module load so first scan is faster
-getWorker().catch(() => {});
+initWorker("a").catch(() => {});
+initWorker("b").catch(() => {});
+
+let _scanChain: Promise<unknown> = Promise.resolve();
 
 const ScanBody = z.object({ imageBase64: z.string() });
 
@@ -90,108 +90,43 @@ async function detectImageQuality(buffer: Buffer): Promise<QualityWarning> {
   }
 }
 
-// ─── Deskew via horizontal projection variance ────────────────────────────────
-
-async function detectSkewAngle(grayscaleBuf: Buffer): Promise<number> {
-  const AW = 250;
-  const { data, info } = await sharp(grayscaleBuf)
-    .resize({ width: AW, kernel: "nearest" })
-    .threshold(128)
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  const w = info.width;
-  const h = info.height;
-  const cx = w / 2;
-  const cy = h / 2;
-
-  let bestAngle = 0;
-  let bestScore = -Infinity;
-
-  for (let deg = -12; deg <= 12; deg += 1) {
-    const rad = (deg * Math.PI) / 180;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-    const proj = new Float32Array(h + 30).fill(0);
-
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (data[y * w + x] > 128) continue;
-        const ry = Math.round(sin * (x - cx) + cos * (y - cy) + cy + 15);
-        if (ry >= 0 && ry < proj.length) proj[ry]++;
-      }
-    }
-
-    let mean = 0;
-    for (let i = 0; i < proj.length; i++) mean += proj[i];
-    mean /= proj.length;
-    let variance = 0;
-    for (let i = 0; i < proj.length; i++) variance += (proj[i] - mean) ** 2;
-
-    if (variance > bestScore) {
-      bestScore = variance;
-      bestAngle = deg;
-    }
-  }
-
-  return bestAngle;
-}
-
-// ─── Image preprocessing ──────────────────────────────────────────────────────
+// ─── Lean preprocessing (no deskew, adaptive resolution) ──────────────────────
 
 async function preprocessKtpImage(imageBase64: string): Promise<{
   normal: Buffer;
   enhanced: Buffer;
-  width: number;
-  height: number;
 }> {
   const inputBuf = Buffer.from(imageBase64, "base64");
-
-  // Step 1: Auto-orient + grayscale + normalize at target size
   const rotated = await sharp(inputBuf).rotate().toBuffer();
   const meta = await sharp(rotated).metadata();
   const origW = meta.width ?? 800;
-  const targetW = Math.max(origW, 1600);
+
+  // 1200px is fast + accurate for most phone photos. Cap at 1400 for small images.
+  const targetW = origW < 800 ? 1400 : 1200;
 
   const base = await sharp(rotated)
-    .resize({ width: targetW, kernel: sharp.kernel.lanczos3 })
+    .resize({ width: targetW, kernel: sharp.kernel.lanczos2 })
     .grayscale()
     .normalize()
     .toBuffer();
 
-  // Step 2: Deskew
-  const angle = await detectSkewAngle(base);
-  const deskewed = Math.abs(angle) > 0.5
-    ? await sharp(base).rotate(-angle, { background: { r: 255, g: 255, b: 255, alpha: 1 } }).toBuffer()
-    : base;
-
-  const finalMeta = await sharp(deskewed).metadata();
-  const w = finalMeta.width ?? targetW;
-  const h = finalMeta.height ?? 500;
-
-  // Step 3: Two processing variants
   const [normal, enhanced] = await Promise.all([
-    // Normal: gentle sharpening + mild contrast
-    sharp(deskewed).sharpen({ sigma: 1.5, m1: 0.8, m2: 2.0 }).linear(1.2, -10).png().toBuffer(),
-    // Enhanced: stronger contrast for faded/photocopy
-    sharp(deskewed).sharpen({ sigma: 2.5, m1: 1.5, m2: 4.0 }).linear(1.6, -35).png().toBuffer(),
+    sharp(base).sharpen({ sigma: 1.2 }).linear(1.2, -10).png().toBuffer(),
+    sharp(base).sharpen({ sigma: 2.0 }).linear(1.5, -25).png().toBuffer(),
   ]);
 
-  return { normal, enhanced, width: w, height: h };
+  return { normal, enhanced };
 }
 
 // ─── Word-confidence filtering ────────────────────────────────────────────────
-// When word-level data is available, filter below threshold.
-// Falls back to raw text if tesseract doesn't return word data.
 
-function filterByConfidence(words: Word[] | undefined, rawText: string, minConf = 35): string {
-  if (!words?.length) return rawText; // no word data → use raw text
+function filterByConfidence(words: Word[] | undefined, rawText: string, minConf = 30): string {
+  if (!words?.length) return rawText;
 
-  // Group words by approximate line (bin y0 into 20px rows)
   const lineMap = new Map<number, string[]>();
   for (const word of words) {
     if (word.confidence < minConf || !word.text.trim()) continue;
-    const lineKey = Math.round(word.bbox.y0 / 20);
+    const lineKey = Math.round(word.bbox.y0 / 16);
     if (!lineMap.has(lineKey)) lineMap.set(lineKey, []);
     lineMap.get(lineKey)!.push(word.text);
   }
@@ -201,46 +136,36 @@ function filterByConfidence(words: Word[] | undefined, rawText: string, minConf 
     .map(([, ws]) => ws.join(" "))
     .join("\n");
 
-  // If filtering removed everything, fall back to raw text
   return filtered.trim() ? filtered : rawText;
 }
 
-// ─── Character correction for NIK ────────────────────────────────────────────
+// ─── NIK extraction ──────────────────────────────────────────────────────────
 
-// All chars that can be misread as digits in OCR, with their possible digit values
 const OCR_DIGIT_MAP: Record<string, string[]> = {
   I: ["1"], i: ["1"], l: ["1"], "|": ["1"], "!": ["1"],
   ")": ["1"], "(": ["1"], "[": ["1"], "]": ["1"],
-  L: ["1", "6"],    // ambiguous: L looks like 1 or stylized 6
-  O: ["0"], o: ["0"], D: ["0"], Q: ["0"], q: ["0"],
-  B: ["8"],
-  S: ["5"], s: ["5"],
-  G: ["9", "6"],    // ambiguous
-  Z: ["2"], z: ["2"],
-  "?": ["7"],
-  b: ["6"],
-  Y: ["4", "7"],    // ambiguous: stylized 4 can look like Y
-  A: ["4"],
-  h: ["4"],
+  L: ["1", "6"], O: ["0"], o: ["0"], D: ["0"], Q: ["0"], q: ["0"],
+  B: ["8"], S: ["5"], s: ["5"], G: ["9", "6"],
+  Z: ["2"], z: ["2"], "?": ["7"], b: ["6"],
+  Y: ["4", "7"], A: ["4"], h: ["4"], T: ["7", "1"],
 };
 
-// Candidate NIK chars: digits + all OCR-confusable chars
-const NIK_RE = /[0-9IilOoBbDSGZqQzY?|!()\[\]LAh]{14,18}/g;
+const NIK_CHARS_RE = /[0-9IilOoBbDSGZqQzY?|!()\[\]LAhT]{14,18}/g;
 
 function correctNikWithMap(raw: string, choices: number[] = []): string {
-  // Build list of ambiguous positions
   const result: string[] = [];
-  const ambig: number[] = [];
+  let ambIdx = 0;
   for (const ch of raw.replace(/\s/g, "")) {
     const opts = OCR_DIGIT_MAP[ch];
     if (!opts) {
-      result.push(/\d/.test(ch) ? ch : "?"); // unknown char → placeholder
+      if (/\d/.test(ch)) result.push(ch);
+      else return "X".repeat(20);
     } else if (opts.length === 1) {
       result.push(opts[0]);
     } else {
-      const choice = choices[ambig.length] ?? 0;
+      const choice = choices[ambIdx] ?? 0;
       result.push(opts[Math.min(choice, opts.length - 1)]);
-      ambig.push(ambig.length);
+      ambIdx++;
     }
   }
   return result.join("");
@@ -249,37 +174,44 @@ function correctNikWithMap(raw: string, choices: number[] = []): string {
 function extractNik(text: string): string | null {
   const flat = text.replace(/\n/g, " ");
 
-  // 1. Plain 16-digit sequence (ideal case)
   const seq16 = flat.match(/\b(\d{16})\b/);
   if (seq16) return seq16[1];
 
-  // 1b. Digit sequence with a single embedded period or hyphen (e.g. "3509171.708630004")
-  //     Only strip the separator if it produces exactly 16 digits
   const singleSep = flat.match(/(\d{6,})[.\-](\d{6,})/);
   if (singleSep) {
     const joined = singleSep[1] + singleSep[2];
     if (/^\d{16}$/.test(joined)) return joined;
   }
 
-  // 2. Labeled NIK followed by correctable sequence
-  const labeled = flat.match(/NIK\s*[:\-]?\s*([0-9IilOoBbDSGZqQzY?|!()\[\]LAh\s]{14,20})/i);
+  const labeled = flat.match(/NIK\s*[:\-]?\s*([0-9IilOoBbDSGZqQzY?|!()\[\]LAhT\s]{14,20})/i);
   if (labeled) {
-    // Try all ambiguous combinations (max 2 ambiguous positions → 4 tries)
-    for (let c0 = 0; c0 < 3; c0++) {
+    for (let c0 = 0; c0 < 3; c0++)
       for (let c1 = 0; c1 < 3; c1++) {
         const fixed = correctNikWithMap(labeled[1], [c0, c1]);
         if (/^\d{16}$/.test(fixed)) return fixed;
       }
-    }
   }
 
-  // 3. Any correctable 14-18 char sequence
-  const candidates = flat.match(NIK_RE) ?? [];
+  const candidates = flat.match(NIK_CHARS_RE) ?? [];
   for (const c of candidates) {
-    for (let c0 = 0; c0 < 3; c0++) {
+    for (let c0 = 0; c0 < 3; c0++)
       for (let c1 = 0; c1 < 3; c1++) {
         const fixed = correctNikWithMap(c, [c0, c1]);
         if (/^\d{16}$/.test(fixed)) return fixed;
+      }
+  }
+
+  // Last resort: find 16-digit segments only near NIK label context
+  const nikLabelIdx = flat.search(/NIK/i);
+  if (nikLabelIdx >= 0) {
+    const nearby = flat.substring(nikLabelIdx, nikLabelIdx + 60);
+    const longDigits = nearby.match(/\d{14,18}/g) ?? [];
+    for (const seg of longDigits) {
+      if (seg.length >= 16) {
+        for (let i = 0; i <= seg.length - 16; i++) {
+          const sub = seg.substring(i, i + 16);
+          if (validateNik(sub)) return sub;
+        }
       }
     }
   }
@@ -290,22 +222,18 @@ function extractNik(text: string): string | null {
 function validateNik(nik: string | null): string | null {
   if (!nik) return null;
   if (!/^\d{16}$/.test(nik)) return null;
-
-  // Basic NIK structure check: PPKKCC DDMMYY XXXX
-  // Province code 11-94, dd 01-71 (females add 40), mm 01-12, year 00-99
   const dd = parseInt(nik.substring(6, 8));
   const mm = parseInt(nik.substring(8, 10));
-  if (dd < 1 || dd > 71) return null; // 71 = 40+31 for female
+  if (dd < 1 || dd > 71) return null;
   if (mm < 1 || mm > 12) return null;
   return nik;
 }
 
-// ─── Field validators (prevents garbage fill) ─────────────────────────────────
+// ─── Field validators ─────────────────────────────────────────────────────────
 
 function validateName(raw: string | null): string | null {
   if (!raw) return null;
   const cleaned = raw.replace(/[^A-Z\s'.-]/gi, "").trim().toUpperCase();
-  // Must be mostly letters, at least 2 words or 4 chars, not too long
   if (cleaned.length < 4 || cleaned.length > 60) return null;
   if (/\d/.test(cleaned)) return null;
   return cleaned;
@@ -315,12 +243,8 @@ function validateDate(raw: string | null): string | null {
   if (!raw) return null;
   const m = raw.match(/(\d{1,2})[-\/.\s](\d{1,2})[-\/.\s](\d{4})/);
   if (!m) return null;
-  const day = parseInt(m[1]);
-  const month = parseInt(m[2]);
-  const year = parseInt(m[3]);
-  if (day < 1 || day > 31) return null;
-  if (month < 1 || month > 12) return null;
-  if (year < 1930 || year > 2015) return null;
+  const day = parseInt(m[1]), month = parseInt(m[2]), year = parseInt(m[3]);
+  if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1930 || year > 2015) return null;
   return `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
 }
 
@@ -334,8 +258,7 @@ function validateGender(raw: string | null): string | null {
 function validateReligion(raw: string | null): string | null {
   const valid = ["ISLAM", "KRISTEN", "KATOLIK", "HINDU", "BUDDHA", "KONGHUCU"];
   if (!raw) return null;
-  const up = raw.toUpperCase().trim();
-  return valid.find(v => up.includes(v)) ?? null;
+  return valid.find(v => raw.toUpperCase().includes(v)) ?? null;
 }
 
 function validateMarital(raw: string | null): string | null {
@@ -370,7 +293,7 @@ function validateAddress(raw: string | null): string | null {
 }
 
 // ─── KTP text parser ──────────────────────────────────────────────────────────
-// RESERVED words that are never a person's name
+
 const NOT_A_NAME = new Set([
   "LAKI", "LAKI-LAKI", "PEREMPUAN", "ISLAM", "KRISTEN", "KATOLIK", "HINDU",
   "BUDDHA", "KONGHUCU", "WNI", "WNA", "KAWIN", "BELUM KAWIN", "CERAI",
@@ -378,11 +301,17 @@ const NOT_A_NAME = new Set([
   "KOTA", "NIK", "NAMA", "ALAMAT", "AGAMA", "PEKERJAAN",
 ]);
 
+const OCCUPATION_KW = [
+  "WIRASWASTA", "KARYAWAN SWASTA", "KARYAWAN", "PNS", "TNI", "POLRI",
+  "PETANI", "PEDAGANG", "GURU", "DOKTER", "MAHASISWA", "PELAJAR",
+  "IBU RUMAH TANGGA", "BURUH", "NELAYAN", "TIDAK BEKERJA", "SWASTA",
+  "PENSIUNAN", "PERANGKAT DESA",
+];
+
 function parseKtpText(text: string): Record<string, string | null> {
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
   const flat = lines.join(" ");
 
-  // Find a line that matches a strict or fuzzy label pattern
   const findLabel = (labelRe: RegExp): string | null => {
     for (const line of lines) {
       const m = line.match(labelRe);
@@ -391,8 +320,6 @@ function parseKtpText(text: string): Record<string, string | null> {
     return null;
   };
 
-  // Find value on same line as a fuzzy label (Levenshtein-style substring check)
-  // Tolerates 1-2 garbled chars in the label
   const findFuzzy = (keywords: string[], valueRe: RegExp): string | null => {
     for (const line of lines) {
       const upper = line.toUpperCase();
@@ -404,37 +331,44 @@ function parseKtpText(text: string): Record<string, string | null> {
     return null;
   };
 
-  // ── NIK ─────────────────────────────────────────────────────────────────────
   const nik = validateNik(extractNik(text));
 
-  // ── Name ────────────────────────────────────────────────────────────────────
-  // 1. Try strict "Nama" label
+  // ── Name
   let nameRaw = findLabel(/^Nama\s*[:\-]?\s*(.{3,60})$/i);
-  // 2. Fuzzy: line containing "Nama" or similar OCR garble with a value after it
   if (!nameRaw) {
-    nameRaw = findFuzzy(["Nama", "Nam", "ama"], /(?:Nama|Nam\.?|[Nn]am[ae])\s*[:\-\*]?\s*([A-Z][A-Za-z\s\-'.]{2,55})/);
+    nameRaw = findFuzzy(["Nama", "Nam", "ama"],
+      /(?:Nama|Nam\.?|[Nn]am[ae])\s*[:\-\*]?\s*([A-Z][A-Za-z\s\-'.]{2,55})/);
   }
-  // 3. Pattern fallback: first ALL-CAPS-only line that looks like a name
-  //    (appears after the NIK in the text, 8-50 chars, only letters/spaces/hyphens)
-  //    Requires ≥2 words, each ≥3 chars, first word not a reserved keyword
   if (!nameRaw) {
-    const nikLineIdx = lines.findIndex(l => /[0-9IL]{14,}/.test(l.replace(/[.\- ]/g, "")));
-    const searchFrom = nikLineIdx >= 0 ? nikLineIdx + 1 : 0;
-    for (let i = searchFrom; i < Math.min(searchFrom + 8, lines.length); i++) {
+    for (const line of lines) {
+      const m = line.match(/[:\-\*]\s*([A-Z][A-Z\s\-'.]{5,50})$/);
+      if (m) {
+        const candidate = m[1].trim();
+        const words = candidate.split(/\s+/);
+        if (words.length >= 2 && words.every(w => w.length >= 2) && !NOT_A_NAME.has(words[0])) {
+          nameRaw = candidate;
+          break;
+        }
+      }
+    }
+  }
+  if (!nameRaw) {
+    const nikLineIdx = lines.findIndex(l => /\d{10,}/.test(l.replace(/[.\- ]/g, "")));
+    const from = nikLineIdx >= 0 ? nikLineIdx + 1 : 0;
+    for (let i = from; i < Math.min(from + 6, lines.length); i++) {
       const l = lines[i];
       const words = l.trim().split(/\s+/);
-      const allCaps = /^[A-Z][A-Z\s\-'.]{4,49}$/.test(l);
-      const minWordLen = words.every(w => w.replace(/['.]/g, "").length >= 3);
-      const minWords = words.length >= 2;
-      const notReserved = !NOT_A_NAME.has(words[0]);
-      if (allCaps && minWordLen && minWords && notReserved) {
-        nameRaw = l; break;
+      if (/^[A-Z][A-Z\s\-'.]{5,49}$/.test(l) && words.length >= 2
+          && words.every(w => w.replace(/['.]/g, "").length >= 3)
+          && !NOT_A_NAME.has(words[0])) {
+        nameRaw = l;
+        break;
       }
     }
   }
   const fullName = validateName(nameRaw);
 
-  // ── Birth ────────────────────────────────────────────────────────────────────
+  // ── Birth
   const birthRaw = findLabel(/(?:Tempat[\/\s]?Tgl\.?\s*Lahir|Lahir|Tgl\.?\s*Lahir)\s*[:\-]?\s*(.+)/i)
     ?? findFuzzy(["Lahir", "Tgl", "Tempat"], /(?:Lahir|Tgl|Tempat)\s*[:\-]?\s*(.+)/i);
   let birthPlace: string | null = null;
@@ -446,93 +380,87 @@ function parseKtpText(text: string): Record<string, string | null> {
       birthDate = validateDate(birthRaw.substring(commaIdx + 1));
     }
   }
-  // Date fallback: any DD-MM-YYYY or DD/MM/YYYY pattern in text
   if (!birthDate) {
     const dateMatch = flat.match(/\b(\d{2}[-\/]\d{2}[-\/]\d{4})\b/);
     if (dateMatch) birthDate = validateDate(dateMatch[1]);
   }
 
-  // ── Gender ───────────────────────────────────────────────────────────────────
-  const genderRaw = findLabel(/Jenis\s*Kelamin\s*[:\-]?\s*(.+)/i)
-    ?? flat.match(/\b(LAKI[- ]LAKI|PEREMPUAN)\b/i)?.[1] ?? null;
-  const gender = validateGender(genderRaw);
+  // ── Gender
+  const gender = validateGender(
+    findLabel(/Jenis\s*Kelamin\s*[:\-]?\s*(.+)/i)
+    ?? flat.match(/\b(LAKI[- ]LAKI|PEREMPUAN)\b/i)?.[1] ?? null
+  );
 
-  // ── Address ──────────────────────────────────────────────────────────────────
-  const addressRaw = findLabel(/^Alamat\s*[:\-]?\s*(.{5,120})$/i);
-  const address = validateAddress(addressRaw);
+  // ── Address
+  const address = validateAddress(findLabel(/^Alamat\s*[:\-]?\s*(.{5,120})$/i));
 
-  // ── RT/RW ────────────────────────────────────────────────────────────────────
+  // ── RT/RW
   const rtRwRaw = findLabel(/RT\s*[\/\-]?\s*RW\s*[:\-]?\s*([\d]{1,3}\s*[\/\-]\s*[\d]{1,3})/i);
   const rtRw = rtRwRaw ?? flat.match(/\b(\d{3})\s*[\/\-]\s*(\d{3})\b/)?.slice(1, 3).join("/") ?? null;
 
-  // ── Kelurahan ────────────────────────────────────────────────────────────────
+  // ── Kelurahan
   const kelurahan = validatePlace(findLabel(/(?:Kel\.?\/?Desa|Kelurahan)\s*[:\-]?\s*(.+)/i)
     ?? findFuzzy(["Kelurahan", "Kel.", "Desa"], /(?:Kel|Desa)\S*\s*[:\-]?\s*([A-Z][A-Za-z\s]{2,40})/i));
 
-  // ── Kecamatan ────────────────────────────────────────────────────────────────
-  // "Kocamalan", "Kecamalan", "Kecamatan" — all fuzzy match
+  // ── Kecamatan
   const kecamatan = validatePlace(
     findFuzzy(["Kecamatan", "Kocamatan", "Kocamalan", "Kecamalan", "ecamat"],
-      /[Kk][eo]c?amata?n\s*[:\-]?\s*([A-Z][A-Za-z\s]{2,40})/i)
+      /[Kk][eo]c?amata?[nl]?\s*[:\-]?\s*([A-Z][A-Za-z\s]{2,40})/i)
     ?? findLabel(/Kecamatan\s*[:\-]?\s*(.+)/i)
   );
 
-  // ── City ─────────────────────────────────────────────────────────────────────
+  // ── City
   const cityRaw = findLabel(/(?:KABUPATEN|KOTA)\s+([A-Z][A-Za-z\s]{2,35})/i)
     ?? findLabel(/Kab(?:upaten)?\s*[:\-]?\s*(.+)/i)
     ?? flat.match(/(?:KABUPATEN|KOTA)\s+([A-Z][A-Za-z\s]{2,35})/i)?.[1] ?? null;
   const city = validatePlace(cityRaw, 50);
 
-  // ── Province ─────────────────────────────────────────────────────────────────
-  const provinceRaw = lines.find(l => /^PROVINSI\s/i.test(l))?.replace(/^PROVINSI\s+/i, "").trim()
+  // ── Province (handle OCR: "PROVINS|", "PROVINS1", "PROVINSI")
+  const provRe = /PROVINS[I|1l]\s+([A-Z][A-Za-z\s|]{2,40})/i;
+  const provLine = lines.find(l => /PROVINS[I|1l]\s/i.test(l));
+  const provinceRaw = provLine?.replace(/^.*PROVINS[I|1l]\s+/i, "").replace(/[|]/g, "I").trim()
     ?? findLabel(/Provinsi\s*[:\-]?\s*(.+)/i)
-    ?? flat.match(/PROVINSI\s+([A-Z][A-Za-z\s]{2,40})/i)?.[1] ?? null;
+    ?? flat.match(provRe)?.[1]?.replace(/[|]/g, "I") ?? null;
   const province = validatePlace(provinceRaw, 50);
 
-  // ── Religion ─────────────────────────────────────────────────────────────────
-  const religion = validateReligion(findLabel(/Agama\s*[:\-]?\s*(.+)/i)
-    ?? flat.match(/\b(Islam|Kristen|Katolik|Hindu|Buddha|Konghucu)\b/i)?.[1] ?? null);
+  // ── Religion
+  const religion = validateReligion(
+    findLabel(/Agama\s*[:\-]?\s*(.+)/i)
+    ?? flat.match(/\b(Islam|Kristen|Katolik|Hindu|Buddha|Konghucu)\b/i)?.[1] ?? null
+  );
 
-  // ── Marital status ───────────────────────────────────────────────────────────
+  // ── Marital
   const maritalStatus = validateMarital(
     findLabel(/(?:Status\s*)?Perkawinan\s*[:\-]?\s*(.+)/i)
     ?? flat.match(/\b(KAWIN|BELUM KAWIN|CERAI HIDUP|CERAI MATI)\b/i)?.[1] ?? null
   );
 
-  // ── Occupation ───────────────────────────────────────────────────────────────
+  // ── Occupation
   const occupation = (() => {
     const raw = findLabel(/Pekerjaan\s*[:\-]?\s*(.+)/i)
       ?? findFuzzy(["Pekerjaan", "Peke", "kerja"], /(?:Pekerjaan|Peke\S*)\s*[:\-]?\s*([A-Za-z\s]{3,60})/i);
-    // Flat-text fallback: known Indonesian occupation keywords
-    const occupationKeywords = [
-      "WIRASWASTA", "KARYAWAN SWASTA", "PNS", "TNI", "POLRI", "PETANI",
-      "PEDAGANG", "GURU", "DOKTER", "MAHASISWA", "PELAJAR", "IBU RUMAH TANGGA",
-      "BURUH", "NELAYAN", "TIDAK BEKERJA",
-    ];
-    const kwMatch = occupationKeywords.find(kw =>
-      flat.toUpperCase().replace(/[^A-Z\s]/g, " ").includes(kw)
-    );
+    const flatUp = flat.toUpperCase().replace(/[^A-Z\s]/g, " ");
+    const kwMatch = OCCUPATION_KW.find(kw => flatUp.includes(kw));
     const finalRaw = raw ?? kwMatch ?? null;
     if (!finalRaw) return null;
     const cleaned = finalRaw.trim().toUpperCase();
-    if (cleaned.length < 3 || cleaned.length > 60) return null;
-    if (/\d{3,}/.test(cleaned)) return null;
+    if (cleaned.length < 2 || cleaned.length > 60 || /\d{3,}/.test(cleaned)) return null;
     return cleaned;
   })();
 
-  // ── Blood type ───────────────────────────────────────────────────────────────
+  // ── Blood type
   const bloodType = validateBloodType(
     findLabel(/Gol(?:\.?\s*Darah)?\s*[:\-]?\s*([ABO]{1,2}[+-]?)/i)
     ?? flat.match(/\bGol\S*\s*[:\-]?\s*([ABO]{1,2}[+-]?)/i)?.[1]
     ?? flat.match(/\b([ABO]{1,2}[+-])\b/i)?.[1] ?? null
   );
 
-  // ── Valid until ───────────────────────────────────────────────────────────────
+  // ── Valid until
   const validUntil = findLabel(/Berlaku\s*Hingga\s*[:\-]?\s*([\d\-\/]+|SEUMUR\s*HIDUP)/i)
     ?? findFuzzy(["Berlaku", "Hingga", "Hingge"],
       /(?:Berlaku|Hingga|Hingge)\s*[:\-\*]?\s*([\d\-\/]{8,10}|SEUMUR\s*HIDUP)/i);
 
-  // ── Nationality ───────────────────────────────────────────────────────────────
+  // ── Nationality
   const nationality = (() => {
     const raw = findLabel(/Kewarganegaraan\s*[:\-]?\s*(.+)/i)
       ?? flat.match(/\b(WNI|WNA)\b/i)?.[1] ?? null;
@@ -582,39 +510,38 @@ function mergeKtpData(
   return r;
 }
 
-// ─── OCR orchestration (3 passes max) ────────────────────────────────────────
+// ─── OCR orchestration — 2 PARALLEL passes ────────────────────────────────────
 
 async function runOcrPasses(
   imageBase64: string
 ): Promise<{ data: Record<string, string | null>; score: number; qualityWarning: QualityWarning }> {
   const inputBuf = Buffer.from(imageBase64, "base64");
-  const qualityWarning = await detectImageQuality(inputBuf);
-  const { normal, enhanced } = await preprocessKtpImage(imageBase64);
 
-  const worker = await getWorker();
+  const [qualityWarning, { normal, enhanced }] = await Promise.all([
+    detectImageQuality(inputBuf),
+    preprocessKtpImage(imageBase64),
+  ]);
 
-  // Pass 1 — PSM 6 (uniform block) on normal image
-  await worker.setParameters({ tessedit_pageseg_mode: "6" as any });
-  const { data: d1 } = await worker.recognize(normal);
-  const text1 = filterByConfidence(d1.words, d1.text, 35);
-  let merged = parseKtpText(text1);
-  let score = scoreKtpData(merged);
+  const [workerA, workerB] = await Promise.all([initWorker("a"), initWorker("b")]);
 
-  // Pass 2 — PSM 11 (sparse text) on enhanced; great for real photos & photocopies
-  await worker.setParameters({ tessedit_pageseg_mode: "11" as any });
-  const { data: d2 } = await worker.recognize(enhanced);
-  const text2 = filterByConfidence(d2.words, d2.text, 35);
-  merged = mergeKtpData(merged, parseKtpText(text2));
-  score = scoreKtpData(merged);
+  // Run BOTH passes in parallel using 2 workers
+  await Promise.all([
+    workerA.setParameters({ tessedit_pageseg_mode: "6" as any }),
+    workerB.setParameters({ tessedit_pageseg_mode: "11" as any }),
+  ]);
 
-  // Pass 3 — only if score still low; PSM 6 on enhanced with low confidence bar
-  if (score < 40) {
-    await worker.setParameters({ tessedit_pageseg_mode: "6" as any });
-    const { data: d3 } = await worker.recognize(enhanced);
-    const text3 = filterByConfidence(d3.words, d3.text, 20);
-    merged = mergeKtpData(merged, parseKtpText(text3));
-    score = scoreKtpData(merged);
-  }
+  const [r1, r2] = await Promise.all([
+    workerA.recognize(normal),
+    workerB.recognize(enhanced),
+  ]);
+
+  const text1 = filterByConfidence(r1.data.words, r1.data.text, 30);
+  const text2 = filterByConfidence(r2.data.words, r2.data.text, 30);
+
+  const parsed1 = parseKtpText(text1);
+  const parsed2 = parseKtpText(text2);
+  const merged = mergeKtpData(parsed1, parsed2);
+  const score = scoreKtpData(merged);
 
   return { data: merged, score, qualityWarning };
 }
@@ -624,7 +551,6 @@ async function ocrWithTesseract(imageBase64: string): Promise<{
   score: number;
   qualityWarning: QualityWarning;
 }> {
-  // Serialize scans through the persistent worker
   const result = _scanChain.then(() => runOcrPasses(imageBase64));
   _scanChain = result.catch(() => {});
   return result;

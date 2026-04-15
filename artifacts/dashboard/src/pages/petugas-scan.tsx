@@ -211,9 +211,14 @@ export default function PetugasScanPage() {
               <div className="font-bold text-sm text-slate-800 mb-1">
                 {scanning ? "Membaca KTP..." : "Buka Kamera"}
               </div>
-              <div className="text-xs text-slate-500 mb-4">
+              <div className="text-xs text-slate-500 mb-2">
                 {scanning ? "Mohon tunggu beberapa saat" : "Foto KTP langsung dari kamera dengan panduan bingkai"}
               </div>
+              {scanning && (
+                <div className="mb-3 mx-8 h-1 overflow-hidden rounded-full bg-blue-100">
+                  <div className="h-full rounded-full bg-blue-500 animate-pulse" style={{ width: "70%", animation: "pulse 1.5s ease-in-out infinite" }}></div>
+                </div>
+              )}
               {!scanning && (
                 <div className="flex gap-2 justify-center">
                   <div className="flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-xl">
