@@ -1291,7 +1291,7 @@ async function scanWithGemini(imageBase64: string): Promise<Record<string, unkno
     }],
     config: {
       temperature: 0,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 4096,
     },
   });
 
@@ -1299,7 +1299,25 @@ async function scanWithGemini(imageBase64: string): Promise<Record<string, unkno
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error(`Gemini returned no JSON: ${text.slice(0, 200)}`);
 
-  const parsed = JSON.parse(jsonMatch[0]);
+  // If JSON was truncated, try to repair it by closing open structures
+  let jsonStr = jsonMatch[0];
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    // Attempt repair: truncate at last complete key-value pair
+    const lastComma = jsonStr.lastIndexOf(",");
+    if (lastComma > 0) {
+      jsonStr = jsonStr.slice(0, lastComma) + "}";
+    } else {
+      jsonStr += "}";
+    }
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      throw new Error(`Gemini JSON parse failed: ${jsonStr.slice(0, 200)}`);
+    }
+  }
 
   // Clean NIK: keep only digits
   if (typeof parsed.nik === "string") {
@@ -1387,23 +1405,30 @@ router.post("/scan", async (req, res) => {
     let qualityWarning: QualityWarning = null;
     let engine = "gemini-2.5-flash";
 
-    // 1. Try Gemini Vision (best accuracy)
+    // 1. Try Gemini Vision (best accuracy) — retry up to 3x on 503/429
     if (_gemini) {
-      try {
-        const geminiResult = await scanWithGemini(imageBase64);
-        data = applyRegionMatching(geminiResult);
-        // Gemini confidence: count non-null fields
-        const filledFields = Object.values(data).filter((v) => v !== null && v !== "").length;
-        score = Math.round((filledFields / 16) * 100);
-        req.log.info({ score, engine }, "KTP scan via Gemini");
-        return res.json({
-          ...data,
-          _meta: { tesseractScore: score, qualityWarning: null, lowConfidence: score < 50, engine },
-        });
-      } catch (geminiErr) {
-        req.log.warn({ err: geminiErr }, "Gemini scan failed, falling back to Python OCR");
-        engine = "python-opencv";
+      let geminiErr: unknown;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, attempt * 2000));
+        try {
+          const geminiResult = await scanWithGemini(imageBase64);
+          data = applyRegionMatching(geminiResult);
+          const filledFields = Object.values(data).filter((v) => v !== null && v !== "").length;
+          score = Math.round((filledFields / 16) * 100);
+          req.log.info({ score, engine, attempt }, "KTP scan via Gemini");
+          return res.json({
+            ...data,
+            _meta: { tesseractScore: score, qualityWarning: null, lowConfidence: score < 50, engine },
+          });
+        } catch (err: unknown) {
+          geminiErr = err;
+          const status = (err as { status?: number }).status;
+          if (status !== 503 && status !== 429) break; // don't retry non-transient errors
+          req.log.warn({ attempt, status }, "Gemini transient error, retrying...");
+        }
       }
+      req.log.warn({ err: geminiErr }, "Gemini scan failed after retries, falling back to Python OCR");
+      engine = "python-opencv";
     }
 
     // 2. Fallback: Python OpenCV + Tesseract
