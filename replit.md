@@ -16,7 +16,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild
 - **Auth**: Session-based (username/password, express-session)
-- **AI**: OpenAI via Replit AI Integrations (for KTP OCR — model: gpt-5.2)
+- **OCR**: Tesseract.js v7 (client-side-less server OCR; no LLM/AI used)
 
 ## Artifacts
 
@@ -31,7 +31,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - Participant management: search by NIK/name, city fix (uses `city` not `nationality`), export CSV
 - Officers (Petugas) management: view all users, "Petugas Aktif" count, leaderboard
 - Staff statistics page (`/staff`): top-performing staff with input/event counts
-- KTP Scan admin page: scan KTP image with AI OCR, register to event, auto-reset form
+- KTP Scan admin page: scan KTP image with Tesseract.js OCR (3-pass, persistent worker, ~5s), register to event, auto-reset form
 - Pemetaan page (`/pemetaan`): participant density by kabupaten/kecamatan/desa with pagination (100/page)
 - Peta Interaktif page (`/peta`): Leaflet choropleth map, 5 kabupaten Jawa Timur, kabupaten→kecamatan drill-down, data from Overpass API (client-side, sessionStorage cached)
 - Settings: autoResetForm, showTotalOnSuccess stored in localStorage
