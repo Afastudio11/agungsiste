@@ -13,9 +13,9 @@ const router = Router();
 router.get("/", requireAuth, async (req, res) => {
   try {
     const query = ListParticipantsQueryParams.safeParse(req.query);
-    const { search, startDate, endDate } = query.success ? query.data : {};
+    const { search, startDate, endDate, gender, city, province, minEvents } = query.success ? query.data : {};
 
-    let conditions: any[] = [];
+    const conditions: any[] = [];
     if (search) {
       conditions.push(
         or(
@@ -24,8 +24,11 @@ router.get("/", requireAuth, async (req, res) => {
         )
       );
     }
+    if (gender) conditions.push(eq(participantsTable.gender, gender));
+    if (city) conditions.push(ilike(participantsTable.city, `%${city}%`));
+    if (province) conditions.push(ilike(participantsTable.province, `%${province}%`));
 
-    const participants = await db
+    const baseQuery = db
       .select({
         nik: participantsTable.nik,
         fullName: participantsTable.fullName,
@@ -50,6 +53,13 @@ router.get("/", requireAuth, async (req, res) => {
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .groupBy(participantsTable.id)
       .orderBy(sql`max(${eventRegistrationsTable.registeredAt}) desc nulls last`);
+
+    let participants = await baseQuery;
+
+    // minEvents filter applied post-group since HAVING requires raw SQL
+    if (minEvents && minEvents > 0) {
+      participants = participants.filter((p) => p.eventCount >= minEvents);
+    }
 
     res.json(participants);
   } catch (err) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import Layout from "@/components/layout";
 import {
@@ -10,7 +10,28 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarDays, MapPin, Users, Plus, Pencil, Trash2, Search, X, Download } from "lucide-react";
+import { CalendarDays, MapPin, Users, Plus, Pencil, Trash2, Search, X, Download, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+
+type SortKey = "name" | "eventDate" | "location" | "participantCount";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
+  if (col !== sortKey) return <ChevronsUpDown className="h-3 w-3 text-slate-300 ml-1 shrink-0" />;
+  return sortDir === "asc" ? <ChevronUp className="h-3 w-3 text-blue-500 ml-1 shrink-0" /> : <ChevronDown className="h-3 w-3 text-blue-500 ml-1 shrink-0" />;
+}
+
+function SortTh({ col, label, sortKey, sortDir, onSort, align = "left" }: {
+  col: SortKey; label: string; sortKey: SortKey; sortDir: SortDir; onSort: (k: SortKey) => void; align?: "left" | "right";
+}) {
+  const active = col === sortKey;
+  return (
+    <th className={`px-5 py-3 text-[10px] font-bold uppercase tracking-[0.08em] cursor-pointer select-none ${align === "right" ? "text-right" : "text-left"}`} onClick={() => onSort(col)}>
+      <span className={`inline-flex items-center gap-0.5 ${active ? "text-blue-600" : "text-slate-400"} ${align === "right" ? "flex-row-reverse" : ""}`}>
+        {label}<SortIcon col={col} sortKey={sortKey} sortDir={sortDir} />
+      </span>
+    </th>
+  );
+}
 
 const emptyForm = { name: "", description: "", location: "", eventDate: "", category: "", startTime: "", targetParticipants: "" };
 
@@ -33,6 +54,8 @@ export default function EventsPage() {
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("eventDate");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
@@ -46,9 +69,27 @@ export default function EventsPage() {
     ...(endDate ? { endDate } : {}),
   };
 
-  const { data: events, isLoading } = useListEvents(params, {
+  const { data: rawEvents, isLoading } = useListEvents(params, {
     query: { queryKey: getListEventsQueryKey(params) },
   });
+
+  const events = useMemo(() => {
+    if (!rawEvents) return rawEvents;
+    return [...rawEvents].sort((a, b) => {
+      let av: any = (a as any)[sortKey] ?? "";
+      let bv: any = (b as any)[sortKey] ?? "";
+      if (sortKey === "participantCount") { av = Number(av); bv = Number(bv); }
+      else { av = String(av).toLowerCase(); bv = String(bv).toLowerCase(); }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [rawEvents, sortKey, sortDir]);
+
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  };
 
   const createEvent = useCreateEvent({
     mutation: {
@@ -204,15 +245,12 @@ export default function EventsPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-50 bg-slate-50/60">
-                  {["Nama Event", "Tanggal", "Lokasi", "Peserta", "Aksi"].map((h, i) => (
-                    <th
-                      key={h}
-                      className={`px-5 py-3 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 ${i >= 3 ? "text-right" : "text-left"}`}
-                    >
-                      {h}
-                    </th>
-                  ))}
+                <tr className="border-b border-slate-100 bg-slate-50/60">
+                  <SortTh col="name" label="Nama Event" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                  <SortTh col="eventDate" label="Tanggal" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                  <SortTh col="location" label="Lokasi" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                  <SortTh col="participantCount" label="Peserta" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" />
+                  <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">

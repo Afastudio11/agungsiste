@@ -1,7 +1,28 @@
 import { useState, useMemo } from "react";
 import Layout from "@/components/layout";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy, Search, TrendingUp, Users, Clock, Medal } from "lucide-react";
+import { Trophy, Search, TrendingUp, Users, Clock, Medal, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+
+type SortKey = "staffName" | "totalCount" | "recentCount" | "lastActivity";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
+  if (col !== sortKey) return <ChevronsUpDown className="h-3 w-3 text-slate-300 ml-1 shrink-0" />;
+  return sortDir === "asc" ? <ChevronUp className="h-3 w-3 text-blue-500 ml-1 shrink-0" /> : <ChevronDown className="h-3 w-3 text-blue-500 ml-1 shrink-0" />;
+}
+
+function SortTh({ col, label, sortKey, sortDir, onSort, align = "left", className = "" }: {
+  col: SortKey; label: string; sortKey: SortKey; sortDir: SortDir; onSort: (k: SortKey) => void; align?: "left" | "right"; className?: string;
+}) {
+  const active = col === sortKey;
+  return (
+    <th className={`px-5 py-3 text-[10px] font-bold uppercase tracking-wider cursor-pointer select-none ${align === "right" ? "text-right" : "text-left"} ${className}`} onClick={() => onSort(col)}>
+      <span className={`inline-flex items-center gap-0.5 ${active ? "text-blue-600" : "text-slate-400"} ${align === "right" ? "flex-row-reverse" : ""}`}>
+        {label}<SortIcon col={col} sortKey={sortKey} sortDir={sortDir} />
+      </span>
+    </th>
+  );
+}
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -44,6 +65,8 @@ function RankBadge({ rank }: { rank: number }) {
 
 export default function StaffPage() {
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("totalCount");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const { data: staffList, isLoading } = useQuery<StaffRow[]>({
     queryKey: ["staff-list"],
@@ -54,11 +77,25 @@ export default function StaffPage() {
 
   const filtered = useMemo(() => {
     if (!staffList) return [];
-    if (!search.trim()) return staffList;
-    return staffList.filter((s) =>
-      (s.staffName ?? "").toLowerCase().includes(search.toLowerCase())
-    );
-  }, [staffList, search]);
+    let list = search.trim()
+      ? staffList.filter((s) => (s.staffName ?? "").toLowerCase().includes(search.toLowerCase()))
+      : [...staffList];
+    list.sort((a, b) => {
+      let av: any = (a as any)[sortKey] ?? "";
+      let bv: any = (b as any)[sortKey] ?? "";
+      if (sortKey === "totalCount" || sortKey === "recentCount") { av = Number(av); bv = Number(bv); }
+      else { av = String(av).toLowerCase(); bv = String(bv).toLowerCase(); }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return list;
+  }, [staffList, search, sortKey, sortDir]);
+
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("desc"); }
+  };
 
   const maxCount = staffList?.[0]?.totalCount ?? 1;
   const totalRegistrations = staffList?.reduce((s, r) => s + Number(r.totalCount), 0) ?? 0;
@@ -162,13 +199,13 @@ export default function StaffPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    <th className="px-5 py-3 text-center w-14">#</th>
-                    <th className="px-5 py-3 text-left">Nama Staf</th>
-                    <th className="px-5 py-3 text-right">Total Input</th>
-                    <th className="px-5 py-3 text-right hidden sm:table-cell">7 Hari</th>
-                    <th className="px-5 py-3 text-right hidden md:table-cell">Terakhir Aktif</th>
-                    <th className="px-5 py-3 text-right hidden md:table-cell">Performa</th>
+                  <tr className="bg-slate-50 border-b border-slate-100">
+                    <th className="px-5 py-3 text-center w-14 text-[10px] font-bold uppercase tracking-wider text-slate-400">#</th>
+                    <SortTh col="staffName" label="Nama Staf" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                    <SortTh col="totalCount" label="Total Input" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" />
+                    <SortTh col="recentCount" label="7 Hari" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" className="hidden sm:table-cell" />
+                    <SortTh col="lastActivity" label="Terakhir Aktif" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" className="hidden md:table-cell" />
+                    <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell">Performa</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">

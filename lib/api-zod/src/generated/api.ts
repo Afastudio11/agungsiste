@@ -126,6 +126,10 @@ export const ListParticipantsQueryParams = zod.object({
   search: zod.coerce.string().optional(),
   startDate: zod.coerce.string().optional(),
   endDate: zod.coerce.string().optional(),
+  gender: zod.coerce.string().optional(),
+  city: zod.coerce.string().optional(),
+  province: zod.coerce.string().optional(),
+  minEvents: zod.coerce.number().optional(),
 });
 
 export const ListParticipantsResponseItem = zod.object({
