@@ -17,6 +17,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Build**: esbuild
 - **Auth**: Session-based (username/password, express-session)
 - **OCR**: Tesseract.js v7 (client-side-less server OCR; no LLM/AI used)
+- **Region DB**: Indonesian administrative regions (38 provinces, 500+ kabupaten/kota) with NIK-based auto-lookup and Levenshtein fuzzy matching (`artifacts/api-server/src/data/regions.ts`)
 
 ## Artifacts
 

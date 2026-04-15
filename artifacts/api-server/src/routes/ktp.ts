@@ -8,6 +8,11 @@ import type { Word } from "tesseract.js";
 import sharp from "sharp";
 import path from "path";
 import { fileURLToPath } from "url";
+import {
+  resolveRegions, matchProvince, matchKabupaten,
+  lookupProvinceByNik, lookupKabupatenByNik,
+  PROVINCES, KABUPATEN,
+} from "../data/regions.js";
 
 const _thisDir = path.dirname(fileURLToPath(import.meta.url));
 const TESSDATA_DIR = path.resolve(_thisDir, "..", "tessdata");
@@ -797,6 +802,19 @@ function crossValidate(data: Record<string, string | null>): Record<string, stri
     if (kecUp.includes("TIDAK") || kecUp.includes("TERDETEKSI") || kecUp.includes("IDAK")) {
       d.kecamatan = null;
     }
+  }
+
+  const resolved = resolveRegions({
+    nik: d.nik,
+    province: d.province,
+    city: d.city,
+  });
+
+  if (resolved.province) {
+    d.province = resolved.province;
+  }
+  if (resolved.city) {
+    d.city = resolved.city;
   }
 
   return d;
