@@ -10,16 +10,27 @@ import { jatimKecamatanGeo } from "@/data/jatim-kecamatan-geo";
 const TOOLTIP_STYLE = `
   .leaflet-tooltip { border: none !important; outline: none !important; box-shadow: 0 4px 20px rgba(0,0,0,0.13) !important; border-radius: 10px !important; background: #fff !important; padding: 8px 12px !important; }
   .leaflet-tooltip::before { display: none !important; }
-  .leaflet-container:focus, .leaflet-container:focus-visible { outline: none !important; box-shadow: none !important; }
-  .leaflet-container { outline: none !important; }
+  .leaflet-container,
+  .leaflet-container:focus,
+  .leaflet-container:focus-visible,
+  .leaflet-container *,
+  .leaflet-container *:focus,
+  .leaflet-container *:focus-visible,
+  .leaflet-container svg,
+  .leaflet-container svg:focus,
+  .leaflet-container path,
+  .leaflet-container path:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
 `;
 
 function InjectTooltipStyle() {
   useEffect(() => {
-    const el = document.getElementById("ktp-tooltip-style") || document.createElement("style");
-    el.id = "ktp-tooltip-style";
+    let el = document.getElementById("ktp-tooltip-style") as HTMLStyleElement | null;
+    if (!el) { el = document.createElement("style"); el.id = "ktp-tooltip-style"; }
     el.textContent = TOOLTIP_STYLE;
-    if (!document.getElementById("ktp-tooltip-style")) document.head.appendChild(el);
+    document.head.appendChild(el);
   }, []);
   return null;
 }
@@ -145,9 +156,11 @@ export default function PetaMapContent() {
         <MapContainer
           center={MAP_CENTER}
           zoom={view === "kecamatan" ? 10 : 9}
-          style={{ height: "100%", width: "100%" }}
+          style={{ height: "100%", width: "100%", outline: "none" }}
           zoomControl={false}
           key={view === "kecamatan" ? `kec-${selectedKab}` : "kab"}
+          // @ts-ignore
+          tabIndex={-1}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
