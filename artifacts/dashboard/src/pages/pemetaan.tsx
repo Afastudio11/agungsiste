@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
   MapPin, Globe, Building2, Home, ChevronRight, ChevronLeft, ArrowLeft,
-  Users, CalendarDays, TrendingUp, User, Phone, Tag, Clock, Map, List,
+  Users, CalendarDays, TrendingUp, User, Phone, Tag, Clock,
 } from "lucide-react";
 import Layout from "@/components/layout";
 import PetaMapContent from "@/pages/peta";
@@ -468,7 +468,6 @@ function PesertaView({
 /* ─── Main page ────────────────────────────────────────────────────────── */
 export default function PemetaanPage() {
   const [view, setView] = useState<View>({ type: "kabupaten" });
-  const [tab, setTab] = useState<"tabel" | "peta">("peta");
 
   const { data: summary } = useQuery<Summary>({
     queryKey: ["pemetaan-summary"],
@@ -497,37 +496,16 @@ export default function PemetaanPage() {
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Pemetaan Wilayah</h1>
             <div className="mt-1"><Breadcrumb view={view} onNav={setView} /></div>
           </div>
-          {/* Tab switcher — only shown on top-level kabupaten view */}
-          {view.type === "kabupaten" && (
-            <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 shrink-0">
-              <button
-                onClick={() => setTab("tabel")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition ${
-                  tab === "tabel" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <List className="h-4 w-4" />
-                Tabel
-              </button>
-              <button
-                onClick={() => setTab("peta")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition ${
-                  tab === "peta" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <Map className="h-4 w-4" />
-                Peta
-              </button>
-            </div>
-          )}
         </div>
 
-        {view.type === "kabupaten" && tab === "tabel" && (
-          <KabupatenView summary={summary} kabData={kabData} onSelect={(kab) => setView({ type: "desa", kabupaten: kab })} />
+        {/* Top-level: map + table together */}
+        {view.type === "kabupaten" && (
+          <>
+            <PetaMapContent />
+            <KabupatenView summary={summary} kabData={kabData} onSelect={(kab) => setView({ type: "desa", kabupaten: kab })} />
+          </>
         )}
-        {view.type === "kabupaten" && tab === "peta" && (
-          <PetaMapContent />
-        )}
+
         {view.type === "desa" && (
           <DesaView kabupaten={view.kabupaten} onSelect={(kel) => setView({ type: "detail", kelurahan: kel, kabupaten: view.kabupaten })} />
         )}

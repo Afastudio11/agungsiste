@@ -165,7 +165,7 @@ router.get("/desa/:kelurahan/event/:eventId/participants", async (req, res) => {
         sql`lower(${participantsTable.kelurahan}) = lower(${kelurahan})
           and ${eventRegistrationsTable.eventId} = ${parseInt(eventId)}`
       )
-      .orderBy(sql`${eventRegistrationsTable.createdAt} desc`);
+      .orderBy(sql`${eventRegistrationsTable.registeredAt} desc`);
     return res.json(data);
   } catch (e) {
     console.error(e);
