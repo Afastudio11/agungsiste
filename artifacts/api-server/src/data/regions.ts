@@ -664,6 +664,115 @@ function normalize(s: string): string {
   return s.toUpperCase().replace(/[^A-Z\s]/g, "").replace(/\s+/g, " ").trim();
 }
 
+// Common short city names that appear in birth place fields → canonical kabupaten name
+const BIRTH_PLACE_ALIASES: Record<string, string> = {
+  "JAKARTA": "JAKARTA PUSAT",
+  "JAKPUS": "JAKARTA PUSAT",
+  "JAKBAR": "JAKARTA BARAT",
+  "JAKSEL": "JAKARTA SELATAN",
+  "JAKTIM": "JAKARTA TIMUR",
+  "JAKUT": "JAKARTA UTARA",
+  "SURABAYA": "KOTA SURABAYA",
+  "BANDUNG": "KOTA BANDUNG",
+  "MEDAN": "KOTA MEDAN",
+  "SEMARANG": "KOTA SEMARANG",
+  "MAKASSAR": "KOTA MAKASSAR",
+  "PALEMBANG": "KOTA PALEMBANG",
+  "TANGERANG": "KOTA TANGERANG",
+  "DEPOK": "KOTA DEPOK",
+  "BEKASI": "KOTA BEKASI",
+  "BOGOR": "KOTA BOGOR",
+  "YOGYAKARTA": "KOTA YOGYAKARTA",
+  "JOGJA": "KOTA YOGYAKARTA",
+  "SOLO": "KOTA SURAKARTA",
+  "SURAKARTA": "KOTA SURAKARTA",
+  "MALANG": "KOTA MALANG",
+  "PEKANBARU": "KOTA PEKANBARU",
+  "PADANG": "KOTA PADANG",
+  "BALIKPAPAN": "KOTA BALIKPAPAN",
+  "SAMARINDA": "KOTA SAMARINDA",
+  "BANJARMASIN": "KOTA BANJARMASIN",
+  "PONTIANAK": "KOTA PONTIANAK",
+  "MANADO": "KOTA MANADO",
+  "DENPASAR": "KOTA DENPASAR",
+  "MATARAM": "KOTA MATARAM",
+  "AMBON": "KOTA AMBON",
+  "JAYAPURA": "KOTA JAYAPURA",
+  "KUPANG": "KOTA KUPANG",
+  "KENDARI": "KOTA KENDARI",
+  "PALU": "KOTA PALU",
+  "GORONTALO": "KOTA GORONTALO",
+  "TERNATE": "KOTA TERNATE",
+  "SORONG": "KOTA SORONG",
+  "CIREBON": "KOTA CIREBON",
+  "SERANG": "KOTA SERANG",
+  "CILEGON": "KOTA CILEGON",
+  "TANGERANG SELATAN": "KOTA TANGERANG SELATAN",
+  "TANGSEL": "KOTA TANGERANG SELATAN",
+  "BATAM": "KOTA BATAM",
+  "PANGKALPINANG": "KOTA PANGKALPINANG",
+  "BENGKULU": "KOTA BENGKULU",
+  "JAMBI": "KOTA JAMBI",
+  "BANDAR LAMPUNG": "KOTA BANDAR LAMPUNG",
+  "TANJUNGPINANG": "KOTA TANJUNGPINANG",
+  "LUBUKLINGGAU": "KOTA LUBUKLINGGAU",
+  "PRABUMULIH": "KOTA PRABUMULIH",
+  "PAGAR ALAM": "KOTA PAGAR ALAM",
+  "BONTANG": "KOTA BONTANG",
+  "TARAKAN": "KOTA TARAKAN",
+  "BITUNG": "KOTA BITUNG",
+  "TOMOHON": "KOTA TOMOHON",
+  "KOTAMOBAGU": "KOTA KOTAMOBAGU",
+  "PALOPO": "KOTA PALOPO",
+  "PARE PARE": "KOTA PAREPARE",
+  "PAREPARE": "KOTA PAREPARE",
+};
+
+// All kabupaten names as flat list for fast lookup
+let _allKabupatenNames: { normalized: string; name: string; code: string }[] | null = null;
+function getAllKabupatenNames() {
+  if (!_allKabupatenNames) {
+    _allKabupatenNames = Object.entries(KABUPATEN).map(([code, name]) => ({
+      normalized: normalize(name).replace(/^KOTA\s+|^KABUPATEN\s+/, ""),
+      name,
+      code,
+    }));
+  }
+  return _allKabupatenNames;
+}
+
+export function matchBirthPlace(ocrText: string | null): { name: string; code: string; score: number } | null {
+  if (!ocrText) return null;
+  const norm = normalize(ocrText).replace(/^(KOTA|KAB\.?|KABUPATEN)\s+/i, "").trim();
+  if (!norm || norm.length < 3) return null;
+
+  // Exact alias match
+  const aliased = BIRTH_PLACE_ALIASES[norm];
+  if (aliased) {
+    const found = Object.entries(KABUPATEN).find(([, n]) => n === aliased);
+    if (found) return { name: found[1], code: found[0], score: 1.0 };
+  }
+
+  const entries = getAllKabupatenNames();
+  const threshold = norm.length <= 6 ? 0.72 : 0.65;
+  let best: { name: string; code: string; score: number } | null = null;
+
+  for (const entry of entries) {
+    const s = similarity(norm, entry.normalized);
+    if (s > threshold && (!best || s > best.score)) {
+      best = { name: entry.name, code: entry.code, score: s };
+    }
+    // Substring containment — "INDRAGIRI HILIR" contains "HILIR"
+    if (norm.length >= 4 && (norm.includes(entry.normalized) || entry.normalized.includes(norm))) {
+      const cs = Math.max(s, 0.82);
+      if (!best || cs > best.score) {
+        best = { name: entry.name, code: entry.code, score: cs };
+      }
+    }
+  }
+  return best;
+}
+
 export function matchProvince(ocrText: string | null): { name: string; code: string; score: number } | null {
   if (!ocrText) return null;
   const norm = normalize(ocrText);

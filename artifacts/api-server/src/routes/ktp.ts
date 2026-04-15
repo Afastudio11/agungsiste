@@ -9,7 +9,7 @@ import sharp from "sharp";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
-  resolveRegions, matchProvince, matchKabupaten,
+  resolveRegions, matchProvince, matchKabupaten, matchBirthPlace,
   lookupProvinceByNik, lookupKabupatenByNik,
   PROVINCES, KABUPATEN,
 } from "../data/regions.js";
@@ -941,18 +941,44 @@ function crossValidate(data: Record<string, string | null>): Record<string, stri
     }
   }
 
+  // ── Birth place: fuzzy-match against kabupaten/kota database
+  if (d.birthPlace) {
+    const bpMatch = matchBirthPlace(d.birthPlace);
+    // Only replace if the match is a clear improvement (high confidence)
+    if (bpMatch && bpMatch.score >= 0.75) {
+      // Store the short city name (strip KOTA/KABUPATEN prefix for display)
+      d.birthPlace = bpMatch.name.replace(/^KOTA\s+/i, "").replace(/^KABUPATEN\s+/i, "").trim();
+    } else if (d.birthPlace.length < 3 || /\d{4,}/.test(d.birthPlace)) {
+      d.birthPlace = null;
+    }
+  }
+
+  // ── Clean kelurahan / kecamatan garbage
+  for (const fld of ["kelurahan", "kecamatan"] as const) {
+    if (!d[fld]) continue;
+    let val = d[fld]!
+      .replace(/[=\-\+\|\*#@!]{2,}/g, " ")  // garbage runs
+      .replace(/\s+/g, " ")
+      .trim()
+      .toUpperCase();
+    // Reject if looks like OCR noise (mostly digits, or too short, or label noise)
+    if (/\d{3,}/.test(val) || val.length < 3) { d[fld] = null; continue; }
+    if (["TIDAK TERDETEKSI", "TERDETEKSI", "IDAK", "TIDAK"].some(n => val.includes(n))) { d[fld] = null; continue; }
+    // Strip dangling OCR garbage at end (1-2 mystery uppercase letters)
+    val = val.replace(/(\s+[A-Z]{1,2}){1,3}$/, "").trim();
+    d[fld] = val || null;
+  }
+
+  // ── Region resolution: NIK takes absolute priority for province + city
   const resolved = resolveRegions({
     nik: d.nik,
     province: d.province,
     city: d.city,
   });
 
-  if (resolved.province) {
-    d.province = resolved.province;
-  }
-  if (resolved.city) {
-    d.city = resolved.city;
-  }
+  // NIK takes absolute priority: province and city derived from NIK always win
+  if (resolved.province) d.province = resolved.province;
+  if (resolved.city) d.city = resolved.city;
 
   return d;
 }
