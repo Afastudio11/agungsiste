@@ -14,13 +14,19 @@ const TESSDATA_DIR = path.resolve(_thisDir, "..", "tessdata");
 
 const router = Router();
 
-// ─── Dual persistent workers for parallel OCR passes ──────────────────────────
+// ─── Persistent OCR workers ───────────────────────────────────────────────────
 type TessWorker = Awaited<ReturnType<typeof createWorker>>;
 
-const workers: { a: TessWorker | null; b: TessWorker | null } = { a: null, b: null };
-const workerInits: { a: Promise<TessWorker> | null; b: Promise<TessWorker> | null } = { a: null, b: null };
+const workers: { a: TessWorker | null; b: TessWorker | null; c: TessWorker | null } = {
+  a: null, b: null, c: null,
+};
+const workerInits: {
+  a: Promise<TessWorker> | null;
+  b: Promise<TessWorker> | null;
+  c: Promise<TessWorker> | null;
+} = { a: null, b: null, c: null };
 
-function initWorker(key: "a" | "b"): Promise<TessWorker> {
+function initWorker(key: "a" | "b" | "c"): Promise<TessWorker> {
   if (workers[key]) return Promise.resolve(workers[key]!);
   if (workerInits[key]) return workerInits[key]!;
   workerInits[key] = createWorker(["ind", "eng"], 1, {
@@ -40,6 +46,7 @@ function initWorker(key: "a" | "b"): Promise<TessWorker> {
 
 initWorker("a").catch(() => {});
 initWorker("b").catch(() => {});
+initWorker("c").catch(() => {});
 
 let _scanChain: Promise<unknown> = Promise.resolve();
 
@@ -75,58 +82,100 @@ const RegisterBody = z.object({
 
 type QualityWarning = "dark" | "overexposed" | "blurry" | "low_contrast" | null;
 
-async function detectImageQuality(buffer: Buffer): Promise<QualityWarning> {
+async function detectImageQuality(buffer: Buffer): Promise<{ warning: QualityWarning; mean: number; stdev: number }> {
   try {
     const stats = await sharp(buffer).grayscale().stats();
     const mean = stats.channels[0].mean;
     const stdev = stats.channels[0].stdev;
-    if (mean < 35) return "dark";
-    if (mean > 230) return "overexposed";
-    if (stdev < 12) return "blurry";
-    if (stdev < 20) return "low_contrast";
-    return null;
+    let warning: QualityWarning = null;
+    if (mean < 35) warning = "dark";
+    else if (mean > 230) warning = "overexposed";
+    else if (stdev < 12) warning = "blurry";
+    else if (stdev < 20) warning = "low_contrast";
+    return { warning, mean, stdev };
   } catch {
-    return null;
+    return { warning: null, mean: 128, stdev: 50 };
   }
 }
 
-// ─── Lean preprocessing (no deskew, adaptive resolution) ──────────────────────
+// ─── Adaptive preprocessing ───────────────────────────────────────────────────
+// Returns 3 image variants tuned to different KTP conditions:
+//  normal  — gentle, good for high-quality scans
+//  enhanced — moderate contrast boost, good for medium quality
+//  binary  — pure B&W threshold, good for all conditions (maximises text contrast)
 
-async function preprocessKtpImage(imageBase64: string): Promise<{
+async function preprocessKtpImage(imageBase64: string, quality: { mean: number; stdev: number }): Promise<{
   normal: Buffer;
   enhanced: Buffer;
+  binary: Buffer;
 }> {
   const inputBuf = Buffer.from(imageBase64, "base64");
+  // Auto-rotate based on EXIF
   const rotated = await sharp(inputBuf).rotate().toBuffer();
   const meta = await sharp(rotated).metadata();
   const origW = meta.width ?? 800;
+  const origH = meta.height ?? 600;
 
-  // 1200px is fast + accurate for most phone photos. Cap at 1400 for small images.
-  const targetW = origW < 800 ? 1400 : 1200;
+  // Use higher resolution for OCR: 1800px is the sweet spot for Tesseract accuracy.
+  // If the image is very small, upscale to 2000px so text is large enough.
+  // If the image is already very large and high quality, keep it at 2000px for detail.
+  const targetW = origW < 800 ? 2000 : origW < 1200 ? 1600 : 1800;
 
-  const base = await sharp(rotated)
-    .resize({ width: targetW, kernel: sharp.kernel.lanczos2 })
+  // For portrait images (phone held vertically capturing a landscape KTP),
+  // the card might be rotated — try to detect and handle.
+  // If image is taller than wide, rotate 90 degrees CW to landscape.
+  let oriented = rotated;
+  if (origH > origW * 1.2) {
+    // Try landscape orientation — KTP is always landscape
+    oriented = await sharp(rotated).rotate(90).toBuffer();
+  }
+
+  const base = await sharp(oriented)
+    .resize({ width: targetW, kernel: sharp.kernel.lanczos3 })
     .grayscale()
     .normalize()
     .toBuffer();
 
-  const [normal, enhanced] = await Promise.all([
-    sharp(base).sharpen({ sigma: 1.2 }).linear(1.2, -10).png().toBuffer(),
-    sharp(base).sharpen({ sigma: 2.0 }).linear(1.5, -25).png().toBuffer(),
+  // Normal: gentle sharpening only — ideal for high-quality clear photos
+  // Avoid over-darkening: use a neutral brightness offset.
+  const [normal, enhanced, binary] = await Promise.all([
+    sharp(base)
+      .sharpen({ sigma: 0.8, m1: 1.0, m2: 0.5 })
+      .png()
+      .toBuffer(),
+
+    // Enhanced: moderate boost — good for medium quality / slightly faded KTPs
+    // Use restrained linear: boost contrast by 1.3×, small darkening offset
+    sharp(base)
+      .sharpen({ sigma: 1.5, m1: 1.5, m2: 0.7 })
+      .linear(1.3, -15)
+      .png()
+      .toBuffer(),
+
+    // Binary: threshold to pure black/white — maximises character contrast
+    // Works well for both high and low quality images.
+    // threshold(128) = Otsu-like hard cutoff
+    sharp(base)
+      .sharpen({ sigma: 1.0 })
+      .threshold(130)
+      .png()
+      .toBuffer(),
   ]);
 
-  return { normal, enhanced };
+  return { normal, enhanced, binary };
 }
 
 // ─── Word-confidence filtering ────────────────────────────────────────────────
+// Low threshold (15) to avoid dropping valid text from high-quality scans.
+// Falls back to raw text if filtering produces too little output.
 
-function filterByConfidence(words: Word[] | undefined, rawText: string, minConf = 30): string {
+function filterByConfidence(words: Word[] | undefined, rawText: string, minConf = 15): string {
   if (!words?.length) return rawText;
 
   const lineMap = new Map<number, string[]>();
   for (const word of words) {
     if (word.confidence < minConf || !word.text.trim()) continue;
-    const lineKey = Math.round(word.bbox.y0 / 16);
+    const lineKey = Math.round(word.bbox.y0 / 14);
     if (!lineMap.has(lineKey)) lineMap.set(lineKey, []);
     lineMap.get(lineKey)!.push(word.text);
   }
@@ -136,7 +185,8 @@ function filterByConfidence(words: Word[] | undefined, rawText: string, minConf 
     .map(([, ws]) => ws.join(" "))
     .join("\n");
 
-  return filtered.trim() ? filtered : rawText;
+  // Only use filtered if it has substantial content; else use raw
+  return filtered.trim().length > rawText.length * 0.3 ? filtered : rawText;
 }
 
 // ─── NIK extraction ──────────────────────────────────────────────────────────
@@ -145,12 +195,14 @@ const OCR_DIGIT_MAP: Record<string, string[]> = {
   I: ["1"], i: ["1"], l: ["1"], "|": ["1"], "!": ["1"],
   ")": ["1"], "(": ["1"], "[": ["1"], "]": ["1"],
   L: ["1", "6"], O: ["0"], o: ["0"], D: ["0"], Q: ["0"], q: ["0"],
-  B: ["8"], S: ["5"], s: ["5"], G: ["9", "6"],
+  B: ["8", "6"], S: ["5"], s: ["5"], G: ["9", "6"],
   Z: ["2"], z: ["2"], "?": ["7"], b: ["6"],
   Y: ["4", "7"], A: ["4"], h: ["4"], T: ["7", "1"],
+  g: ["9"], J: ["1"], j: ["1"], t: ["1", "7"],
+  C: ["0"], c: ["0"], U: ["0"], u: ["0"],
 };
 
-const NIK_CHARS_RE = /[0-9IilOoBbDSGZqQzY?|!()\[\]LAhT]{14,18}/g;
+const NIK_CHARS_RE = /[0-9IilOoBbDSGZqQzY?|!()\[\]LAhTgJjtCcUu]{14,18}/g;
 
 function correctNikWithMap(raw: string, choices: number[] = []): string {
   const result: string[] = [];
@@ -174,37 +226,55 @@ function correctNikWithMap(raw: string, choices: number[] = []): string {
 function extractNik(text: string): string | null {
   const flat = text.replace(/\n/g, " ");
 
+  // 1. Direct 16-digit sequence (most reliable)
   const seq16 = flat.match(/\b(\d{16})\b/);
   if (seq16) return seq16[1];
 
-  const singleSep = flat.match(/(\d{6,})[.\-](\d{6,})/);
+  // 2. NIK with single separator (e.g. "317100.0123456789")
+  const singleSep = flat.match(/(\d{6,})[.\-\s](\d{6,})/);
   if (singleSep) {
     const joined = singleSep[1] + singleSep[2];
-    if (/^\d{16}$/.test(joined)) return joined;
+    if (/^\d{16}$/.test(joined) && validateNik(joined)) return joined;
   }
 
-  const labeled = flat.match(/NIK\s*[:\-]?\s*([0-9IilOoBbDSGZqQzY?|!()\[\]LAhT\s]{14,20})/i);
+  // 3. NIK label followed by number sequence (handles spaces between digits)
+  const labeled = flat.match(/NIK\s*[:\-\.=]?\s*([0-9IilOoBbDSGZqQzY?|!()\[\]LAhTgJjtCcUu\s]{14,24})/i);
   if (labeled) {
+    // Remove spaces and try to clean
+    const compacted = labeled[1].replace(/\s+/g, "");
+    // Try direct parse first
+    if (/^\d{16}$/.test(compacted)) return compacted;
+    // Try with character map
     for (let c0 = 0; c0 < 3; c0++)
       for (let c1 = 0; c1 < 3; c1++) {
-        const fixed = correctNikWithMap(labeled[1], [c0, c1]);
-        if (/^\d{16}$/.test(fixed)) return fixed;
+        const fixed = correctNikWithMap(compacted, [c0, c1]);
+        if (/^\d{16}$/.test(fixed) && validateNik(fixed)) return fixed;
       }
+    // Also try with spaces kept as separators
+    const spacedDigits = labeled[1].replace(/[^0-9IilOoBbDSGZqQzY?|!()\[\]LAhTgJjtCcUu]/g, "");
+    if (spacedDigits.length >= 14) {
+      for (let c0 = 0; c0 < 3; c0++)
+        for (let c1 = 0; c1 < 3; c1++) {
+          const fixed = correctNikWithMap(spacedDigits, [c0, c1]);
+          if (/^\d{16}$/.test(fixed) && validateNik(fixed)) return fixed;
+        }
+    }
   }
 
+  // 4. Scan all OCR-like digit sequences
   const candidates = flat.match(NIK_CHARS_RE) ?? [];
   for (const c of candidates) {
     for (let c0 = 0; c0 < 3; c0++)
       for (let c1 = 0; c1 < 3; c1++) {
         const fixed = correctNikWithMap(c, [c0, c1]);
-        if (/^\d{16}$/.test(fixed)) return fixed;
+        if (/^\d{16}$/.test(fixed) && validateNik(fixed)) return fixed;
       }
   }
 
-  // Last resort: find 16-digit segments only near NIK label context
+  // 5. Find any 14-18 digit run anywhere near "NIK" label
   const nikLabelIdx = flat.search(/NIK/i);
   if (nikLabelIdx >= 0) {
-    const nearby = flat.substring(nikLabelIdx, nikLabelIdx + 60);
+    const nearby = flat.substring(nikLabelIdx, nikLabelIdx + 80);
     const longDigits = nearby.match(/\d{14,18}/g) ?? [];
     for (const seg of longDigits) {
       if (seg.length >= 16) {
@@ -216,6 +286,15 @@ function extractNik(text: string): string | null {
     }
   }
 
+  // 6. Last resort: any 16+ digit sequence anywhere in text (no label required)
+  const anyLong = flat.match(/\d{16,18}/g) ?? [];
+  for (const seg of anyLong) {
+    for (let i = 0; i <= seg.length - 16; i++) {
+      const sub = seg.substring(i, i + 16);
+      if (validateNik(sub)) return sub;
+    }
+  }
+
   return null;
 }
 
@@ -224,7 +303,8 @@ function validateNik(nik: string | null): string | null {
   if (!/^\d{16}$/.test(nik)) return null;
   const dd = parseInt(nik.substring(6, 8));
   const mm = parseInt(nik.substring(8, 10));
-  if (dd < 1 || dd > 71) return null;
+  // Day 1-31 for males, 41-71 for females (day + 40)
+  if ((dd < 1 || dd > 31) && (dd < 41 || dd > 71)) return null;
   if (mm < 1 || mm > 12) return null;
   return nik;
 }
@@ -233,8 +313,8 @@ function validateNik(nik: string | null): string | null {
 
 function validateName(raw: string | null): string | null {
   if (!raw) return null;
-  const cleaned = raw.replace(/[^A-Z\s'.-]/gi, "").trim().toUpperCase();
-  if (cleaned.length < 4 || cleaned.length > 60) return null;
+  const cleaned = raw.replace(/[^A-Z\s'.\-]/gi, "").trim().toUpperCase();
+  if (cleaned.length < 3 || cleaned.length > 60) return null;
   if (/\d/.test(cleaned)) return null;
   return cleaned;
 }
@@ -279,7 +359,7 @@ function validateBloodType(raw: string | null): string | null {
 
 function validatePlace(raw: string | null, maxLen = 40): string | null {
   if (!raw) return null;
-  const cleaned = raw.replace(/[^A-Z\s.-]/gi, "").trim().toUpperCase();
+  const cleaned = raw.replace(/[^A-Z\s.\-]/gi, "").trim().toUpperCase();
   if (cleaned.length < 3 || cleaned.length > maxLen) return null;
   if (/\d/.test(cleaned)) return null;
   return cleaned;
@@ -305,7 +385,8 @@ const OCCUPATION_KW = [
   "WIRASWASTA", "KARYAWAN SWASTA", "KARYAWAN", "PNS", "TNI", "POLRI",
   "PETANI", "PEDAGANG", "GURU", "DOKTER", "MAHASISWA", "PELAJAR",
   "IBU RUMAH TANGGA", "BURUH", "NELAYAN", "TIDAK BEKERJA", "SWASTA",
-  "PENSIUNAN", "PERANGKAT DESA",
+  "PENSIUNAN", "PERANGKAT DESA", "PEGAWAI SWASTA", "PEGAWAI NEGERI",
+  "WIRAUSAHA", "FREELANCE", "HONORER",
 ];
 
 function parseKtpText(text: string): Record<string, string | null> {
@@ -409,18 +490,17 @@ function parseKtpText(text: string): Record<string, string | null> {
     ?? findLabel(/Kecamatan\s*[:\-]?\s*(.+)/i)
   );
 
-  // ── City
+  // ── City — look for KABUPATEN or KOTA header on the KTP card itself
   const cityRaw = findLabel(/(?:KABUPATEN|KOTA)\s+([A-Z][A-Za-z\s]{2,35})/i)
     ?? findLabel(/Kab(?:upaten)?\s*[:\-]?\s*(.+)/i)
     ?? flat.match(/(?:KABUPATEN|KOTA)\s+([A-Z][A-Za-z\s]{2,35})/i)?.[1] ?? null;
   const city = validatePlace(cityRaw, 50);
 
   // ── Province (handle OCR: "PROVINS|", "PROVINS1", "PROVINSI")
-  const provRe = /PROVINS[I|1l]\s+([A-Z][A-Za-z\s|]{2,40})/i;
   const provLine = lines.find(l => /PROVINS[I|1l]\s/i.test(l));
   const provinceRaw = provLine?.replace(/^.*PROVINS[I|1l]\s+/i, "").replace(/[|]/g, "I").trim()
     ?? findLabel(/Provinsi\s*[:\-]?\s*(.+)/i)
-    ?? flat.match(provRe)?.[1]?.replace(/[|]/g, "I") ?? null;
+    ?? flat.match(/PROVINS[I|1l]\s+([A-Z][A-Za-z\s|]{2,40})/i)?.[1]?.replace(/[|]/g, "I") ?? null;
   const province = validatePlace(provinceRaw, 50);
 
   // ── Religion
@@ -497,53 +577,96 @@ function scoreKtpData(d: Record<string, string | null>): number {
 }
 
 function mergeKtpData(
-  a: Record<string, string | null>,
-  b: Record<string, string | null>
+  results: Record<string, string | null>[]
 ): Record<string, string | null> {
-  const r = { ...a };
-  for (const k of Object.keys(b)) {
-    if (!r[k] && b[k]) r[k] = b[k];
-    if (k === "nik" && b[k] && /^\d{16}$/.test(b[k]!)) {
-      if (!r[k] || !/^\d{16}$/.test(r[k]!)) r[k] = b[k];
+  if (!results.length) return {};
+  const r = { ...results[0] };
+  for (let i = 1; i < results.length; i++) {
+    const b = results[i];
+    for (const k of Object.keys(b)) {
+      // Always prefer a valid NIK
+      if (k === "nik") {
+        if (b[k] && /^\d{16}$/.test(b[k]!) && validateNik(b[k])) {
+          if (!r[k] || !/^\d{16}$/.test(r[k]!)) r[k] = b[k];
+        }
+      } else {
+        if (!r[k] && b[k]) r[k] = b[k];
+      }
     }
   }
   return r;
 }
 
-// ─── OCR orchestration — 2 PARALLEL passes ────────────────────────────────────
+// ─── OCR orchestration — 4 passes across 3 workers ───────────────────────────
+// Round 1 (parallel): Worker A PSM 6 + normal, Worker B PSM 4 + normal, Worker C PSM 6 + binary
+// Round 2 (parallel): Worker A PSM 11 + enhanced, Worker B PSM 6 + binary (variant),
+//                     Worker C PSM 4 + enhanced
 
 async function runOcrPasses(
   imageBase64: string
 ): Promise<{ data: Record<string, string | null>; score: number; qualityWarning: QualityWarning }> {
   const inputBuf = Buffer.from(imageBase64, "base64");
 
-  const [qualityWarning, { normal, enhanced }] = await Promise.all([
+  const [qualityInfo, { normal, enhanced, binary }] = await Promise.all([
     detectImageQuality(inputBuf),
-    preprocessKtpImage(imageBase64),
+    preprocessKtpImage(imageBase64, { mean: 128, stdev: 50 }),
   ]);
 
-  const [workerA, workerB] = await Promise.all([initWorker("a"), initWorker("b")]);
+  const [workerA, workerB, workerC] = await Promise.all([
+    initWorker("a"), initWorker("b"), initWorker("c"),
+  ]);
 
-  // Run BOTH passes in parallel using 2 workers
+  // Round 1 — all 3 workers simultaneously
   await Promise.all([
     workerA.setParameters({ tessedit_pageseg_mode: "6" as any }),
-    workerB.setParameters({ tessedit_pageseg_mode: "11" as any }),
+    workerB.setParameters({ tessedit_pageseg_mode: "4" as any }),
+    workerC.setParameters({ tessedit_pageseg_mode: "6" as any }),
   ]);
-
-  const [r1, r2] = await Promise.all([
+  const [r1, r2, r3] = await Promise.all([
     workerA.recognize(normal),
-    workerB.recognize(enhanced),
+    workerB.recognize(normal),
+    workerC.recognize(binary),
   ]);
 
-  const text1 = filterByConfidence(r1.data.words, r1.data.text, 30);
-  const text2 = filterByConfidence(r2.data.words, r2.data.text, 30);
+  // Round 2 — different PSM modes on enhanced + binary
+  await Promise.all([
+    workerA.setParameters({ tessedit_pageseg_mode: "11" as any }),
+    workerB.setParameters({ tessedit_pageseg_mode: "6" as any }),
+    workerC.setParameters({ tessedit_pageseg_mode: "4" as any }),
+  ]);
+  const [r4, r5, r6] = await Promise.all([
+    workerA.recognize(enhanced),
+    workerB.recognize(binary),
+    workerC.recognize(enhanced),
+  ]);
 
-  const parsed1 = parseKtpText(text1);
-  const parsed2 = parseKtpText(text2);
-  const merged = mergeKtpData(parsed1, parsed2);
+  // Use raw text as fallback when confidence filter is too aggressive
+  const texts = [r1, r2, r3, r4, r5, r6].map(r =>
+    filterByConfidence(r.data.words, r.data.text, 15)
+  );
+
+  // Also try raw (unfiltered) for NIK extraction specifically
+  const rawTexts = [r1, r2, r3, r4, r5, r6].map(r => r.data.text);
+
+  const parsed = texts.map(t => parseKtpText(t));
+
+  // If no pass found a NIK, try raw text passes
+  const nikFound = parsed.some(p => p.nik);
+  if (!nikFound) {
+    for (const rawT of rawTexts) {
+      const nikCandidate = extractNik(rawT);
+      if (nikCandidate && validateNik(nikCandidate)) {
+        // Inject into first parse result
+        parsed[0].nik = nikCandidate;
+        break;
+      }
+    }
+  }
+
+  const merged = mergeKtpData(parsed);
   const score = scoreKtpData(merged);
 
-  return { data: merged, score, qualityWarning };
+  return { data: merged, score, qualityWarning: qualityInfo.warning };
 }
 
 async function ocrWithTesseract(imageBase64: string): Promise<{
