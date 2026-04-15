@@ -139,18 +139,33 @@ function safeExtract(w: number, h: number, left: number, top: number, width: num
 }
 
 async function extractZones(base: Buffer, w: number, h: number): Promise<KtpZones> {
-  const headerH = Math.floor(h * 0.14);
-  const rightLeft = Math.floor(w * 0.26);
+  // KTP layout (landscape):
+  //   Header: top ~14% (Province / Kabupaten)
+  //   NIK row: ~8%-28% height, FULL WIDTH (NIK label is on left, number follows)
+  //   Photo: ~12%-90% height, RIGHT side (~63%-95% width)
+  //   Text fields: ~15%-90% height, LEFT-CENTER (~2%-63% width)
+  const headerH = Math.floor(h * 0.16);
+
+  // NIK zone: full width, tall band — 6% to 32% of height
+  const nikTop = Math.floor(h * 0.06);
+  const nikH = Math.floor(h * 0.26);
+
+  // Text fields: left-center strip (avoids photo on right), 13%-92% height
+  const textLeft = Math.floor(w * 0.02);
+  const textW = Math.floor(w * 0.63);
+  const textTop = Math.floor(h * 0.13);
+  const textH = Math.floor(h * 0.79);
+
+  // Right side: still useful for some layouts, 25%-100% width
+  const rightLeft = Math.floor(w * 0.25);
   const rightW = w - rightLeft;
-  const nikTop = Math.floor(h * 0.12);
-  const nikH = Math.floor(h * 0.12);
-  const textTop = Math.floor(h * 0.20);
-  const textH = Math.floor(h * 0.68);
 
   const [header, nikZone, textFields, rightSide] = await Promise.all([
     sharp(base).extract(safeExtract(w, h, 0, 0, w, headerH)).toBuffer(),
-    sharp(base).extract(safeExtract(w, h, rightLeft, nikTop, rightW, nikH)).toBuffer(),
-    sharp(base).extract(safeExtract(w, h, rightLeft, textTop, rightW, textH)).toBuffer(),
+    // Full width NIK band — don't crop horizontally so NIK label guides extraction
+    sharp(base).extract(safeExtract(w, h, 0, nikTop, w, nikH)).toBuffer(),
+    // Left-center text area — avoids photo on right side
+    sharp(base).extract(safeExtract(w, h, textLeft, textTop, textW, textH)).toBuffer(),
     sharp(base).extract(safeExtract(w, h, rightLeft, 0, rightW, h)).toBuffer(),
   ]);
 
@@ -258,9 +273,10 @@ function correctNikWithMap(raw: string, choices: number[] = []): string {
   return result.join("");
 }
 
-function validateNik(nik: string | null): string | null {
+function validateNik(nik: string | null, strict = true): string | null {
   if (!nik) return null;
   if (!/^\d{16}$/.test(nik)) return null;
+  if (!strict) return nik; // loose mode: just trust 16 digits from whitelist OCR
   const dd = parseInt(nik.substring(6, 8));
   const mm = parseInt(nik.substring(8, 10));
   if ((dd < 1 || dd > 31) && (dd < 41 || dd > 71)) return null;
@@ -271,6 +287,7 @@ function validateNik(nik: string | null): string | null {
 function extractNik(text: string): string | null {
   const flat = text.replace(/\n/g, " ");
 
+  // Try strict validation first across all strategies
   const seq16 = flat.match(/\b(\d{16})\b/);
   if (seq16 && validateNik(seq16[1])) return seq16[1];
 
@@ -289,6 +306,16 @@ function extractNik(text: string): string | null {
         }
       }
     }
+  }
+
+  // Try labeled NIK match with correction
+  const labeledResult = extractNikLabeled(text);
+  if (labeledResult) return labeledResult;
+
+  // Loose validation on all 16-digit sequences (accept if structurally OK)
+  const allSeq16 = [...flat.matchAll(/\d{16}/g)];
+  for (const m of allSeq16) {
+    if (validateNik(m[0], false)) return m[0];
   }
 
   const labeled = flat.match(/NIK\s*[:\-\.=]?\s*([0-9IilOoBbDSGZqQzY?|!()\[\]LAhTgJjtCcUuRrPp\s.,\-]{14,26})/i);
@@ -366,6 +393,11 @@ function cleanName(raw: string | null): string | null {
   let c = raw.replace(/[^A-Z\s'.\-]/gi, "").trim().toUpperCase();
   c = c.replace(/^(LENGK\S*|LERGK\S*|NAMA\s*LENGK\S*|NAMA)\s+/i, "").trim();
   if (c.length < 3 || c.length > 60) return null;
+  // Reject outright if the entire value is an occupation keyword
+  const cup = c.trim().toUpperCase();
+  if (OCCUPATION_KW.some(kw => cup === kw || cup.startsWith(kw) || kw.startsWith(cup))) return null;
+  // Reject if it contains an occupation keyword phrase (multi-word match)
+  if (OCCUPATION_KW.some(kw => kw.includes(" ") && cup.includes(kw))) return null;
   let words = c.split(/\s+/).filter(w => w.length >= 2);
   const LABEL_FUZZ = ["LENGKAP", "LERGKAO", "TENGKAP", "ENGKAP", "NAMA"];
   if (words.length >= 2) {
@@ -383,6 +415,8 @@ function cleanName(raw: string | null): string | null {
   }
   if (words.length < 1) return null;
   if (words.every(w => NOT_A_NAME.has(w))) return null;
+  // Reject if too many words are occupation markers
+  if (words.some(w => NOT_A_NAME.has(w) && OCCUPATION_KW.some(kw => kw.includes(w)))) return null;
   if (words.length === 1 && words[0].length < 4) return null;
   if (words.length === 1) {
     const w = words[0];
@@ -547,7 +581,7 @@ function parseKtpText(text: string): Record<string, string | null> {
     return null;
   };
 
-  const nik = validateNik(extractNik(text));
+  const nik = extractNik(text); // extractNik already validates internally
 
   // ── Name: multi-strategy extraction
   let nameRaw = findLabel(/^Nama\s*[:\-]?\s*(.{3,60})$/i);
@@ -600,11 +634,13 @@ function parseKtpText(text: string): Record<string, string | null> {
   }
   if (!nameRaw) {
     const allCapsLines = lines.filter(l => {
-      const w = l.trim().split(/\s+/);
+      const trimmed = l.trim().toUpperCase();
+      const w = trimmed.split(/\s+/);
       return w.length >= 2 && w.length <= 5
-        && /^[A-Z\s\-'.]{4,50}$/.test(l.trim())
+        && /^[A-Z\s\-'.]{4,50}$/.test(trimmed)
         && w.every(x => x.length >= 2 && /[AIUEO]/.test(x))
         && !w.some(x => NOT_A_NAME.has(x))
+        && !OCCUPATION_KW.some(kw => trimmed === kw || trimmed.includes(kw))
         && !/\d/.test(l)
         && !/PROVINSI|KABUPATEN|KOTA|REPUBLIK/i.test(l);
     });
@@ -929,40 +965,82 @@ function crossValidate(data: Record<string, string | null>): Record<string, stri
 // Each zone is OCR'd independently with optimal settings for that content type.
 
 async function extractNikFromZone(worker: TessWorker, images: Awaited<ReturnType<typeof preprocessKtpImage>>): Promise<string | null> {
+  const nikBuffers = [images.nikNormal, images.nikHighContrast, images.nikBinary];
+
+  // Pass 1: PSM 7 (single line) with digit whitelist
   await worker.setParameters({
     tessedit_pageseg_mode: "7" as any,
     tessedit_char_whitelist: "0123456789",
   } as any);
-
-  const nikBuffers = [images.nikNormal, images.nikBinary, images.nikHighContrast];
   for (const buf of nikBuffers) {
     const result = await worker.recognize(buf);
-    const text = result.data.text.replace(/[\s\n]/g, "");
-    if (/^\d{16}$/.test(text) && validateNik(text)) return text;
-    const sub16 = text.match(/\d{16}/);
-    if (sub16 && validateNik(sub16[0])) return sub16[0];
+    const text = result.data.text.replace(/[\s\n\r]/g, "");
+    // Strict first
+    const found = bestNikFromDigitString(text, true);
+    if (found) return found;
+    // Loose (trust whitelist OCR)
+    const foundLoose = bestNikFromDigitString(text, false);
+    if (foundLoose) return foundLoose;
   }
 
+  // Pass 2: PSM 6 (block) with digit + space whitelist — handles spaced NIK
   await worker.setParameters({
     tessedit_pageseg_mode: "6" as any,
-    tessedit_char_whitelist: "0123456789 .",
+    tessedit_char_whitelist: "0123456789 \t",
   } as any);
   for (const buf of nikBuffers) {
     const result = await worker.recognize(buf);
-    const joined = result.data.text.replace(/[\s.\-]/g, "");
-    if (/^\d{16}$/.test(joined) && validateNik(joined)) return joined;
-    for (let i = 0; i <= joined.length - 16; i++) {
-      const sub = joined.substring(i, i + 16);
-      if (/^\d{16}$/.test(sub) && validateNik(sub)) return sub;
-    }
+    const collapsed = result.data.text.replace(/[\s\n\r]/g, "");
+    const found = bestNikFromDigitString(collapsed, true) ?? bestNikFromDigitString(collapsed, false);
+    if (found) return found;
   }
 
+  // Pass 3: full image NIK band with no whitelist (PSM 11 sparse)
+  await worker.setParameters({
+    tessedit_pageseg_mode: "11" as any,
+    tessedit_char_whitelist: "",
+  } as any);
+  const fullBandResult = await worker.recognize(images.nikNormal);
+  const labeledNik = extractNikLabeled(fullBandResult.data.text);
+  if (labeledNik) return labeledNik;
+
+  // Reset worker to normal
   await worker.setParameters({
     tessedit_pageseg_mode: "6" as any,
-    tessedit_char_whitelist: "",
-    preserve_interword_spaces: "1",
+    preserve_interword_spaces: "1" as any,
   } as any);
   return null;
+}
+
+function bestNikFromDigitString(digits: string, strict: boolean): string | null {
+  if (digits.length < 16) return null;
+  if (digits.length === 16) return validateNik(digits, strict);
+  // Slide window: find the best 16-digit window
+  const candidates: string[] = [];
+  for (let i = 0; i <= digits.length - 16; i++) {
+    const sub = digits.substring(i, i + 16);
+    if (/^\d{16}$/.test(sub)) {
+      const v = validateNik(sub, strict);
+      if (v) candidates.push(v);
+    }
+  }
+  return candidates[0] ?? null;
+}
+
+function extractNikLabeled(text: string): string | null {
+  const flat = text.replace(/\n/g, " ");
+  const labeled = flat.match(/NIK\s*[:\-\.=]?\s*([\d\s\.,\-IilOoBbSsZzGgQq]{14,30})/i);
+  if (!labeled) return null;
+  const raw = labeled[1].replace(/[\s.,\-]/g, "");
+  // try strict
+  const strict = bestNikFromDigitString(raw, true) ?? null;
+  if (strict) return strict;
+  // correct common OCR letter→digit substitutions
+  const corrected = raw.split("").map(c => {
+    const m = OCR_DIGIT_MAP[c];
+    return m ? m[0] : c;
+  }).join("");
+  return bestNikFromDigitString(corrected, false) ?? null;
 }
 
 async function runOcrPasses(imageBase64: string): Promise<{
@@ -1061,18 +1139,12 @@ async function runOcrPasses(imageBase64: string): Promise<{
   if (!nikFound) {
     for (const rawT of rawTexts) {
       const nik = extractNik(rawT);
-      if (nik && validateNik(nik)) {
-        parsed[0].nik = nik;
-        break;
-      }
+      if (nik) { parsed[0].nik = nik; break; }
     }
     if (!parsed[0].nik) {
       for (const filtT of filteredTexts) {
         const nik = extractNik(filtT);
-        if (nik && validateNik(nik)) {
-          parsed[0].nik = nik;
-          break;
-        }
+        if (nik) { parsed[0].nik = nik; break; }
       }
     }
   }
