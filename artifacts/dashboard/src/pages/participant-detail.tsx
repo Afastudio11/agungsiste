@@ -160,20 +160,18 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function KtpImageViewer({ nik }: { nik: string }) {
-  const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [hasImage, setHasImage] = useState<boolean | null>(null);
   const [showImage, setShowImage] = useState(false);
+  const imageUrl = `${BASE_URL}/api/ktp/image/${encodeURIComponent(nik)}`;
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/ktp/image/${nik}`, { credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d?.image) setImage(d.image); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [nik]);
+    fetch(imageUrl, { method: "HEAD", credentials: "include" })
+      .then((r) => setHasImage(r.ok))
+      .catch(() => setHasImage(false));
+  }, [imageUrl]);
 
-  if (loading) return null;
-  if (!image) return (
+  if (hasImage === null) return null;
+  if (!hasImage) return (
     <div className="bg-slate-50 rounded-xl p-4 text-center text-sm text-slate-400">
       <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-300" />
       Foto KTP belum tersimpan
@@ -190,7 +188,15 @@ function KtpImageViewer({ nik }: { nik: string }) {
           {showImage ? "Sembunyikan" : "Tampilkan"}
         </button>
       </div>
-      {showImage && <img src={image} alt="Foto KTP" className="rounded-lg w-full" />}
+      {showImage && (
+        <img
+          src={imageUrl}
+          alt="Foto KTP"
+          className="rounded-lg w-full"
+          crossOrigin="use-credentials"
+          onError={() => setHasImage(false)}
+        />
+      )}
     </div>
   );
 }

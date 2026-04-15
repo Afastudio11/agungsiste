@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Readable } from "stream";
 import { db } from "@workspace/db";
 import { participantsTable, eventRegistrationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -9,6 +10,7 @@ import sharp from "sharp";
 import path from "path";
 import { fileURLToPath } from "url";
 import { spawn } from "child_process";
+import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import {
   resolveRegions, matchProvince, matchKabupaten, matchBirthPlace,
   lookupProvinceByNik, lookupKabupatenByNik,
@@ -17,6 +19,7 @@ import {
 import { requireAuth } from "../middlewares/auth";
 
 const _thisDir = path.dirname(fileURLToPath(import.meta.url));
+const _objectStorage = new ObjectStorageService();
 const TESSDATA_DIR = path.resolve(_thisDir, "..", "tessdata");
 
 const router = Router();
@@ -1432,15 +1435,22 @@ router.post("/save-image", async (req, res) => {
       .jpeg({ quality: 60 })
       .toBuffer();
 
-    const compressedB64 = compressed.toString("base64");
-    const imagePath = `ktp_${nik}_${Date.now()}.jpg`;
+    const filename = `ktp_${nik}_${Date.now()}.jpg`;
+    let imagePath: string;
+
+    try {
+      imagePath = await _objectStorage.uploadObjectBuffer(filename, compressed, "image/jpeg");
+      req.log.info({ nik, size: compressed.length, path: imagePath }, "KTP image saved to object storage");
+    } catch (storageErr) {
+      req.log.warn({ err: storageErr }, "Object storage upload failed, falling back to base64 in DB");
+      imagePath = `data:image/jpeg;base64,${compressed.toString("base64")}`;
+    }
 
     await db.update(participantsTable)
-      .set({ ktpImagePath: `data:image/jpeg;base64,${compressedB64}` })
+      .set({ ktpImagePath: imagePath })
       .where(eq(participantsTable.id, participant.id));
 
-    req.log.info({ nik, size: compressed.length }, "KTP image saved");
-    return res.json({ success: true, path: imagePath, sizeKb: Math.round(compressed.length / 1024) });
+    return res.json({ success: true, path: filename, sizeKb: Math.round(compressed.length / 1024) });
   } catch (err) {
     req.log.error({ err }, "Save KTP image error");
     return res.status(500).json({ error: "Gagal menyimpan gambar KTP" });
@@ -1453,9 +1463,42 @@ router.get("/image/:nik", requireAuth, async (req, res) => {
       where: eq(participantsTable.nik, req.params.nik),
     });
     if (!participant || !participant.ktpImagePath) {
-      return res.status(404).json({ error: "Gambar KTP tidak ditemukan" });
+      return res.status(404).send();
     }
-    return res.json({ image: participant.ktpImagePath });
+
+    const ktpPath = participant.ktpImagePath;
+
+    if (ktpPath.startsWith("data:")) {
+      const match = ktpPath.match(/^data:([^;]+);base64,(.+)$/);
+      if (!match) return res.status(500).send();
+      const contentType = match[1];
+      const buf = Buffer.from(match[2], "base64");
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", buf.length);
+      res.setHeader("Cache-Control", "private, max-age=3600");
+      return res.end(buf);
+    }
+
+    if (ktpPath.startsWith("/objects/")) {
+      try {
+        const file = await _objectStorage.getObjectEntityFile(ktpPath);
+        const response = await _objectStorage.downloadObject(file);
+        res.status(response.status);
+        response.headers.forEach((value, key) => res.setHeader(key, value));
+        if (response.body) {
+          const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
+          nodeStream.pipe(res);
+        } else {
+          res.end();
+        }
+        return;
+      } catch (e) {
+        if (e instanceof ObjectNotFoundError) return res.status(404).send();
+        throw e;
+      }
+    }
+
+    return res.status(404).send();
   } catch (err) {
     req.log.error({ err }, "Get KTP image error");
     return res.status(500).json({ error: "Internal server error" });

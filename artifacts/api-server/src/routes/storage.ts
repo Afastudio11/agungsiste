@@ -1,11 +1,23 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "stream";
-import {
-  RequestUploadUrlBody,
-  RequestUploadUrlResponse,
-} from "@workspace/api-zod";
+import { z } from "zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { ObjectPermission } from "../lib/objectAcl";
+
+const RequestUploadUrlBody = z.object({
+  name: z.string(),
+  size: z.number().optional(),
+  contentType: z.string().optional(),
+});
+
+const RequestUploadUrlResponse = z.object({
+  uploadURL: z.string(),
+  objectPath: z.string(),
+  metadata: z.object({
+    name: z.string(),
+    size: z.number().optional(),
+    contentType: z.string().optional(),
+  }),
+});
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();

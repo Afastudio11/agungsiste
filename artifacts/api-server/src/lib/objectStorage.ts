@@ -204,6 +204,26 @@ export class ObjectStorageService {
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });
   }
+
+  /**
+   * Upload a Buffer directly to private object storage server-side.
+   * Returns the normalized object path (e.g. `/objects/uploads/<uuid>.jpg`).
+   */
+  async uploadObjectBuffer(
+    filename: string,
+    buffer: Buffer,
+    contentType: string
+  ): Promise<string> {
+    const privateObjectDir = this.getPrivateObjectDir();
+    const fullPath = `${privateObjectDir}/uploads/${filename}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    await bucket.file(objectName).save(buffer, {
+      metadata: { contentType },
+      resumable: false,
+    });
+    return `/objects/uploads/${filename}`;
+  }
 }
 
 function parseObjectPath(path: string): {
