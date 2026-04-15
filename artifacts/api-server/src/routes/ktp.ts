@@ -8,6 +8,7 @@ import type { Word } from "tesseract.js";
 import sharp from "sharp";
 import path from "path";
 import { fileURLToPath } from "url";
+import { spawn } from "child_process";
 import {
   resolveRegions, matchProvince, matchKabupaten, matchBirthPlace,
   lookupProvinceByNik, lookupKabupatenByNik,
@@ -1233,13 +1234,101 @@ async function ocrWithTesseract(imageBase64: string): Promise<{
   return result;
 }
 
+// ─── Python scanner (primary) ─────────────────────────────────────────────────
+const PYTHON_SCRIPT = path.resolve(_thisDir, "..", "src", "ktp_scanner.py");
+
+function scanWithPython(imageBase64: string): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    const py = spawn("python3", [PYTHON_SCRIPT], {
+      env: { ...process.env },
+    });
+    let stdout = "";
+    let stderr = "";
+    py.stdout.on("data", (d) => { stdout += d.toString(); });
+    py.stderr.on("data", (d) => { stderr += d.toString(); });
+    py.on("error", reject);
+    py.on("close", (code) => {
+      if (!stdout.trim()) {
+        return reject(new Error(`Python scanner exited ${code}: ${stderr.slice(0, 300)}`));
+      }
+      try {
+        resolve(JSON.parse(stdout.trim()));
+      } catch {
+        reject(new Error(`Invalid JSON from Python: ${stdout.slice(0, 200)}`));
+      }
+    });
+    py.stdin.write(JSON.stringify({ imageBase64 }));
+    py.stdin.end();
+  });
+}
+
+/** Apply region database matching on top of raw Python OCR result */
+function applyRegionMatching(raw: Record<string, unknown>): Record<string, string | null> {
+  const str = (v: unknown) => (typeof v === "string" && v.length > 0 ? v : null);
+
+  const d: Record<string, string | null> = {
+    nik: str(raw.nik),
+    fullName: str(raw.fullName),
+    birthPlace: str(raw.birthPlace),
+    birthDate: str(raw.birthDate),
+    gender: str(raw.gender),
+    bloodType: str(raw.bloodType),
+    religion: str(raw.religion),
+    maritalStatus: str(raw.maritalStatus),
+    occupation: str(raw.occupation),
+    nationality: str(raw.nationality),
+    address: str(raw.address),
+    rtRw: str(raw.rtRw),
+    kelurahan: str(raw.kelurahan),
+    kecamatan: str(raw.kecamatan),
+    province: str(raw.province),
+    city: str(raw.city),
+  };
+
+  // Birth place: fuzzy-match against kabupaten/kota database
+  if (d.birthPlace) {
+    const bpMatch = matchBirthPlace(d.birthPlace);
+    if (bpMatch && bpMatch.score >= 0.75) {
+      d.birthPlace = bpMatch.name.replace(/^KOTA\s+/i, "").replace(/^KABUPATEN\s+/i, "").trim();
+    }
+  }
+
+  // Province + city: NIK-first authoritative resolution
+  const resolved = resolveRegions({ nik: d.nik, province: d.province, city: d.city });
+  if (resolved.province) d.province = resolved.province;
+  if (resolved.city) d.city = resolved.city;
+
+  return d;
+}
+
 // ─── Scan endpoint ────────────────────────────────────────────────────────────
 router.post("/scan", async (req, res) => {
   try {
     const { imageBase64 } = ScanBody.parse(req.body);
-    const { data, score, qualityWarning } = await ocrWithTesseract(imageBase64);
+
+    // Try Python scanner first (better preprocessing + CLAHE + OpenCV)
+    let data: Record<string, string | null>;
+    let score: number;
+    let qualityWarning: QualityWarning = null;
+    let engine = "python-opencv";
+
+    try {
+      const pyResult = await scanWithPython(imageBase64);
+      if (pyResult.error) throw new Error(String(pyResult.error));
+      data = applyRegionMatching(pyResult);
+      score = typeof pyResult.score === "number" ? pyResult.score : 0;
+    } catch (pyErr) {
+      // Fallback to Tesseract.js
+      req.log.warn({ err: pyErr }, "Python scanner failed, falling back to Tesseract.js");
+      const tessResult = await ocrWithTesseract(imageBase64);
+      data = tessResult.data;
+      score = tessResult.score;
+      qualityWarning = tessResult.qualityWarning;
+      engine = "tesseract-js";
+    }
+
     const lowConfidence = score < 65;
-    req.log.info({ score, qualityWarning, lowConfidence }, "KTP scan");
+    req.log.info({ score, qualityWarning, lowConfidence, engine }, "KTP scan");
     return res.json({
       ...data,
       _meta: { tesseractScore: score, qualityWarning, lowConfidence },
