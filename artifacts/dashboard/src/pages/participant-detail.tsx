@@ -5,7 +5,7 @@ import {
   useGetParticipantByNik,
   getGetParticipantByNikQueryKey,
 } from "@workspace/api-client-react";
-import { CalendarDays, MapPin, ImageIcon, Eye, EyeOff } from "lucide-react";
+import { CalendarDays, MapPin, ImageIcon, Download } from "lucide-react";
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -20,7 +20,6 @@ const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function KtpImageViewer({ nik }: { nik: string }) {
   const [hasImage, setHasImage] = useState<boolean | null>(null);
-  const [showImage, setShowImage] = useState(false);
   const imageUrl = `${BASE_URL}/api/ktp/image/${encodeURIComponent(nik)}`;
 
   useEffect(() => {
@@ -29,33 +28,41 @@ function KtpImageViewer({ nik }: { nik: string }) {
       .catch(() => setHasImage(false));
   }, [imageUrl]);
 
-  if (hasImage === null) return null;
+  const handleDownload = async () => {
+    const r = await fetch(imageUrl, { credentials: "include" });
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ktp_${nik}.jpg`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (hasImage === null) return <div className="h-6" />;
   if (!hasImage) return (
-    <div className="bg-slate-50 rounded-xl p-4 text-center text-sm text-slate-400">
-      <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+    <div className="bg-slate-50 rounded-xl p-8 text-center text-sm text-slate-400">
+      <ImageIcon className="h-10 w-10 mx-auto mb-2 text-slate-300" />
       Foto KTP belum tersimpan
     </div>
   );
 
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Foto KTP Asli</span>
-        <button onClick={() => setShowImage(!showImage)}
-          className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600">
-          {showImage ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-          {showImage ? "Sembunyikan" : "Tampilkan"}
-        </button>
-      </div>
-      {showImage && (
-        <img
-          src={imageUrl}
-          alt="Foto KTP"
-          className="rounded-lg w-full"
-          crossOrigin="use-credentials"
-          onError={() => setHasImage(false)}
-        />
-      )}
+    <div className="space-y-3">
+      <img
+        src={imageUrl}
+        alt="Foto KTP"
+        className="rounded-xl w-full object-cover border border-slate-100"
+        crossOrigin="use-credentials"
+        onError={() => setHasImage(false)}
+      />
+      <button
+        onClick={handleDownload}
+        className="w-full flex items-center justify-center gap-2 text-sm text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-300 py-2 rounded-xl transition"
+      >
+        <Download className="h-4 w-4" />
+        Unduh Foto KTP
+      </button>
     </div>
   );
 }
