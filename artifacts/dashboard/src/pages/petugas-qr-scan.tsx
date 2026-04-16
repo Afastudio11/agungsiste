@@ -221,34 +221,31 @@ export default function PetugasQrScanPage() {
 
             {/* Camera area */}
             <div className="relative bg-slate-900 mx-4 mb-4 rounded-2xl overflow-hidden" style={{ aspectRatio: "4/3" }}>
-              {scanning ? (
+
+              {/* Video always in DOM so videoRef is available immediately */}
+              <video
+                ref={videoRef}
+                className={`w-full h-full object-cover ${scanning ? "block" : "hidden"}`}
+                playsInline
+                muted
+                autoPlay
+              />
+
+              {/* Scan overlay — shown only while scanning */}
+              {scanning && (
                 <>
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-cover"
-                    playsInline
-                    muted
-                    autoPlay
-                  />
-                  {/* Scan frame overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="relative w-56 h-56">
-                      {/* Corner brackets */}
                       <div className="absolute top-0 left-0 w-10 h-10 border-t-[3px] border-l-[3px] border-emerald-400 rounded-tl-xl" />
                       <div className="absolute top-0 right-0 w-10 h-10 border-t-[3px] border-r-[3px] border-emerald-400 rounded-tr-xl" />
                       <div className="absolute bottom-0 left-0 w-10 h-10 border-b-[3px] border-l-[3px] border-emerald-400 rounded-bl-xl" />
                       <div className="absolute bottom-0 right-0 w-10 h-10 border-b-[3px] border-r-[3px] border-emerald-400 rounded-br-xl" />
-                      {/* Animated scan line */}
                       <div
                         className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent rounded-full"
-                        style={{
-                          animation: "scanLine 2s ease-in-out infinite",
-                          top: "50%",
-                        }}
+                        style={{ animation: "scanLine 2s ease-in-out infinite", top: "50%" }}
                       />
                     </div>
                   </div>
-                  {/* Dim corners */}
                   <div className="absolute inset-0 pointer-events-none" style={{
                     background: "radial-gradient(ellipse 200px 200px at center, transparent 40%, rgba(0,0,0,0.5) 100%)"
                   }} />
@@ -260,8 +257,11 @@ export default function PetugasQrScanPage() {
                     }
                   `}</style>
                 </>
-              ) : submitting ? (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+              )}
+
+              {/* Submitting overlay */}
+              {submitting && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
                   <div className="w-16 h-16 rounded-2xl bg-emerald-900 flex items-center justify-center animate-pulse">
                     <Scan className="h-8 w-8 text-emerald-400" />
                   </div>
@@ -270,8 +270,11 @@ export default function PetugasQrScanPage() {
                     <p className="text-slate-400 text-xs mt-1">Mohon tunggu</p>
                   </div>
                 </div>
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+              )}
+
+              {/* Inactive state */}
+              {!scanning && !submitting && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
                   <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center">
                     <QrCode className="h-8 w-8 text-slate-500" />
                   </div>
