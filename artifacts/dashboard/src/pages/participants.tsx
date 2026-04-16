@@ -10,7 +10,7 @@ import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Eye, Users
 type SortKey = "nik" | "fullName" | "gender" | "city" | "province" | "firstRegisteredAt" | "eventCount";
 type SortDir = "asc" | "desc";
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 50;
 
 const AVATAR_PALETTES = [
   "bg-blue-100 text-blue-700",

@@ -197,6 +197,43 @@
   --sidebar-ring: 210 40% 98%;
 }
 
+/* MD3 color tokens + border-radius overrides — scoped to event detail page only */
+.md3-surface {
+  /* Color tokens */
+  --md3-primary: #4f46e5;
+  --md3-on-primary: #ffffff;
+  --md3-primary-container: #e0e7ff;
+  --md3-on-primary-container: #1e1b4b;
+  --md3-tertiary: #0891b2;
+  --md3-tertiary-container: #cffafe;
+  --md3-on-tertiary-container: #0c4a6e;
+  --md3-error: #dc2626;
+  --md3-error-container: #fee2e2;
+  --md3-on-error-container: #7f1d1d;
+  --md3-surface-lowest: #f8fafc;
+  --md3-surface-low: #f1f5f9;
+  --md3-surface: #ffffff;
+  --md3-surface-high: #e2e8f0;
+  --md3-outline: #cbd5e1;
+  --md3-outline-variant: #e2e8f0;
+
+  /* MD3 shape tokens (border-radius scale) */
+  --md3-shape-none: 0px;
+  --md3-shape-extra-small: 4px;
+  --md3-shape-small: 8px;
+  --md3-shape-medium: 12px;
+  --md3-shape-large: 16px;
+  --md3-shape-extra-large: 28px;
+  --md3-shape-full: 9999px;
+
+  /* Map MD3 shape tokens onto Tailwind radius vars for this scope */
+  --radius-sm: var(--md3-shape-extra-small);
+  --radius-md: var(--md3-shape-small);
+  --radius-lg: var(--md3-shape-medium);
+  --radius-xl: var(--md3-shape-large);
+  --radius-2xl: var(--md3-shape-extra-large);
+}
+
 @layer base {
   * {
     @apply border-border;

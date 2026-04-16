@@ -10,35 +10,46 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarDays, MapPin, Users, Plus, Pencil, Trash2, Search, X, Download, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import {
+  CalendarDays,
+  MapPin,
+  Users,
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  X,
+  Download,
+  ChevronRight,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown,
+  Filter,
+} from "lucide-react";
 
 type SortKey = "name" | "eventDate" | "location" | "participantCount";
 type SortDir = "asc" | "desc";
 
-function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
-  if (col !== sortKey) return <ChevronsUpDown className="h-3 w-3 text-slate-300 ml-1 shrink-0" />;
-  return sortDir === "asc" ? <ChevronUp className="h-3 w-3 text-blue-500 ml-1 shrink-0" /> : <ChevronDown className="h-3 w-3 text-blue-500 ml-1 shrink-0" />;
-}
-
-function SortTh({ col, label, sortKey, sortDir, onSort, align = "left" }: {
-  col: SortKey; label: string; sortKey: SortKey; sortDir: SortDir; onSort: (k: SortKey) => void; align?: "left" | "right";
-}) {
-  const active = col === sortKey;
-  return (
-    <th className={`px-5 py-3 text-[10px] font-bold uppercase tracking-[0.08em] cursor-pointer select-none ${align === "right" ? "text-right" : "text-left"}`} onClick={() => onSort(col)}>
-      <span className={`inline-flex items-center gap-0.5 ${active ? "text-blue-600" : "text-slate-400"} ${align === "right" ? "flex-row-reverse" : ""}`}>
-        {label}<SortIcon col={col} sortKey={sortKey} sortDir={sortDir} />
-      </span>
-    </th>
-  );
-}
-
-const emptyForm = { name: "", description: "", location: "", eventDate: "", category: "", startTime: "", targetParticipants: "" };
+const emptyForm = {
+  name: "",
+  description: "",
+  location: "",
+  eventDate: "",
+  category: "",
+  startTime: "",
+  targetParticipants: "",
+};
 
 function exportCSV(events: any[]) {
   const headers = ["ID", "Nama Event", "Tanggal", "Lokasi", "Kategori", "Peserta", "Status"];
   const rows = events.map((e) => [
-    e.id, `"${e.name}"`, e.eventDate, `"${e.location ?? ""}"`, `"${e.category ?? ""}"`, e.participantCount, e.status ?? "active",
+    e.id,
+    `"${e.name}"`,
+    e.eventDate,
+    `"${e.location ?? ""}"`,
+    `"${e.category ?? ""}"`,
+    e.participantCount,
+    e.status ?? "active",
   ]);
   const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -50,6 +61,22 @@ function exportCSV(events: any[]) {
   URL.revokeObjectURL(url);
 }
 
+function ParticipantPill({ count }: { count: number }) {
+  if (count === 0) {
+    return (
+      <div className="w-9 h-9 rounded-full ring-4 ring-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">
+        0
+      </div>
+    );
+  }
+  const display = count >= 1000 ? `+${(count / 1000).toFixed(1)}k` : `+${count}`;
+  return (
+    <div className="w-9 h-9 rounded-full ring-4 ring-white bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">
+      {display}
+    </div>
+  );
+}
+
 export default function EventsPage() {
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -59,6 +86,7 @@ export default function EventsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -78,17 +106,30 @@ export default function EventsPage() {
     return [...rawEvents].sort((a, b) => {
       let av: any = (a as any)[sortKey] ?? "";
       let bv: any = (b as any)[sortKey] ?? "";
-      if (sortKey === "participantCount") { av = Number(av); bv = Number(bv); }
-      else { av = String(av).toLowerCase(); bv = String(bv).toLowerCase(); }
+      if (sortKey === "participantCount") {
+        av = Number(av);
+        bv = Number(bv);
+      } else {
+        av = String(av).toLowerCase();
+        bv = String(bv).toLowerCase();
+      }
       if (av < bv) return sortDir === "asc" ? -1 : 1;
       if (av > bv) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
   }, [rawEvents, sortKey, sortDir]);
 
+  const avgParticipants =
+    events && events.length > 0
+      ? Math.round(events.reduce((s, e) => s + (e.participantCount ?? 0), 0) / events.length)
+      : 0;
+
   const handleSort = (key: SortKey) => {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(key); setSortDir("asc"); }
+    else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
   };
 
   const createEvent = useCreateEvent({
@@ -166,199 +207,313 @@ export default function EventsPage() {
   };
 
   const isPending = createEvent.isPending || updateEvent.isPending;
+  const hasFilter = search || startDate || endDate;
 
   return (
     <Layout>
-      <div className="space-y-5">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+      <div className="space-y-8">
+
+        {/* ── Hero Header ── */}
+        <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2">
+            <nav className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              <span>Events</span>
+              <ChevronRight className="h-3 w-3" />
+              <span className="text-indigo-600">Management</span>
+            </nav>
             <h1
-              className="text-[26px] font-extrabold text-slate-900 leading-tight"
+              className="text-[clamp(2rem,5vw,3.25rem)] font-extrabold text-slate-900 leading-tight"
               style={{ letterSpacing: "-0.03em" }}
             >
               Manajemen Event
             </h1>
-            <p className="mt-1 text-sm text-slate-400 font-medium">
-              {events?.length ?? 0} event terdaftar
+            <p className="text-slate-500 font-medium">
+              Temukan dan kelola semua kurasi acara Anda di satu tempat.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => events && exportCSV(events)}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+              className="flex items-center gap-2 px-5 py-3 bg-white text-slate-600 font-bold rounded-2xl shadow-sm border border-slate-100 hover:bg-slate-50 transition-all text-sm"
             >
-              <Download className="h-3.5 w-3.5" />
-              Export CSV
+              <Download className="h-4 w-4" />
+              Export
             </button>
             <button
               onClick={openCreate}
-              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-[12px] font-bold text-white shadow-sm shadow-blue-200 hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:-translate-y-0.5 active:translate-y-0 transition-all text-sm"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
               Tambah Event
             </button>
           </div>
-        </div>
+        </section>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm flex-1 min-w-[180px]">
-            <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <input
-              type="text"
-              placeholder="Cari event..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-[13px] text-slate-700 placeholder:text-slate-300 focus:outline-none"
-            />
+        {/* ── Filters + Stat Card ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* Search + date filter card */}
+          <div className="lg:col-span-8 bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-2 rounded-2xl flex flex-col md:flex-row gap-1">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari nama event..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-11 pr-4 py-3.5 bg-transparent border-none rounded-xl focus:outline-none text-sm font-medium placeholder:text-slate-400 text-slate-700"
+              />
+            </div>
+            <div className="hidden md:block h-8 w-px bg-slate-100 self-center" />
+            {/* Date + filter actions */}
+            <div className="flex items-center gap-2 p-1">
+              <button
+                onClick={() => setShowDateFilter((v) => !v)}
+                className={`flex items-center gap-2 pl-4 pr-3 py-3 rounded-xl text-xs font-bold transition-all ${
+                  startDate || endDate
+                    ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                    : "bg-slate-50 text-slate-500 hover:text-indigo-600"
+                }`}
+              >
+                <CalendarDays className="h-4 w-4" />
+                {startDate || endDate
+                  ? `${startDate || "—"}  ${endDate ? `→ ${endDate}` : ""}`
+                  : "Filter Tanggal"}
+              </button>
+              {/* Sort toggle */}
+              <button
+                onClick={() => handleSort("eventDate")}
+                className="p-3 bg-slate-50 rounded-xl text-slate-500 hover:text-indigo-600 transition-all"
+                title="Urutkan"
+              >
+                {sortKey === "eventDate" ? (
+                  sortDir === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ArrowUpDown className="h-4 w-4" />
+                )}
+              </button>
+              {hasFilter && (
+                <button
+                  onClick={() => { setSearch(""); setStartDate(""); setEndDate(""); }}
+                  className="p-3 bg-red-50 rounded-xl text-red-400 hover:text-red-600 transition-all"
+                  title="Reset filter"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
-            <CalendarDays className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="border-0 bg-transparent text-[12px] text-slate-600 focus:outline-none w-[110px]"
-            />
-            <span className="text-slate-300">—</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="border-0 bg-transparent text-[12px] text-slate-600 focus:outline-none w-[110px]"
-            />
+
+          {/* Avg Participants stat card */}
+          <div className="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex items-center gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+              <Users className="h-7 w-7" />
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Avg. Peserta</p>
+              <h3 className="text-3xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>
+                {isLoading ? "—" : avgParticipants}
+              </h3>
+            </div>
+            <div className="ml-auto text-right">
+              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                {events?.length ?? 0} event
+              </span>
+            </div>
           </div>
-          {(search || startDate || endDate) && (
-            <button
-              onClick={() => { setSearch(""); setStartDate(""); setEndDate(""); }}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium text-slate-500 hover:bg-slate-50 shadow-sm"
-            >
-              <X className="h-3.5 w-3.5" />
-              Reset
-            </button>
+
+          {/* Date range inputs (collapsed) */}
+          {showDateFilter && (
+            <div className="lg:col-span-12 bg-white border border-slate-100 rounded-2xl p-4 flex flex-wrap items-center gap-3 shadow-sm">
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Dari</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Sampai</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                />
+              </div>
+              <button
+                onClick={() => setShowDateFilter(false)}
+                className="ml-auto text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
           )}
         </div>
 
-        {/* Table */}
-        <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60">
-                  <SortTh col="name" label="Nama Event" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-                  <SortTh col="eventDate" label="Tanggal" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-                  <SortTh col="location" label="Lokasi" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-                  <SortTh col="participantCount" label="Peserta" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" />
-                  <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">Memuat...</td>
-                  </tr>
-                ) : events && events.length > 0 ? (
-                  events.map((event) => (
-                    <tr key={event.id} className="hover:bg-blue-50/30 transition-colors">
-                      <td className="px-5 py-3.5">
-                        <Link href={`/events/${event.id}`}>
-                          <div className="font-semibold text-sm text-slate-900 hover:text-blue-600 cursor-pointer transition-colors">
-                            {event.name}
-                          </div>
-                        </Link>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {(event as any).category && (
-                            <span className="inline-block text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md">
-                              {(event as any).category}
-                            </span>
-                          )}
-                          {(event as any).isRsvp && (
-                            <span className="inline-block text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md">RSVP</span>
-                          )}
-                          {event.description && (
-                            <p className="text-[11px] text-slate-400 truncate max-w-[200px]">{event.description}</p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                          <CalendarDays className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                          {event.eventDate}
-                        </div>
+        {/* ── Event List ── */}
+        <div className="space-y-5">
+          {/* Section header */}
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+              Daftar Event
+              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px]">
+                {events?.length ?? 0}
+              </span>
+            </h3>
+            {/* Sort options */}
+            <div className="flex items-center gap-1 text-xs">
+              {(["name", "eventDate", "participantCount"] as SortKey[]).map((key) => {
+                const labels: Record<SortKey, string> = {
+                  name: "Nama",
+                  eventDate: "Tanggal",
+                  location: "Lokasi",
+                  participantCount: "Peserta",
+                };
+                const active = sortKey === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleSort(key)}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold transition-colors ${
+                      active
+                        ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                        : "text-slate-400 hover:text-slate-600"
+                    }`}
+                  >
+                    {labels[key]}
+                    {active && (
+                      sortDir === "asc"
+                        ? <ChevronUp className="h-3 w-3" />
+                        : <ChevronDown className="h-3 w-3" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Cards */}
+          <div className="grid grid-cols-1 gap-4">
+            {isLoading ? (
+              <div className="py-16 text-center text-sm text-slate-400">Memuat...</div>
+            ) : events && events.length > 0 ? (
+              events.map((event) => (
+                <div
+                  key={event.id}
+                  className="group bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] rounded-[1.75rem] px-7 py-5 flex flex-col lg:flex-row items-start lg:items-center gap-5 transition-all hover:border-indigo-100 hover:shadow-[0_8px_32px_rgba(79,70,229,0.08)]"
+                >
+                  {/* Main info */}
+                  <div className="flex-1 min-w-0">
+                    <Link href={`/events/${event.id}`}>
+                      <h4 className="text-xl font-bold text-slate-900 truncate mb-1 hover:text-indigo-600 cursor-pointer transition-colors">
+                        {event.name}
+                      </h4>
+                    </Link>
+                    {event.description && (
+                      <p className="text-sm text-slate-500 mb-3 line-clamp-1">{event.description}</p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-4 mt-1">
+                      <div className="flex items-center gap-1.5">
+                        <CalendarDays className="h-4 w-4 text-slate-400" />
+                        <span className="text-xs font-bold text-slate-700">{event.eventDate}</span>
                         {(event as any).startTime && (
-                          <div className="text-[11px] text-slate-400 ml-5 mt-0.5">{(event as any).startTime}</div>
+                          <span className="text-xs text-slate-400">· {(event as any).startTime}</span>
                         )}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        {event.location ? (
-                          <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                            <span className="truncate max-w-[160px]">{event.location}</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-300 text-sm">—</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Users className="h-3.5 w-3.5 text-slate-300" />
-                          <span className="text-sm font-bold text-slate-700">{event.participantCount}</span>
+                      </div>
+                      {event.location && (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-4 w-4 text-slate-400" />
+                          <span className="text-xs font-bold text-slate-700 truncate max-w-[180px]">
+                            {event.location}
+                          </span>
                         </div>
-                        {(event as any).targetParticipants && (
-                          <div className="text-[10px] text-slate-400 mt-0.5">
-                            target {(event as any).targetParticipants}
-                          </div>
+                      )}
+                      {/* Category / RSVP badges */}
+                      <div className="flex items-center gap-1.5">
+                        {(event as any).category && (
+                          <span className="inline-block text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg">
+                            {(event as any).category}
+                          </span>
                         )}
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => openEdit(event)}
-                            className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-300 hover:text-blue-500 transition-colors"
-                            title="Edit"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm(`Hapus event "${event.name}"?`)) {
-                                deleteEvent.mutate({ id: event.id });
-                              }
-                            }}
-                            className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors"
-                            title="Hapus"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="px-5 py-12 text-center">
-                      <CalendarDays className="h-8 w-8 mx-auto mb-2 text-slate-200" />
-                      <p className="text-sm text-slate-400">Belum ada event</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                        {(event as any).isRsvp && (
+                          <span className="inline-block text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-100">
+                            RSVP
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right side: participant count + actions */}
+                  <div className="flex items-center gap-4 shrink-0 lg:pl-4">
+                    {/* Participant avatar-style pill */}
+                    <div className="flex -space-x-2">
+                      <ParticipantPill count={event.participantCount ?? 0} />
+                    </div>
+                    {(event as any).targetParticipants && (
+                      <div className="text-right hidden lg:block">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target</p>
+                        <p className="text-sm font-extrabold text-slate-700">{(event as any).targetParticipants}</p>
+                      </div>
+                    )}
+                    <div className="h-10 w-px bg-slate-100 hidden lg:block" />
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => openEdit(event)}
+                        title="Edit"
+                        className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Hapus event "${event.name}"?`)) {
+                            deleteEvent.mutate({ id: event.id });
+                          }
+                        }}
+                        title="Hapus"
+                        className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-20 text-center bg-white border border-slate-100 rounded-[1.75rem]">
+                <CalendarDays className="h-10 w-10 mx-auto mb-3 text-slate-200" />
+                <p className="text-sm font-semibold text-slate-400">Belum ada event</p>
+                <button
+                  onClick={openCreate}
+                  className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-full hover:bg-indigo-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Tambah Event Pertama
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Form Modal (Create / Edit) */}
+      {/* ── Create / Edit Modal ── */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
             <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100">
-              <div className="font-bold text-slate-900 text-[15px]">
+              <div className="font-extrabold text-slate-900 text-[15px]" style={{ letterSpacing: "-0.02em" }}>
                 {editingId ? "Edit Event" : "Tambah Event Baru"}
               </div>
-              <button onClick={closeForm} className="p-1.5 hover:bg-slate-100 rounded-lg">
-                <X className="h-4 w-4" />
+              <button
+                onClick={closeForm}
+                className="p-1.5 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                <X className="h-4 w-4 text-slate-500" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6">
@@ -373,7 +528,7 @@ export default function EventsPage() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="Nama event"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                   />
                 </div>
                 <div>
@@ -385,7 +540,7 @@ export default function EventsPage() {
                     required
                     value={form.eventDate}
                     onChange={(e) => setForm({ ...form, eventDate: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-700 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                   />
                 </div>
                 <div>
@@ -396,7 +551,7 @@ export default function EventsPage() {
                     type="time"
                     value={form.startTime}
                     onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-700 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                   />
                 </div>
                 <div>
@@ -408,7 +563,7 @@ export default function EventsPage() {
                     value={form.location}
                     onChange={(e) => setForm({ ...form, location: e.target.value })}
                     placeholder="Lokasi event"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                   />
                 </div>
                 <div>
@@ -420,7 +575,7 @@ export default function EventsPage() {
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                     placeholder="cth: Sosial, Politik"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                   />
                 </div>
                 <div>
@@ -433,7 +588,7 @@ export default function EventsPage() {
                     value={form.targetParticipants}
                     onChange={(e) => setForm({ ...form, targetParticipants: e.target.value })}
                     placeholder="cth: 500"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                   />
                 </div>
                 <div className="col-span-2">
@@ -445,7 +600,7 @@ export default function EventsPage() {
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     placeholder="Deskripsi singkat"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                   />
                 </div>
               </div>
@@ -460,7 +615,7 @@ export default function EventsPage() {
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="flex-1 rounded-xl bg-blue-600 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-md shadow-indigo-100"
                 >
                   {isPending ? "Menyimpan..." : editingId ? "Simpan Perubahan" : "Buat Event"}
                 </button>

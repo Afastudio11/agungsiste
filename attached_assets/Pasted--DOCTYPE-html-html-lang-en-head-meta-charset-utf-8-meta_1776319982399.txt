@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ethereal Events | Digital Curator Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "error": "#b31b25",
+                      "on-primary-fixed-variant": "#002869",
+                      "tertiary": "#006947",
+                      "outline": "#747779",
+                      "secondary-container": "#dac9ff",
+                      "on-secondary-fixed-variant": "#5f28c8",
+                      "secondary-fixed-dim": "#ceb9ff",
+                      "error-dim": "#9f0519",
+                      "on-surface-variant": "#595c5e",
+                      "on-tertiary-container": "#005a3c",
+                      "tertiary-dim": "#005c3d",
+                      "surface-container-highest": "#d9dde0",
+                      "secondary-fixed": "#dac9ff",
+                      "inverse-primary": "#5a8cff",
+                      "on-primary-fixed": "#000000",
+                      "background": "#f8fafc",
+                      "primary-container": "#769dff",
+                      "inverse-surface": "#0b0f10",
+                      "on-primary": "#f1f2ff",
+                      "on-tertiary-fixed-variant": "#006544",
+                      "surface-bright": "#f8fafc",
+                      "inverse-on-surface": "#9a9d9f",
+                      "on-secondary": "#f8f0ff",
+                      "tertiary-fixed-dim": "#58e7ab",
+                      "primary-fixed": "#769dff",
+                      "surface-dim": "#d0d5d8",
+                      "on-tertiary-fixed": "#00452d",
+                      "on-tertiary": "#c8ffe0",
+                      "tertiary-container": "#69f6b8",
+                      "primary-dim": "#0049b2",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-tint": "#0054ca",
+                      "on-error": "#ffefee",
+                      "outline-variant": "#abadaf",
+                      "primary-fixed-dim": "#5f8fff",
+                      "surface-container": "#e5e9eb",
+                      "on-background": "#1e293b",
+                      "surface": "#ffffff",
+                      "on-error-container": "#570008",
+                      "secondary-dim": "#5e26c7",
+                      "secondary": "#6a37d4",
+                      "on-surface": "#1e293b",
+                      "primary": "#0054ca",
+                      "on-secondary-fixed": "#40009b",
+                      "error-container": "#fb5151",
+                      "tertiary-fixed": "#69f6b8",
+                      "on-secondary-container": "#5517bf",
+                      "surface-container-high": "#dfe3e6",
+                      "surface-variant": "#d9dde0",
+                      "on-primary-container": "#001f56",
+                      "surface-container-low": "#f1f5f9"
+              },
+              "borderRadius": {
+                      "DEFAULT": "1rem",
+                      "lg": "1.5rem",
+                      "xl": "2.5rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Plus Jakarta Sans"],
+                      "body": ["Plus Jakarta Sans"],
+                      "label": ["Plus Jakarta Sans"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .aura-card {
+            background: white;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(241, 245, 249, 1);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex">
+<!-- SideNavBar -->
+<aside class="hidden md:flex h-screen w-72 fixed left-0 top-0 border-r border-slate-200 bg-white flex-col p-8 space-y-10 z-50">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-white">event</span>
+</div>
+<div>
+<h2 class="text-xl font-bold text-slate-900 leading-none">EventPro</h2>
+<p class="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mt-1">Curator Suite</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-5 py-3.5 bg-primary/5 text-primary rounded-2xl transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined" data-icon="event">event</span>
+<span class="text-sm font-semibold">All Events</span>
+</a>
+<a class="flex items-center gap-3 px-5 py-3.5 text-slate-500 hover:text-primary hover:bg-slate-50 rounded-2xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="location_on">location_on</span>
+<span class="text-sm font-semibold">Venues</span>
+</a>
+<a class="flex items-center gap-3 px-5 py-3.5 text-slate-500 hover:text-primary hover:bg-slate-50 rounded-2xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="mic">mic</span>
+<span class="text-sm font-semibold">Speakers</span>
+</a>
+<a class="flex items-center gap-3 px-5 py-3.5 text-slate-500 hover:text-primary hover:bg-slate-50 rounded-2xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="confirmation_number">confirmation_number</span>
+<span class="text-sm font-semibold">Ticketing</span>
+</a>
+<a class="flex items-center gap-3 px-5 py-3.5 text-slate-500 hover:text-primary hover:bg-slate-50 rounded-2xl transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+<span class="text-sm font-semibold">Reports</span>
+</a>
+</nav>
+<div class="space-y-4">
+<div class="p-5 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-xl shadow-slate-200 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-colors"></div>
+<p class="text-slate-400 text-xs font-medium mb-1">Upgrade Plan</p>
+<h4 class="text-white font-bold text-sm mb-4">Enterprise Access</h4>
+<button class="w-full py-2.5 bg-white text-slate-900 text-xs font-bold rounded-xl active:scale-95 transition-transform">
+                Go Pro
+            </button>
+</div>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-5 py-2 text-slate-400 hover:text-slate-900 transition-colors" href="#">
+<span class="material-symbols-outlined text-sm">help</span>
+<span class="text-xs font-semibold">Support Center</span>
+</a>
+<a class="flex items-center gap-3 px-5 py-2 text-slate-400 hover:text-error transition-colors" href="#">
+<span class="material-symbols-outlined text-sm">logout</span>
+<span class="text-xs font-semibold">Logout</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-72 min-h-screen bg-slate-50/30">
+<!-- Header -->
+<header class="bg-white/40 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100 px-10 py-5 flex justify-between items-center w-full">
+<div>
+<span class="text-lg font-bold tracking-tight text-slate-900">Ethereal Events</span>
+</div>
+<div class="flex items-center gap-6">
+<button class="p-2 text-slate-400 hover:text-slate-900 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="h-6 w-px bg-slate-200"></div>
+<div class="flex items-center gap-3 cursor-pointer group">
+<div class="text-right">
+<p class="text-sm font-bold text-slate-900">Julian Syah</p>
+<p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Event Manager</p>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-md ring-1 ring-slate-100">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApGajXe9UvoLULofG8n56UNzGL8iS1pMhTESi4s_ijr41dJansJTWKtAqXnVo5ip2lTFxeEKx7a_p_k8JYYZ0tRJYY4dfvLIRl4hifqCe7koCcsbqeE6IqSx4dQWorAqn4VFP9ooRXcrOrzY_7n5Om_i0rxNu031Tqi9zcKSEJIc5366RfyOuOpdn8nZoO8h_0fdWoZ2zmlWbk_Axo_55cfimBarbPOSy3BCeZBNyCn6xhQc88FZXT3MgRII4aMAsF-18UnyTDzrU"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="p-10 max-w-7xl mx-auto space-y-12">
+<!-- Hero Header -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-8">
+<div class="space-y-3">
+<nav class="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+<span>Events</span>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-primary">Management</span>
+</nav>
+<h1 class="text-5xl font-extrabold text-slate-900 tracking-tight">Manajemen Event</h1>
+<p class="text-slate-500 font-medium">Temukan dan kelola semua kurasi acara Anda di satu tempat.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 font-bold rounded-2xl shadow-sm border border-slate-100 hover:bg-slate-50 transition-all">
+<span class="material-symbols-outlined text-lg">file_download</span>
+                    Export
+                </button>
+<button class="flex items-center gap-2 px-8 py-3 bg-primary text-white font-bold rounded-2xl shadow-xl shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0 transition-all">
+<span class="material-symbols-outlined text-lg">add</span>
+                    Tambah Event
+                </button>
+</div>
+</section>
+<!-- Filters & Single Stat -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<div class="lg:col-span-8 aura-card p-3 rounded-2xl flex flex-col md:flex-row gap-2">
+<div class="flex-1 relative">
+<span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="w-full pl-14 pr-6 py-4 bg-transparent border-none rounded-xl focus:ring-0 text-sm font-medium placeholder:text-slate-400" placeholder="Cari nama event..." type="text"/>
+</div>
+<div class="h-8 w-px bg-slate-100 self-center hidden md:block"></div>
+<div class="flex items-center gap-2 p-1">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">calendar_today</span>
+<input class="pl-12 pr-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-0 text-xs font-bold w-48" type="text" value="OCT 12 - OCT 24, 2023"/>
+</div>
+<button class="p-3 bg-slate-50 rounded-xl text-slate-500 hover:text-primary transition-all">
+<span class="material-symbols-outlined">tune</span>
+</button>
+</div>
+</div>
+<!-- Stats Card (Avg Participants Only) -->
+<div class="lg:col-span-4">
+<div class="bg-white p-6 rounded-2xl aura-card flex items-center gap-6">
+<div class="w-14 h-14 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-3xl">groups</span>
+</div>
+<div>
+<p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Avg. Peserta</p>
+<h3 class="text-3xl font-extrabold text-slate-900">342</h3>
+</div>
+<div class="ml-auto text-right">
+<span class="text-xs font-bold text-tertiary bg-tertiary/5 px-2 py-1 rounded-lg">+12%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Event List -->
+<div class="space-y-6">
+<div class="flex items-center justify-between px-2">
+<h3 class="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                    Active Curation
+                    <span class="px-2 py-0.5 bg-slate-200 text-slate-600 rounded text-[10px]">24</span>
+</h3>
+<button class="text-xs font-bold text-primary hover:underline">View All</button>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<!-- Item 1 -->
+<div class="aura-card group bg-white rounded-[2rem] p-4 flex flex-col lg:flex-row items-center gap-6 transition-all hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 px-8">
+<div class="flex-1 min-w-0">
+<h4 class="text-xl font-bold text-slate-900 truncate mb-1">Tech Summit Jakarta 2024</h4>
+<p class="text-sm text-slate-500 mb-4 line-clamp-1">Annual technology and innovation conference for enterprise leaders.</p>
+<div class="flex flex-wrap items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-lg">calendar_today</span>
+<span class="text-xs font-bold text-slate-700">24 May, 2024</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-lg">location_on</span>
+<span class="text-xs font-bold text-slate-700">ICE BSD City, Tangerang</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4 shrink-0 lg:px-6">
+<div class="flex -space-x-3">
+<div class="w-9 h-9 rounded-full ring-4 ring-white bg-slate-100 flex items-center justify-center text-[10px] font-bold">JS</div>
+<div class="w-9 h-9 rounded-full ring-4 ring-white bg-slate-100 flex items-center justify-center text-[10px] font-bold">MT</div>
+<div class="w-9 h-9 rounded-full ring-4 ring-white bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">+1.2k</div>
+</div>
+<div class="h-10 w-px bg-slate-100 hidden lg:block"></div>
+<div class="flex gap-2">
+<button class="p-3 bg-slate-50 rounded-xl text-slate-400 hover:text-primary transition-all">
+<span class="material-symbols-outlined text-xl">edit</span>
+</button>
+<button class="p-3 bg-slate-50 rounded-xl text-slate-400 hover:text-error transition-all">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="aura-card group bg-white rounded-[2rem] p-4 flex flex-col lg:flex-row items-center gap-6 transition-all hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 px-8">
+<div class="flex-1 min-w-0">
+<h4 class="text-xl font-bold text-slate-900 truncate mb-1">Creative Night Fest</h4>
+<p class="text-sm text-slate-500 mb-4 line-clamp-1">Networking event for Indonesian creators and artists in the heart of Jakarta.</p>
+<div class="flex flex-wrap items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-lg">calendar_today</span>
+<span class="text-xs font-bold text-slate-700">12 Jun, 2024</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-lg">location_on</span>
+<span class="text-xs font-bold text-slate-700">GBK Park, Jakarta</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4 shrink-0 lg:px-6">
+<div class="flex -space-x-3">
+<div class="w-9 h-9 rounded-full ring-4 ring-white bg-slate-100 flex items-center justify-center text-[10px] font-bold">RD</div>
+<div class="w-9 h-9 rounded-full ring-4 ring-white bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">+450</div>
+</div>
+<div class="h-10 w-px bg-slate-100 hidden lg:block"></div>
+<div class="flex gap-2">
+<button class="p-3 bg-slate-50 rounded-xl text-slate-400 hover:text-primary transition-all">
+<span class="material-symbols-outlined text-xl">edit</span>
+</button>
+<button class="p-3 bg-slate-50 rounded-xl text-slate-400 hover:text-error transition-all">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Pagination -->
+<div class="pt-8 flex items-center justify-between border-t border-slate-100">
+<p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Page 1 of 8</p>
+<div class="flex gap-2">
+<button class="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-xs">1</button>
+<button class="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center hover:bg-slate-50 transition-colors text-xs font-bold">2</button>
+<button class="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Mobile -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-slate-100 px-6 py-4 flex justify-around items-center z-50">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[9px] font-bold uppercase tracking-wider">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">event</span>
+<span class="text-[9px] font-bold uppercase tracking-wider">Events</span>
+</button>
+<div class="w-12 h-12 -mt-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 border-4 border-white">
+<span class="material-symbols-outlined text-white">add</span>
+</div>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">assessment</span>
+<span class="text-[9px] font-bold uppercase tracking-wider">Reports</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[9px] font-bold uppercase tracking-wider">Account</span>
+</button>
+</nav>
+</body></html>

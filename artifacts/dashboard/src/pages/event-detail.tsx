@@ -8,7 +8,28 @@ import {
   getListEventParticipantsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, MapPin, Users, Search, ChevronLeft, Download, ClipboardList, ClipboardCheck, ScanLine, CheckCircle2, Clock, QrCode, LinkIcon, Copy, Check, RefreshCw } from "lucide-react";
+import {
+  CalendarDays,
+  MapPin,
+  Users,
+  Search,
+  ChevronLeft,
+  Download,
+  ClipboardList,
+  ClipboardCheck,
+  ScanLine,
+  CheckCircle2,
+  Clock,
+  QrCode,
+  Copy,
+  Check,
+  RefreshCw,
+  Filter,
+  Edit2,
+  UserCheck,
+  UserX,
+  Activity,
+} from "lucide-react";
 
 type TabType = "rsvp" | "onsite";
 
@@ -38,7 +59,87 @@ function exportCSV(participants: any[], eventName: string, label: string) {
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-function EventLinksSection({ eventId, event }: { eventId: number; event: any }) {
+function LinkCard({
+  label,
+  type,
+  token,
+  qr,
+  onLoadQr,
+  onCopy,
+  isCopied,
+}: {
+  label: string;
+  type: string;
+  token: string;
+  qr: any;
+  onLoadQr: () => void;
+  onCopy: (url: string) => void;
+  isCopied: boolean;
+}) {
+  const isReg = type === "registration";
+  return (
+    <div
+      className={`rounded-2xl p-4 border ${
+        isReg
+          ? "bg-indigo-50/60 border-indigo-100"
+          : "bg-cyan-50/60 border-cyan-100"
+      }`}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <div
+          className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+            isReg ? "bg-indigo-100" : "bg-cyan-100"
+          }`}
+        >
+          {isReg ? (
+            <ClipboardList className={`h-3.5 w-3.5 ${isReg ? "text-indigo-600" : "text-cyan-600"}`} />
+          ) : (
+            <ScanLine className="h-3.5 w-3.5 text-cyan-600" />
+          )}
+        </div>
+        <p className={`text-xs font-bold ${isReg ? "text-indigo-700" : "text-cyan-700"}`}>{label}</p>
+      </div>
+
+      {qr ? (
+        <div className="space-y-3">
+          <div className="bg-white rounded-xl p-3 flex justify-center shadow-sm">
+            <img src={qr.qrDataUrl} alt="QR Code" className="w-36 h-36" />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={qr.url}
+              className="flex-1 text-[11px] bg-white/80 rounded-lg px-3 py-2 border border-white text-slate-600 truncate focus:outline-none"
+            />
+            <button
+              onClick={() => onCopy(qr.url)}
+              className="shrink-0 p-2 bg-white rounded-lg shadow-sm hover:bg-slate-50 transition-colors"
+            >
+              {isCopied ? (
+                <Check className="h-3.5 w-3.5 text-green-500" />
+              ) : (
+                <Copy className="h-3.5 w-3.5 text-slate-400" />
+              )}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={onLoadQr}
+          className={`w-full py-3 bg-white/70 hover:bg-white rounded-xl text-sm font-semibold border border-white/80 transition-colors flex items-center justify-center gap-2 ${
+            isReg ? "text-indigo-600" : "text-cyan-600"
+          }`}
+        >
+          <QrCode className="h-4 w-4" />
+          Tampilkan QR Code
+        </button>
+      )}
+    </div>
+  );
+}
+
+function QRLinksCard({ eventId, event }: { eventId: number; event: any }) {
   const [qrData, setQrData] = useState<Record<string, { url: string; qrDataUrl: string } | null>>({});
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -76,67 +177,99 @@ function EventLinksSection({ eventId, event }: { eventId: number; event: any }) 
   const hasTokens = event.registrationToken || event.attendanceToken;
 
   return (
-    <div className="rounded-2xl bg-white border border-slate-100 px-6 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-      <div className="flex items-center justify-between mb-4">
+    <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <QrCode className="h-4 w-4 text-indigo-600" />
-          <h3 className="text-[15px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>Link & QR Code</h3>
+          <QrCode className="h-4 w-4 text-indigo-500" />
+          <h3 className="text-[14px] font-extrabold text-slate-800" style={{ letterSpacing: "-0.02em" }}>
+            Link & QR Code
+          </h3>
         </div>
-        <button onClick={generateTokens} disabled={generating}
-          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">
-          <RefreshCw className={`h-3.5 w-3.5 ${generating ? "animate-spin" : ""}`} />
+        <button
+          onClick={generateTokens}
+          disabled={generating}
+          className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+        >
+          <RefreshCw className={`h-3 w-3 ${generating ? "animate-spin" : ""}`} />
           {hasTokens ? "Generate Ulang" : "Generate Link"}
         </button>
       </div>
 
-      {!hasTokens ? (
-        <p className="text-sm text-slate-400">Klik "Generate Link" untuk membuat link registrasi dan absensi</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {event.registrationToken && (
-            <LinkCard label="Registrasi Online" type="registration" token={event.registrationToken}
-              qr={qrData.registration} onLoadQr={() => loadQr("registration")}
-              onCopy={(url: string) => copyLink(url, "reg")} isCopied={copied === "reg"} />
-          )}
-          {event.attendanceToken && (
-            <LinkCard label="Absensi di Lokasi" type="attendance" token={event.attendanceToken}
-              qr={qrData.attendance} onLoadQr={() => loadQr("attendance")}
-              onCopy={(url: string) => copyLink(url, "att")} isCopied={copied === "att"} />
-          )}
-        </div>
-      )}
+      <div className="p-4">
+        {!hasTokens ? (
+          <div className="py-6 text-center">
+            <QrCode className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+            <p className="text-sm text-slate-400">Klik "Generate Link" untuk membuat link registrasi dan absensi</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {event.registrationToken && (
+              <LinkCard
+                label="Registrasi Online"
+                type="registration"
+                token={event.registrationToken}
+                qr={qrData.registration}
+                onLoadQr={() => loadQr("registration")}
+                onCopy={(url: string) => copyLink(url, "reg")}
+                isCopied={copied === "reg"}
+              />
+            )}
+            {event.attendanceToken && (
+              <LinkCard
+                label="Absensi di Lokasi"
+                type="attendance"
+                token={event.attendanceToken}
+                qr={qrData.attendance}
+                onLoadQr={() => loadQr("attendance")}
+                onCopy={(url: string) => copyLink(url, "att")}
+                isCopied={copied === "att"}
+              />
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function LinkCard({ label, type, token, qr, onLoadQr, onCopy, isCopied }: {
-  label: string; type: string; token: string; qr: any; onLoadQr: () => void; onCopy: (url: string) => void; isCopied: boolean;
+function StatCard({
+  label,
+  value,
+  sub,
+  icon,
+  gradient,
+  barColor,
+  barPct,
+}: {
+  label: string;
+  value: number | string;
+  sub?: string;
+  icon: React.ReactNode;
+  gradient: string;
+  barColor: string;
+  barPct?: number;
 }) {
-  const color = type === "registration" ? "blue" : "orange";
-  const bgColor = type === "registration" ? "bg-blue-50" : "bg-orange-50";
-  const textColor = type === "registration" ? "text-blue-700" : "text-orange-700";
-
   return (
-    <div className={`${bgColor} rounded-xl p-4`}>
-      <p className={`text-xs font-bold ${textColor} mb-2`}>{label}</p>
-      {qr ? (
-        <div className="space-y-3">
-          <div className="bg-white rounded-lg p-3 flex justify-center">
-            <img src={qr.qrDataUrl} alt="QR Code" className="w-40 h-40" />
-          </div>
-          <div className="flex items-center gap-2">
-            <input type="text" readOnly value={qr.url} className="flex-1 text-xs bg-white rounded-lg px-3 py-2 border-0 text-slate-600 truncate" />
-            <button onClick={() => onCopy(qr.url)}
-              className="shrink-0 p-2 bg-white rounded-lg hover:bg-slate-50">
-              {isCopied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5 text-slate-400" />}
-            </button>
-          </div>
+    <div
+      className={`relative overflow-hidden rounded-2xl border border-white/60 ${gradient} backdrop-blur-sm shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-5`}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="w-10 h-10 rounded-xl bg-white/40 backdrop-blur-sm flex items-center justify-center shadow-sm">
+          {icon}
         </div>
-      ) : (
-        <button onClick={onLoadQr}
-          className={`w-full py-2.5 bg-white rounded-lg text-sm font-medium ${textColor} hover:bg-white/80 flex items-center justify-center gap-2`}>
-          <QrCode className="h-4 w-4" /> Tampilkan QR Code
-        </button>
+      </div>
+      <p className="text-[42px] font-extrabold leading-none text-slate-900 mb-1" style={{ letterSpacing: "-0.04em" }}>
+        {value}
+      </p>
+      <p className="text-[12px] font-bold text-slate-600 uppercase tracking-wider">{label}</p>
+      {sub && <p className="text-[11px] text-slate-500 mt-0.5">{sub}</p>}
+      {barPct !== undefined && (
+        <div className="mt-3">
+          <div className="h-1.5 w-full bg-white/50 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full ${barColor} transition-all`} style={{ width: `${barPct}%` }} />
+          </div>
+          <p className="text-[10px] text-slate-500 mt-1">{barPct}% dari target</p>
+        </div>
       )}
     </div>
   );
@@ -161,7 +294,7 @@ export default function EventDetailPage() {
     return (
       <Layout>
         <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
         </div>
       </Layout>
     );
@@ -177,16 +310,13 @@ export default function EventDetailPage() {
 
   const allParticipants = (participants as any[]) ?? [];
 
-  // Registrasi = pra-event (RSVP), ada atau tidak ada check-in
   const rsvpList = allParticipants.filter((p) => p.registrationType === "rsvp");
-  // Hadir = yang datang hari H: RSVP yang sudah check-in + on-the-spot walk-in
   const hadirList = allParticipants.filter(
     (p) => p.checkedInAt != null || p.registrationType === "onsite"
   );
 
   const filteredList = activeTab === "rsvp" ? rsvpList : hadirList;
 
-  // Stats
   const rsvpTotal = rsvpList.length;
   const hadirTotal = hadirList.length;
   const rsvpCheckedIn = rsvpList.filter((p) => p.checkedInAt != null).length;
@@ -197,26 +327,14 @@ export default function EventDetailPage() {
     ? Math.min(100, Math.round((hadirTotal / (event as any).targetParticipants) * 100))
     : null;
 
-  const tabs: { key: TabType; label: string; icon: React.ReactNode; count: number; color: string }[] = [
-    {
-      key: "rsvp",
-      label: "Registrasi",
-      icon: <ClipboardList className="h-3.5 w-3.5" />,
-      count: rsvpTotal,
-      color: "blue",
-    },
-    {
-      key: "onsite",
-      label: "Absen Hari-H",
-      icon: <ClipboardCheck className="h-3.5 w-3.5" />,
-      count: hadirTotal,
-      color: "emerald",
-    },
+  const tabs: { key: TabType; label: string; icon: React.ReactNode; count: number }[] = [
+    { key: "rsvp", label: "Registrasi", icon: <ClipboardList className="h-3.5 w-3.5" />, count: rsvpTotal },
+    { key: "onsite", label: "Absen Hari-H", icon: <ClipboardCheck className="h-3.5 w-3.5" />, count: hadirTotal },
   ];
 
   return (
     <Layout>
-      <div className="space-y-5">
+      <div className="space-y-5 md3-surface">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm">
           <Link href="/events">
@@ -229,314 +347,344 @@ export default function EventDetailPage() {
           <span className="text-slate-600 font-medium truncate max-w-[240px]">{event.name}</span>
         </div>
 
-        {/* Event card */}
-        <div className="rounded-2xl bg-white border border-slate-100 px-6 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        {/* ── Header Section ── */}
+        <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] px-6 py-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            {/* Left: title + meta */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1.5">
+              {/* Badge row */}
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                  <Activity className="h-3 w-3" />
+                  Active Event
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                  <CalendarDays className="h-3 w-3" />
+                  {event.eventDate}
+                  {(event as any).startTime && ` · ${(event as any).startTime}`}
+                </span>
                 {(event as any).category && (
-                  <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-600 border border-indigo-100">
                     {(event as any).category}
                   </span>
                 )}
                 {(event as any).isRsvp && (
-                  <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md">RSVP</span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                    RSVP
+                  </span>
                 )}
               </div>
+
+              {/* Title */}
               <h1
-                className="text-[22px] font-extrabold text-slate-900 leading-tight mb-2"
+                className="text-[clamp(2rem,4vw,3.5rem)] font-extrabold text-slate-900 leading-[1.05] mb-3"
                 style={{ letterSpacing: "-0.03em" }}
               >
                 {event.name}
               </h1>
-              {event.description && (
-                <p className="text-sm text-slate-500 mb-3">{event.description}</p>
-              )}
-              <div className="flex flex-wrap gap-4 text-sm">
-                <div className="flex items-center gap-1.5 text-slate-600">
-                  <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                  <span>{event.eventDate}</span>
-                  {(event as any).startTime && (
-                    <span className="text-slate-400">· {(event as any).startTime}</span>
-                  )}
+
+              {/* Location */}
+              {event.location && (
+                <div className="flex items-center gap-1.5 text-slate-500 text-sm">
+                  <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+                  <span>{event.location}</span>
                 </div>
-                {event.location && (
-                  <div className="flex items-center gap-1.5 text-slate-600">
-                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                    {event.location}
-                  </div>
-                )}
-              </div>
+              )}
+
+              {event.description && (
+                <p className="mt-2 text-sm text-slate-400 max-w-xl">{event.description}</p>
+              )}
             </div>
 
-            {/* Stats cards */}
-            <div className="flex flex-col items-end gap-3 shrink-0">
+            {/* Right: action buttons */}
+            <div className="flex items-center gap-2 shrink-0 lg:pt-1">
               {(event as any).isRsvp && (
                 <Link href={`/events/${id}/rsvp`}>
-                  <button className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors">
-                    <ClipboardList size={13} />
+                  <button className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm">
+                    <ClipboardList className="h-4 w-4" />
                     Kelola RSVP
                   </button>
                 </Link>
               )}
-              <div className="flex gap-2">
-                {/* Registrasi */}
-                <div className="rounded-xl bg-blue-50 px-4 py-3 text-center min-w-[76px]">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-blue-400 mb-0.5">Registrasi</p>
-                  <p className="text-[26px] font-extrabold text-blue-700 leading-none" style={{ letterSpacing: "-0.04em" }}>
-                    {participantsLoading ? "—" : rsvpTotal}
-                  </p>
-                  {!participantsLoading && rsvpTotal > 0 && (
-                    <p className="text-[10px] text-blue-400 mt-1">{rsvpCheckedIn} hadir</p>
-                  )}
-                </div>
-                {/* Absen */}
-                <div className="rounded-xl bg-emerald-50 px-4 py-3 text-center min-w-[76px]">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-500 mb-0.5">Absen</p>
-                  <p className="text-[26px] font-extrabold text-emerald-700 leading-none" style={{ letterSpacing: "-0.04em" }}>
-                    {participantsLoading ? "—" : hadirTotal}
-                  </p>
-                  {!participantsLoading && walkinCount > 0 && (
-                    <p className="text-[10px] text-emerald-400 mt-1">{walkinCount} walk-in</p>
-                  )}
-                  {pct !== null && (
-                    <>
-                      <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-emerald-100">
-                        <div className="h-full rounded-full bg-emerald-400" style={{ width: `${pct}%` }} />
-                      </div>
-                      <p className="text-[10px] text-emerald-400 mt-0.5">{pct}% target</p>
-                    </>
-                  )}
-                </div>
-                {/* No-show (only if there are RSVP) */}
-                {!participantsLoading && rsvpNoShow > 0 && (
-                  <div className="rounded-xl bg-amber-50 px-4 py-3 text-center min-w-[76px]">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-amber-500 mb-0.5">Tidak Hadir</p>
-                    <p className="text-[26px] font-extrabold text-amber-700 leading-none" style={{ letterSpacing: "-0.04em" }}>
-                      {rsvpNoShow}
-                    </p>
-                    <p className="text-[10px] text-amber-400 mt-1">dari RSVP</p>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => exportCSV(filteredList, event.name, activeTab === "rsvp" ? "registrasi" : "absen")}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+              >
+                <Download className="h-4 w-4" />
+                Export Data
+              </button>
+              <Link href={`/events/${id}/edit`}>
+                <button className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+                  <Edit2 className="h-4 w-4" />
+                  Edit Event
+                </button>
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* Links & QR Codes */}
-        <EventLinksSection eventId={id} event={event} />
+        {/* ── Glassmorphism Stat Cards ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard
+            label="Registrasi"
+            value={participantsLoading ? "—" : rsvpTotal}
+            sub={participantsLoading ? undefined : rsvpCheckedIn > 0 ? `${rsvpCheckedIn} sudah hadir` : "Belum ada check-in"}
+            icon={<Users className="h-5 w-5 text-indigo-600" />}
+            gradient="bg-gradient-to-br from-indigo-50 via-white to-blue-50"
+            barColor="bg-indigo-500"
+          />
+          <StatCard
+            label="Absen"
+            value={participantsLoading ? "—" : hadirTotal}
+            sub={participantsLoading ? undefined : walkinCount > 0 ? `${walkinCount} walk-in` : "Semua via RSVP"}
+            icon={<UserCheck className="h-5 w-5 text-emerald-600" />}
+            gradient="bg-gradient-to-br from-emerald-50 via-white to-teal-50"
+            barColor="bg-emerald-500"
+            barPct={pct !== null ? pct : undefined}
+          />
+          <StatCard
+            label="Tidak Hadir"
+            value={participantsLoading ? "—" : rsvpNoShow}
+            sub={participantsLoading ? undefined : rsvpTotal > 0 ? `dari ${rsvpTotal} registrasi` : "Tidak ada RSVP"}
+            icon={<UserX className="h-5 w-5 text-rose-500" />}
+            gradient="bg-gradient-to-br from-rose-50 via-white to-orange-50"
+            barColor="bg-rose-400"
+            barPct={rsvpTotal > 0 ? Math.round((rsvpNoShow / rsvpTotal) * 100) : undefined}
+          />
+        </div>
 
-        {/* Participants table */}
-        <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
-          {/* Header */}
-          <div className="px-6 pt-5 pb-0 border-b border-slate-100">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[15px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
-                  Daftar Peserta
-                </p>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                  {rsvpTotal} registrasi · {hadirTotal} hadir · {rsvpNoShow > 0 ? `${rsvpNoShow} tidak hadir` : "semua hadir"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5">
-                  <Search className="h-3.5 w-3.5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Cari peserta..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="bg-transparent text-[12px] text-slate-700 placeholder:text-slate-300 focus:outline-none w-[130px]"
-                  />
-                </div>
-                <button
-                  onClick={() =>
-                    exportCSV(
-                      filteredList,
-                      event.name,
-                      activeTab === "rsvp" ? "registrasi" : "absen"
-                    )
-                  }
-                  className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Export
-                </button>
-              </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-1">
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.key;
-                const colorMap = {
-                  blue: { active: "border-blue-600 text-blue-700", badge: "bg-blue-100 text-blue-700" },
-                  emerald: { active: "border-emerald-600 text-emerald-700", badge: "bg-emerald-100 text-emerald-700" },
-                };
-                const colors = colorMap[tab.color as keyof typeof colorMap];
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-[13px] font-bold border-b-2 transition-colors ${
-                      isActive ? colors.active : "border-transparent text-slate-400 hover:text-slate-600"
-                    }`}
-                  >
-                    {tab.icon}
-                    {tab.label}
-                    <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${isActive ? colors.badge : "bg-slate-100 text-slate-400"}`}>
-                      {tab.count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+        {/* ── Bottom 3-column grid ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Left column: QR & Links */}
+          <div className="lg:col-span-1">
+            <QRLinksCard eventId={id} event={event} />
           </div>
 
-          {/* Context info */}
-          {activeTab === "rsvp" && !participantsLoading && rsvpTotal > 0 && (
-            <div className="px-6 py-2.5 bg-blue-50/50 border-b border-blue-100 flex items-center gap-3 text-[11px]">
-              <span className="flex items-center gap-1 font-semibold text-emerald-700">
-                <CheckCircle2 className="h-3 w-3" />{rsvpCheckedIn} hadir hari-H
-              </span>
-              <span className="text-slate-300">·</span>
-              <span className="flex items-center gap-1 font-semibold text-amber-600">
-                <Clock className="h-3 w-3" />{rsvpNoShow} belum/tidak hadir
-              </span>
-            </div>
-          )}
-          {activeTab === "onsite" && !participantsLoading && hadirTotal > 0 && (
-            <div className="px-6 py-2.5 bg-emerald-50/50 border-b border-emerald-100 flex items-center gap-3 text-[11px]">
-              <span className="flex items-center gap-1 font-semibold text-blue-700">
-                <ClipboardList className="h-3 w-3" />{rsvpCheckedIn} dari RSVP (check-in)
-              </span>
-              <span className="text-slate-300">·</span>
-              <span className="flex items-center gap-1 font-semibold text-slate-600">
-                <ScanLine className="h-3 w-3" />{walkinCount} walk-in (on-the-spot)
-              </span>
-            </div>
-          )}
+          {/* Right two columns: Participant Table */}
+          <div className="lg:col-span-2 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden">
+            {/* Table header */}
+            <div className="px-5 pt-5 pb-0 border-b border-slate-100">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-[15px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
+                    Daftar Peserta
+                  </p>
+                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                    {rsvpTotal} registrasi · {hadirTotal} hadir
+                    {rsvpNoShow > 0 ? ` · ${rsvpNoShow} tidak hadir` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* Search */}
+                  <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5">
+                    <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Cari peserta..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="bg-transparent text-[12px] text-slate-700 placeholder:text-slate-300 focus:outline-none w-[120px]"
+                    />
+                  </div>
+                  {/* Filter button */}
+                  <button className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-500 hover:bg-slate-50 transition-colors">
+                    <Filter className="h-3.5 w-3.5" />
+                    Filter
+                  </button>
+                </div>
+              </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-50 bg-slate-50/60">
-                  {activeTab === "rsvp"
-                    ? ["NIK", "Nama", "Kelamin", "Kota", "Waktu Daftar", "Status Hadir"].map((h, i) => (
-                        <th key={h} className={`px-5 py-3 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 ${i === 5 ? "text-right" : "text-left"}`}>{h}</th>
-                      ))
-                    : ["NIK", "Nama", "Kelamin", "Kota", "Waktu Hadir", "Tipe", "Total Event"].map((h, i) => (
-                        <th key={h} className={`px-5 py-3 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 ${i === 6 ? "text-right" : "text-left"}`}>{h}</th>
-                      ))
-                  }
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {participantsLoading ? (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">Memuat...</td>
-                  </tr>
-                ) : filteredList.length > 0 ? (
-                  filteredList.map((p) => (
-                    <tr
-                      key={p.nik}
-                      className={`transition-colors ${
-                        activeTab === "rsvp"
-                          ? p.checkedInAt
-                            ? "hover:bg-emerald-50/20"
-                            : "hover:bg-amber-50/20"
-                          : "hover:bg-emerald-50/20"
+              {/* Tabs */}
+              <div className="flex gap-1">
+                {tabs.map((tab) => {
+                  const isActive = activeTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`flex items-center gap-2 px-4 py-2.5 text-[13px] font-bold border-b-2 transition-colors ${
+                        isActive
+                          ? "border-indigo-600 text-indigo-700"
+                          : "border-transparent text-slate-400 hover:text-slate-600"
                       }`}
                     >
-                      <td className="px-5 py-3 font-mono text-[11px] text-slate-500">{p.nik}</td>
-                      <td className="px-5 py-3">
-                        <Link href={`/participants/${p.nik}`}>
-                          <span className="font-semibold text-sm text-slate-900 hover:text-blue-600 cursor-pointer transition-colors">
-                            {p.fullName}
-                          </span>
-                        </Link>
-                        {p.staffName && (
-                          <div className="text-[10px] text-slate-400 mt-0.5">via {p.staffName}</div>
+                      {tab.icon}
+                      {tab.label}
+                      <span
+                        className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                          isActive ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-400"
+                        }`}
+                      >
+                        {tab.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Context info row */}
+            {activeTab === "rsvp" && !participantsLoading && rsvpTotal > 0 && (
+              <div className="px-5 py-2.5 bg-indigo-50/50 border-b border-indigo-100 flex items-center gap-3 text-[11px]">
+                <span className="flex items-center gap-1 font-semibold text-emerald-700">
+                  <CheckCircle2 className="h-3 w-3" />{rsvpCheckedIn} hadir hari-H
+                </span>
+                <span className="text-slate-300">·</span>
+                <span className="flex items-center gap-1 font-semibold text-slate-500">
+                  <Clock className="h-3 w-3" />{rsvpNoShow} belum/tidak hadir
+                </span>
+              </div>
+            )}
+            {activeTab === "onsite" && !participantsLoading && hadirTotal > 0 && (
+              <div className="px-5 py-2.5 bg-emerald-50/50 border-b border-emerald-100 flex items-center gap-3 text-[11px]">
+                <span className="flex items-center gap-1 font-semibold text-indigo-700">
+                  <ClipboardList className="h-3 w-3" />{rsvpCheckedIn} dari RSVP
+                </span>
+                <span className="text-slate-300">·</span>
+                <span className="flex items-center gap-1 font-semibold text-slate-600">
+                  <ScanLine className="h-3 w-3" />{walkinCount} walk-in
+                </span>
+              </div>
+            )}
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-50 bg-slate-50/60">
+                    {activeTab === "rsvp"
+                      ? ["NIK", "Nama", "Kelamin", "Kota", "Waktu Daftar", "Status"].map((h, i) => (
+                          <th
+                            key={h}
+                            className={`px-5 py-3 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 ${i === 5 ? "text-right" : "text-left"}`}
+                          >
+                            {h}
+                          </th>
+                        ))
+                      : ["NIK", "Nama", "Kelamin", "Kota", "Waktu Hadir", "Tipe", "Total"].map((h, i) => (
+                          <th
+                            key={h}
+                            className={`px-5 py-3 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 ${i === 6 ? "text-right" : "text-left"}`}
+                          >
+                            {h}
+                          </th>
+                        ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {participantsLoading ? (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">
+                        Memuat...
+                      </td>
+                    </tr>
+                  ) : filteredList.length > 0 ? (
+                    filteredList.map((p) => (
+                      <tr
+                        key={p.nik}
+                        className="transition-colors hover:bg-slate-50/60"
+                      >
+                        <td className="px-5 py-3 font-mono text-[11px] text-slate-400">{p.nik}</td>
+                        <td className="px-5 py-3">
+                          <Link href={`/participants/${p.nik}`}>
+                            <span className="font-semibold text-sm text-slate-900 hover:text-indigo-600 cursor-pointer transition-colors">
+                              {p.fullName}
+                            </span>
+                          </Link>
+                          {p.staffName && (
+                            <div className="text-[10px] text-slate-400 mt-0.5">via {p.staffName}</div>
+                          )}
+                        </td>
+                        <td className="px-5 py-3 text-sm text-slate-500">{p.gender ?? "—"}</td>
+                        <td className="px-5 py-3 text-sm text-slate-500">{p.city ?? "—"}</td>
+
+                        {activeTab === "rsvp" ? (
+                          <>
+                            <td className="px-5 py-3 text-[11px] text-slate-400 whitespace-nowrap">
+                              {new Date(p.registeredAt).toLocaleDateString("id-ID")}
+                            </td>
+                            <td className="px-5 py-3 text-right">
+                              {p.checkedInAt ? (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Hadir{" "}
+                                  {new Date(p.checkedInAt).toLocaleTimeString("id-ID", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              ) : (p as any).status === "cancelled" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-red-100 text-red-700">
+                                  Dibatalkan
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-500">
+                                  <Clock className="h-3 w-3" />
+                                  Belum Absen
+                                </span>
+                              )}
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-5 py-3 text-[11px] text-slate-400 whitespace-nowrap">
+                              {p.checkedInAt
+                                ? new Date(p.checkedInAt).toLocaleString("id-ID")
+                                : new Date(p.registeredAt).toLocaleString("id-ID")}
+                            </td>
+                            <td className="px-5 py-3">
+                              {p.registrationType === "rsvp" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-700">
+                                  <ClipboardList className="h-3 w-3" />
+                                  RSVP
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600">
+                                  <ScanLine className="h-3 w-3" />
+                                  Walk-in
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3 text-right">
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                                  p.eventCount > 1 ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"
+                                }`}
+                              >
+                                {p.eventCount} event
+                              </span>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-12 text-center">
+                        {activeTab === "rsvp" ? (
+                          <>
+                            <ClipboardList className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+                            <p className="text-sm text-slate-400">Belum ada peserta yang registrasi pra-acara</p>
+                            {(event as any).isRsvp && (
+                              <Link href={`/events/${id}/rsvp`}>
+                                <span className="mt-2 inline-block text-xs font-bold text-indigo-600 hover:underline cursor-pointer">
+                                  Kelola daftar RSVP →
+                                </span>
+                              </Link>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <ClipboardCheck className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+                            <p className="text-sm text-slate-400">Belum ada absen hari-H tercatat</p>
+                          </>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-sm text-slate-500">{p.gender ?? "—"}</td>
-                      <td className="px-5 py-3 text-sm text-slate-500">{p.city ?? "—"}</td>
-                      {activeTab === "rsvp" ? (
-                        <>
-                          <td className="px-5 py-3 text-[11px] text-slate-400 whitespace-nowrap">
-                            {new Date(p.registeredAt).toLocaleDateString("id-ID")}
-                          </td>
-                          <td className="px-5 py-3 text-right">
-                            {p.checkedInAt ? (
-                              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Hadir {new Date(p.checkedInAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700">
-                                <Clock className="h-3 w-3" />
-                                Belum Hadir
-                              </span>
-                            )}
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="px-5 py-3 text-[11px] text-slate-400 whitespace-nowrap">
-                            {p.checkedInAt
-                              ? new Date(p.checkedInAt).toLocaleString("id-ID")
-                              : new Date(p.registeredAt).toLocaleString("id-ID")}
-                          </td>
-                          <td className="px-5 py-3">
-                            {p.registrationType === "rsvp" ? (
-                              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-700">
-                                <ClipboardList className="h-3 w-3" />
-                                RSVP
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600">
-                                <ScanLine className="h-3 w-3" />
-                                Walk-in
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-3 text-right">
-                            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${p.eventCount > 1 ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-700"}`}>
-                              {p.eventCount} event
-                            </span>
-                          </td>
-                        </>
-                      )}
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center">
-                      {activeTab === "rsvp" ? (
-                        <>
-                          <ClipboardList className="h-8 w-8 mx-auto mb-2 text-slate-200" />
-                          <p className="text-sm text-slate-400">Belum ada peserta yang registrasi pra-acara</p>
-                          {(event as any).isRsvp && (
-                            <Link href={`/events/${id}/rsvp`}>
-                              <span className="mt-2 inline-block text-xs font-bold text-blue-600 hover:underline cursor-pointer">
-                                Kelola daftar RSVP →
-                              </span>
-                            </Link>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <ClipboardCheck className="h-8 w-8 mx-auto mb-2 text-slate-200" />
-                          <p className="text-sm text-slate-400">Belum ada absen hari-H tercatat</p>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
