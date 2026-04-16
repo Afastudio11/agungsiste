@@ -404,8 +404,9 @@ export default function EventDetailPage() {
           </div>
         </div>
 
-        {/* ── Glassmorphism Stat Cards ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* ── Stat Cards + QR Card row ── */}
+        <div className="flex flex-col lg:flex-row gap-4 items-start">
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard
             label="Reservasi"
             value={participantsLoading ? "—" : rsvpTotal}
@@ -433,16 +434,13 @@ export default function EventDetailPage() {
             barPct={rsvpTotal > 0 ? Math.round((rsvpNoShow / rsvpTotal) * 100) : undefined}
           />
         </div>
-
-        {/* ── Bottom 3-column grid ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Left column: QR & Links */}
-          <div className="lg:col-span-1">
+          <div className="w-full lg:w-52 shrink-0">
             <QRLinksCard eventId={id} event={event} />
           </div>
+        </div>
 
-          {/* Right two columns: Participant Table */}
-          <div className="lg:col-span-2 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden">
+        {/* ── Full-width Participant Table ── */}
+        <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden">
             {/* Table header */}
             <div className="px-5 pt-5 pb-0 border-b border-slate-100">
               <div className="flex items-center justify-between mb-4">
@@ -667,7 +665,6 @@ export default function EventDetailPage() {
               </table>
             </div>
           </div>
-        </div>
       </div>
     </Layout>
   );
