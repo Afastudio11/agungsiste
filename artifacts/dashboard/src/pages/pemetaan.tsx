@@ -12,6 +12,7 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 interface Summary { totalDesa: number; totalKecamatan: number; totalKabupaten: number; desaWithEvents: number; }
 interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: number; totalKecamatan: number; totalEvent: number; }
+interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalEvent: number; }
 interface DesaRow { kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; }
 interface DesaDetail {
   kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number;
@@ -24,35 +25,46 @@ interface Participant {
 
 type View =
   | { type: "kabupaten" }
-  | { type: "desa"; kabupaten: string }
-  | { type: "detail"; kelurahan: string; kabupaten: string }
-  | { type: "peserta"; eventId: number; eventName: string; kelurahan: string; kabupaten: string };
+  | { type: "kecamatan"; kabupaten: string }
+  | { type: "desa"; kabupaten: string; kecamatan: string }
+  | { type: "detail"; kelurahan: string; kabupaten: string; kecamatan?: string }
+  | { type: "peserta"; eventId: number; eventName: string; kelurahan: string; kabupaten: string; kecamatan?: string };
 
 function Breadcrumb({ view, onNav }: { view: View; onNav: (v: View) => void }) {
   const crumbs: { label: string; target: View | null }[] = [
     { label: "Pemetaan Wilayah", target: view.type !== "kabupaten" ? { type: "kabupaten" } : null },
   ];
-  if (view.type === "desa" || view.type === "detail" || view.type === "peserta") {
+
+  if (view.type === "kecamatan" || view.type === "desa" || view.type === "detail" || view.type === "peserta") {
     const kab = (view as { kabupaten: string }).kabupaten;
-    crumbs.push({
-      label: kab,
-      target: (view.type === "detail" || view.type === "peserta")
-        ? { type: "desa", kabupaten: kab }
-        : null,
-    });
+    const isLast = view.type === "kecamatan";
+    crumbs.push({ label: kab, target: isLast ? null : { type: "kecamatan", kabupaten: kab } });
   }
+
+  if (view.type === "desa" || view.type === "detail" || view.type === "peserta") {
+    const kec = (view as { kecamatan?: string }).kecamatan;
+    if (kec) {
+      const kab = (view as { kabupaten: string }).kabupaten;
+      const isLast = view.type === "desa";
+      crumbs.push({ label: kec, target: isLast ? null : { type: "desa", kabupaten: kab, kecamatan: kec } });
+    }
+  }
+
   if (view.type === "detail" || view.type === "peserta") {
     const kel = (view as { kelurahan: string }).kelurahan;
+    const kab = (view as { kabupaten: string }).kabupaten;
+    const kec = (view as { kecamatan?: string }).kecamatan;
+    const isLast = view.type === "detail";
     crumbs.push({
       label: kel,
-      target: view.type === "peserta"
-        ? { type: "detail", kelurahan: kel, kabupaten: (view as { kabupaten: string }).kabupaten }
-        : null,
+      target: isLast ? null : { type: "detail", kelurahan: kel, kabupaten: kab, kecamatan: kec },
     });
   }
+
   if (view.type === "peserta") {
     crumbs.push({ label: view.eventName, target: null });
   }
+
   return (
     <div className="flex items-center gap-1.5 text-sm flex-wrap">
       {crumbs.map((c, i) => (
@@ -72,9 +84,16 @@ function Breadcrumb({ view, onNav }: { view: View; onNav: (v: View) => void }) {
 }
 
 function backView(view: View): View {
-  if (view.type === "desa") return { type: "kabupaten" };
-  if (view.type === "detail") return { type: "desa", kabupaten: view.kabupaten };
-  if (view.type === "peserta") return { type: "detail", kelurahan: view.kelurahan, kabupaten: view.kabupaten };
+  if (view.type === "kecamatan") return { type: "kabupaten" };
+  if (view.type === "desa") return { type: "kecamatan", kabupaten: view.kabupaten };
+  if (view.type === "detail") {
+    return view.kecamatan
+      ? { type: "desa", kabupaten: view.kabupaten, kecamatan: view.kecamatan }
+      : { type: "kecamatan", kabupaten: view.kabupaten };
+  }
+  if (view.type === "peserta") {
+    return { type: "detail", kelurahan: view.kelurahan, kabupaten: view.kabupaten, kecamatan: view.kecamatan };
+  }
   return { type: "kabupaten" };
 }
 
@@ -146,33 +165,39 @@ function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabD
   );
 }
 
-/* ─── VIEW 2: Desa list ────────────────────────────────────────────────── */
-function DesaView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (kel: string) => void }) {
-  const { data: desaData = [], isLoading } = useQuery<DesaRow[]>({
-    queryKey: ["pemetaan-desa", kabupaten],
-    queryFn: () => fetch(`${BASE}/api/pemetaan/desa?kabupaten=${encodeURIComponent(kabupaten)}`, { credentials: "include" }).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
+/* ─── VIEW 2: Kecamatan list ───────────────────────────────────────────── */
+function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (kec: string) => void }) {
+  const { data: kecData = [], isLoading } = useQuery<KecamatanRow[]>({
+    queryKey: ["pemetaan-kecamatan", kabupaten],
+    queryFn: () =>
+      fetch(`${BASE}/api/pemetaan/kecamatan?kabupaten=${encodeURIComponent(kabupaten)}`, { credentials: "include" })
+        .then((r) => r.json())
+        .then((d) => Array.isArray(d) ? d : []),
   });
   const { data: kabData } = useQuery<KabupatenRow[]>({
     queryKey: ["pemetaan-kabupaten"],
     queryFn: () => fetch(`${BASE}/api/pemetaan/kabupaten`, { credentials: "include" }).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
   });
   const kabInfo = kabData?.find((k) => k.kabupaten === kabupaten);
-  const maxInput = Math.max(...desaData.map((d) => Number(d.totalInput)), 1);
+  const max = Math.max(...kecData.map((k) => Number(k.totalInput)), 1);
+
   return (
     <div className="space-y-5">
+      {/* Kabupaten header */}
       <div className="bg-gradient-to-br from-blue-700 to-blue-900 rounded-2xl p-5 text-white">
         <div className="flex items-start gap-4">
           <div className="h-12 w-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl shrink-0">🏙️</div>
           <div className="flex-1">
-            <div className="text-xs font-bold opacity-60 tracking-widest mb-1 uppercase">Kabupaten / Kota</div>
+            <div className="text-xs font-bold opacity-60 tracking-widest mb-1 uppercase">Kabupaten</div>
             <div className="text-xl font-extrabold">{kabupaten}</div>
+            <div className="text-sm opacity-70 mt-0.5">Klik kecamatan untuk lihat desa</div>
           </div>
         </div>
         {kabInfo && (
           <div className="grid grid-cols-3 gap-3 mt-4">
             {[
               { label: "Total Peserta", value: Number(kabInfo.totalInput).toLocaleString(), icon: TrendingUp },
-              { label: "Desa", value: kabInfo.totalDesa, icon: Home },
+              { label: "Kecamatan", value: kabInfo.totalKecamatan, icon: MapPin },
               { label: "Event", value: kabInfo.totalEvent, icon: CalendarDays },
             ].map(({ label, value, icon: Icon }) => (
               <div key={label} className="bg-white/10 rounded-xl p-3">
@@ -183,26 +208,121 @@ function DesaView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (kel: 
           </div>
         )}
       </div>
+
+      {/* Kecamatan table */}
+      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-slate-500" />
+          <span className="font-bold text-slate-900">Daftar Kecamatan</span>
+          <span className="ml-auto text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-lg">{kecData.length} kecamatan</span>
+        </div>
+        {isLoading ? (
+          <div className="p-10 text-center text-slate-400 text-sm">Memuat kecamatan...</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-left">Kecamatan</th>
+                  <th className="px-5 py-3 text-right">Peserta</th>
+                  <th className="px-5 py-3 text-right hidden md:table-cell">Desa</th>
+                  <th className="px-5 py-3 text-right hidden md:table-cell">Event</th>
+                  <th className="px-5 py-3 w-8" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {kecData.map((k) => (
+                  <tr key={k.kecamatan} onClick={() => onSelect(k.kecamatan)} className="hover:bg-blue-50/60 cursor-pointer transition group">
+                    <td className="px-5 py-3">
+                      <div className="font-semibold text-sm text-slate-900 group-hover:text-blue-700 transition mb-1">{k.kecamatan}</div>
+                      <div className="h-1 w-32 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-full rounded-full bg-blue-400 transition-all" style={{ width: `${Math.round((Number(k.totalInput) / max) * 100)}%` }} />
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-sm font-bold text-slate-900 text-right">{Number(k.totalInput).toLocaleString()}</td>
+                    <td className="px-5 py-3 text-sm text-slate-500 text-right hidden md:table-cell">{k.totalDesa}</td>
+                    <td className="px-5 py-3 text-right hidden md:table-cell">
+                      <span className="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg">{k.totalEvent}</span>
+                    </td>
+                    <td className="px-3 py-3"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition" /></td>
+                  </tr>
+                ))}
+                {kecData.length === 0 && (
+                  <tr><td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-sm">Tidak ada data kecamatan</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── VIEW 3: Desa list ────────────────────────────────────────────────── */
+function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecamatan: string; onSelect: (kel: string) => void }) {
+  const { data: desaData = [], isLoading } = useQuery<DesaRow[]>({
+    queryKey: ["pemetaan-desa", kabupaten, kecamatan],
+    queryFn: () => fetch(
+      `${BASE}/api/pemetaan/desa?kabupaten=${encodeURIComponent(kabupaten)}&kecamatan=${encodeURIComponent(kecamatan)}`,
+      { credentials: "include" }
+    ).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
+  });
+  const { data: kecAll = [] } = useQuery<KecamatanRow[]>({
+    queryKey: ["pemetaan-kecamatan", kabupaten],
+    queryFn: () => fetch(`${BASE}/api/pemetaan/kecamatan?kabupaten=${encodeURIComponent(kabupaten)}`, { credentials: "include" }).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
+  });
+  const kecInfo = kecAll.find((k) => k.kecamatan.toLowerCase() === kecamatan.toLowerCase());
+  const maxInput = Math.max(...desaData.map((d) => Number(d.totalInput)), 1);
+
+  return (
+    <div className="space-y-5">
+      {/* Kecamatan header */}
+      <div className="bg-gradient-to-br from-indigo-700 to-indigo-900 rounded-2xl p-5 text-white">
+        <div className="flex items-start gap-4">
+          <div className="h-12 w-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl shrink-0">📍</div>
+          <div className="flex-1">
+            <div className="text-xs font-bold opacity-60 tracking-widest mb-1 uppercase">Kecamatan</div>
+            <div className="text-xl font-extrabold">{kecamatan}</div>
+            <div className="text-sm opacity-70 mt-0.5">{kabupaten}</div>
+          </div>
+        </div>
+        {kecInfo && (
+          <div className="grid grid-cols-3 gap-3 mt-4">
+            {[
+              { label: "Total Peserta", value: Number(kecInfo.totalInput).toLocaleString(), icon: TrendingUp },
+              { label: "Desa", value: kecInfo.totalDesa, icon: Home },
+              { label: "Event", value: kecInfo.totalEvent, icon: CalendarDays },
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="bg-white/10 rounded-xl p-3">
+                <div className="flex items-center gap-1.5 mb-1 opacity-70"><Icon className="h-3 w-3" /><span className="text-[10px] font-bold uppercase tracking-wider">{label}</span></div>
+                <div className="text-lg font-extrabold">{value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Desa list */}
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <Home className="h-4 w-4 text-slate-500" />
           <span className="font-bold text-slate-900">Daftar Desa / Kelurahan</span>
-          <span className="ml-auto text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-lg">{desaData.length} desa</span>
+          <span className="ml-auto text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-lg">{desaData.length} desa</span>
         </div>
         {isLoading ? (
           <div className="p-10 text-center text-slate-400 text-sm">Memuat data desa...</div>
         ) : (
           <div className="divide-y divide-slate-50">
             {desaData.map((d, idx) => (
-              <button key={`${d.kelurahan}-${idx}`} onClick={() => onSelect(d.kelurahan)} className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-blue-50/60 transition text-left group">
-                <div className="h-8 w-8 rounded-lg bg-slate-100 group-hover:bg-blue-100 flex items-center justify-center shrink-0 transition">
-                  <Home className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-500 transition" />
+              <button key={`${d.kelurahan}-${idx}`} onClick={() => onSelect(d.kelurahan)} className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-indigo-50/60 transition text-left group">
+                <div className="h-8 w-8 rounded-lg bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 transition">
+                  <Home className="h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-500 transition" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm text-slate-900 group-hover:text-blue-700 transition truncate">{d.kelurahan}</div>
-                  <div className="text-xs text-slate-400 mt-0.5">Kec. {d.kecamatan}</div>
+                  <div className="font-semibold text-sm text-slate-900 group-hover:text-indigo-700 transition truncate">{d.kelurahan}</div>
                   <div className="mt-1.5 h-1 rounded-full bg-slate-100 overflow-hidden w-40">
-                    <div className="h-full rounded-full bg-blue-400" style={{ width: `${Math.round((Number(d.totalInput) / maxInput) * 100)}%` }} />
+                    <div className="h-full rounded-full bg-indigo-400 transition-all" style={{ width: `${Math.round((Number(d.totalInput) / maxInput) * 100)}%` }} />
                   </div>
                 </div>
                 <div className="text-right shrink-0">
@@ -210,8 +330,8 @@ function DesaView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (kel: 
                   <div className="text-xs text-slate-400">peserta</div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg">{d.totalEvent} event</span>
-                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition" />
+                  <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg">{d.totalEvent} event</span>
+                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-500 transition" />
                 </div>
               </button>
             ))}
@@ -505,18 +625,29 @@ export default function PemetaanPage() {
                 setView({ type: "detail", kelurahan: desa, kabupaten: kab })
               }
             />
-            <KabupatenView summary={summary} kabData={kabData} onSelect={(kab) => setView({ type: "desa", kabupaten: kab })} />
+            <KabupatenView summary={summary} kabData={kabData} onSelect={(kab) => setView({ type: "kecamatan", kabupaten: kab })} />
           </>
         )}
 
+        {view.type === "kecamatan" && (
+          <KecamatanView
+            kabupaten={view.kabupaten}
+            onSelect={(kec) => setView({ type: "desa", kabupaten: view.kabupaten, kecamatan: kec })}
+          />
+        )}
+
         {view.type === "desa" && (
-          <DesaView kabupaten={view.kabupaten} onSelect={(kel) => setView({ type: "detail", kelurahan: kel, kabupaten: view.kabupaten })} />
+          <DesaView
+            kabupaten={view.kabupaten}
+            kecamatan={view.kecamatan}
+            onSelect={(kel) => setView({ type: "detail", kelurahan: kel, kabupaten: view.kabupaten, kecamatan: view.kecamatan })}
+          />
         )}
         {view.type === "detail" && (
           <DesaDetailView
             kelurahan={view.kelurahan}
             onSelectEvent={(eventId, eventName) =>
-              setView({ type: "peserta", eventId, eventName, kelurahan: view.kelurahan, kabupaten: view.kabupaten })
+              setView({ type: "peserta", eventId, eventName, kelurahan: view.kelurahan, kabupaten: view.kabupaten, kecamatan: view.kecamatan })
             }
           />
         )}
