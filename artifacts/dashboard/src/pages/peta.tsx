@@ -57,6 +57,37 @@ function FitBounds({ geojson }: { geojson: any }) {
   return null;
 }
 
+function MapLabels({ features, getName, fontSize = 11, fontWeight = "700", color = "#1e293b" }: {
+  features: any[];
+  getName: (f: any) => string;
+  fontSize?: number;
+  fontWeight?: string;
+  color?: string;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    const markers: L.Marker[] = [];
+    features.forEach(f => {
+      const name = getName(f);
+      if (!name) return;
+      try {
+        const center = L.geoJSON(f).getBounds().getCenter();
+        const icon = L.divIcon({
+          html: `<span style="display:block;transform:translate(-50%,-50%);font-family:'Plus Jakarta Sans',sans-serif;font-size:${fontSize}px;font-weight:${fontWeight};color:${color};white-space:nowrap;text-shadow:0 0 4px #fff,0 0 8px #fff,0 1px 3px rgba(255,255,255,0.98);pointer-events:none;line-height:1;letter-spacing:0.01em">${name}</span>`,
+          className: "",
+          iconSize: [1, 1],
+          iconAnchor: [0, 0],
+        });
+        const marker = L.marker(center, { icon, interactive: false, keyboard: false });
+        marker.addTo(map);
+        markers.push(marker);
+      } catch {}
+    });
+    return () => { markers.forEach(m => m.remove()); };
+  }, [features, map]);
+  return null;
+}
+
 interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: number; totalKecamatan: number; totalEvent: number; }
 interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalEvent: number; }
 interface DesaRow { kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; }
@@ -267,14 +298,34 @@ export default function PetaMapContent({ onDesaClick }: PetaMapProps = {}) {
             data={jatimKabupatenGeo as any}
             onEachFeature={onEachKab}
           />
+          {/* Kabupaten labels */}
+          <MapLabels
+            key={`kab-labels-${view}`}
+            features={(jatimKabupatenGeo as any).features}
+            getName={(f) => f.properties?.name || ""}
+            fontSize={13}
+            fontWeight="800"
+            color="#1e293b"
+          />
 
           {/* Kecamatan layer — shown when drilling into a kabupaten */}
           {view === "kecamatan" && kecFeatures.length > 0 && (
-            <GeoJSON
-              key={`kec-${selectedKab}-${JSON.stringify(countByKec)}`}
-              data={kecGeoFiltered as any}
-              onEachFeature={onEachKec}
-            />
+            <>
+              <GeoJSON
+                key={`kec-${selectedKab}-${JSON.stringify(countByKec)}`}
+                data={kecGeoFiltered as any}
+                onEachFeature={onEachKec}
+              />
+              {/* Kecamatan labels */}
+              <MapLabels
+                key={`kec-labels-${selectedKab}`}
+                features={kecFeatures}
+                getName={(f) => f.properties?.name || ""}
+                fontSize={10}
+                fontWeight="700"
+                color="#1e3a8a"
+              />
+            </>
           )}
 
           {/* Desa border layer — shown when a kecamatan is selected */}
@@ -284,6 +335,15 @@ export default function PetaMapContent({ onDesaClick }: PetaMapProps = {}) {
                 key={`desa-${selectedKab}-${selectedKec}-${JSON.stringify(countByDesa)}`}
                 data={desaGeoFiltered as any}
                 onEachFeature={onEachDesa}
+              />
+              {/* Desa labels */}
+              <MapLabels
+                key={`desa-labels-${selectedKab}-${selectedKec}`}
+                features={desaFeatures}
+                getName={(f) => f.properties?.kelurahan || f.properties?.village || ""}
+                fontSize={9}
+                fontWeight="600"
+                color="#166534"
               />
               <FitBounds geojson={desaGeoFiltered} />
             </>
