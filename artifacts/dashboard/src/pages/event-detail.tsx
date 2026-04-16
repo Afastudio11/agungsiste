@@ -377,8 +377,8 @@ export default function EventDetailPage() {
 
               {/* Title */}
               <h1
-                className="text-[clamp(2rem,4vw,3.5rem)] font-extrabold text-slate-900 leading-[1.05] mb-3"
-                style={{ letterSpacing: "-0.03em" }}
+                className="text-[22px] font-extrabold text-slate-900 leading-snug mb-3"
+                style={{ letterSpacing: "-0.02em" }}
               >
                 {event.name}
               </h1>
