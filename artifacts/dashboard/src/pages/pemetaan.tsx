@@ -593,18 +593,18 @@ export default function PemetaanPage() {
     <Layout>
       <div className="p-4 md:p-6 space-y-5 max-w-5xl">
         {/* Header */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-center gap-4">
           {view.type !== "kabupaten" && (
             <button
               onClick={() => setView(backView(view))}
-              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 border border-slate-200 hover:border-slate-300 px-3 py-2 rounded-xl transition mt-0.5 shrink-0"
+              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 border border-slate-200 hover:border-slate-300 px-3 py-2 rounded-xl transition shrink-0"
             >
               <ArrowLeft className="h-4 w-4" />
               Kembali
             </button>
           )}
           <div className="flex-1">
-            <div className="mt-1"><Breadcrumb view={view} onNav={setView} /></div>
+            <Breadcrumb view={view} onNav={setView} />
           </div>
         </div>
 
