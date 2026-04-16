@@ -65,3 +65,9 @@ timeoutMs = 20000
 [nix]
 channel = "stable-25_05"
 packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "tcl", "tesseract", "tk", "xsimd", "zlib"]
+
+[userenv]
+
+[userenv.development]
+PORT = "5173"
+BASE_PATH = "/"
