@@ -114,13 +114,10 @@ export default function PublicRegisterPage() {
         body: JSON.stringify({ nik: nikInput, eventToken: token }),
       });
       const data = await res.json();
-      if (data.found && data.eventCount >= 2) {
+      if (data.found) {
         setExistingParticipant(data.participant);
         setKtpData({ nik: data.participant.nik, fullName: data.participant.fullName, gender: data.participant.gender, address: data.participant.address, province: data.participant.province, city: data.participant.city });
         setStep("fill-form");
-      } else if (data.found) {
-        setExistingParticipant(data.participant);
-        setStep("scan-ktp");
       } else {
         setStep("scan-ktp");
       }
