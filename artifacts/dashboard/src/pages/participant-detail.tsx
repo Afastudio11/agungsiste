@@ -273,7 +273,7 @@ export default function ParticipantDetailPage() {
         <div className="grid gap-5 lg:grid-cols-2 items-start">
           {/* KTP Photo */}
           <div className="bg-white rounded-2xl border border-slate-100 p-5">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+            <div className="text-xs font-bold text-slate-400 tracking-wider mb-4">
               Foto KTP
             </div>
             <KtpImageViewer nik={nik} />
@@ -284,7 +284,7 @@ export default function ParticipantDetailPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-white rounded-2xl border border-slate-100 p-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Event</div>
+                <div className="text-xs font-bold text-slate-400 tracking-wider mb-1">Total Event</div>
                 <div
                   className="text-3xl font-extrabold text-slate-900"
                   style={{ letterSpacing: "-0.04em" }}
@@ -293,7 +293,7 @@ export default function ParticipantDetailPage() {
                 </div>
               </div>
               <div className="bg-white rounded-2xl border border-slate-100 p-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Status</div>
+                <div className="text-xs font-bold text-slate-400 tracking-wider mb-1">Status</div>
                 <div className="mt-1">
                   {(profile.events?.length ?? 0) > 1 ? (
                     <span className="inline-block text-xs font-bold bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full">
@@ -311,7 +311,7 @@ export default function ParticipantDetailPage() {
             {/* Event history */}
             <div className="bg-white rounded-2xl border border-slate-100 p-5">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Riwayat Event</h2>
+                <h2 className="text-xs font-bold text-slate-400 tracking-wider">Riwayat Event</h2>
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
                     (profile.events?.length ?? 0) > 1
@@ -355,7 +355,7 @@ export default function ParticipantDetailPage() {
 
         {/* Full data table */}
         <div className="bg-white rounded-2xl border border-slate-100 p-5">
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Data Lengkap KTP</h2>
+          <h2 className="text-xs font-bold text-slate-400 tracking-wider mb-4">Data Lengkap KTP</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
             <div>
               <InfoRow label="NIK" value={profile.nik} />

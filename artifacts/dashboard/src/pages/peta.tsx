@@ -276,7 +276,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
           <span className="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg">Memuat peta desa…</span>
         )}
         {view === "kecamatan" && selectedKec && !desaGeoLoading && allDesaGeo && desaFeatures.length > 0 && (
-          <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">{desaFeatures.length} desa ditampilkan</span>
+          <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">{desaFeatures.length} desa/kel. ditampilkan</span>
         )}
       </div>
 
@@ -358,7 +358,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
 
       {/* Legend */}
       <div className="bg-white rounded-2xl border border-slate-100 px-4 py-3 flex items-center gap-3 flex-wrap">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">Kepadatan</span>
+        <span className="text-xs font-bold text-slate-400 tracking-wider shrink-0">Kepadatan</span>
         {[
           { bg: "#e2e8f0", label: "0" },
           { bg: "#dbeafe", label: "Sedikit" },
@@ -385,10 +385,10 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
             >
               <div className="flex items-center gap-1.5 mb-1">
                 <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: getColor(k.totalInput, maxKab) }} />
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">{k.kabupaten}</span>
+                <span className="text-[11px] font-bold text-slate-400 tracking-wider truncate">{k.kabupaten}</span>
               </div>
               <div className="text-xl font-extrabold text-slate-900">{k.totalInput.toLocaleString()}</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">{k.totalDesa} desa · {k.totalKecamatan} kec</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">{k.totalDesa} desa/kel. · {k.totalKecamatan} kec</div>
             </button>
           ))}
         </div>

@@ -269,7 +269,7 @@ export default function PetugasQrScanPage() {
         )}
 
         <div className="bg-white rounded-xl border border-slate-100 px-4 py-3">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Petunjuk</p>
+          <p className="text-[11px] font-bold text-slate-400 tracking-wider mb-2">Petunjuk</p>
           <div className="space-y-1.5 text-xs text-slate-500">
             <div>• Minta peserta menunjukkan QR Code dari HP mereka</div>
             <div>• Arahkan kamera ke QR sampai terbaca otomatis</div>

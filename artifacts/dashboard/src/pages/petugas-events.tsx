@@ -110,7 +110,7 @@ export default function PetugasEventsPage() {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(59,130,246,0.08)] px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-[10px] font-extrabold tracking-[0.14em] text-blue-500 uppercase mb-1.5">
+              <div className="text-[10px] font-extrabold tracking-[0.14em] text-blue-500 mb-1.5">
                 Field Operation Portal
               </div>
               <h1 className="text-2xl font-extrabold text-slate-900 leading-tight" style={{ letterSpacing: "-0.03em" }}>
@@ -124,7 +124,7 @@ export default function PetugasEventsPage() {
               )}
             </div>
             <div className="shrink-0 text-right">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status</div>
+              <div className="text-[10px] font-bold text-slate-400 tracking-wider mb-1">Status</div>
               <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-extrabold px-3 py-1.5 rounded-full border border-emerald-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Aktif Bertugas
@@ -157,7 +157,7 @@ export default function PetugasEventsPage() {
             <h2 className="text-base font-extrabold text-slate-800" style={{ letterSpacing: "-0.02em" }}>
               Event Aktif
             </h2>
-            <div className="text-xs font-bold text-slate-400 tracking-widest uppercase">
+            <div className="text-xs font-bold text-slate-400 tracking-widest">
               {isLoading ? "Memuat..." : `Menampilkan ${filtered.length} event`}
             </div>
           </div>

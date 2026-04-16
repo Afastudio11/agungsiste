@@ -258,7 +258,7 @@ export default function PetugasScanPage() {
 
             {/* Tips kualitas foto */}
             <div className="mt-3 bg-white rounded-xl border border-slate-100 px-4 py-3">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tips foto KTP</p>
+              <p className="text-[11px] font-bold text-slate-400 tracking-wider mb-2">Tips foto KTP</p>
               <div className="space-y-1.5">
                 {[
                   { icon: <Sun className="h-3 w-3 text-amber-500" />, tip: "Foto di tempat terang, hindari bayangan" },

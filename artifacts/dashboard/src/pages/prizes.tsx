@@ -233,7 +233,7 @@ export default function PrizesPage() {
             <div className="w-11 h-11 bg-blue-50 rounded-xl flex items-center justify-center mb-3">
               <Package className="h-5 w-5 text-blue-600" />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Jenis Hadiah</p>
+            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Jenis Hadiah</p>
             <p className="text-3xl font-extrabold text-slate-900">{prizes.length}</p>
           </div>
 
@@ -241,7 +241,7 @@ export default function PrizesPage() {
             <div className="w-11 h-11 bg-sky-50 rounded-xl flex items-center justify-center mb-3">
               <Gift className="h-5 w-5 text-sky-500" />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Total Hadiah</p>
+            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Total Hadiah</p>
             <div className="flex items-baseline gap-1 justify-center">
               <p className="text-3xl font-extrabold text-slate-900">{totalPrizes}</p>
               <span className="text-sm text-slate-400 font-medium">unit</span>
@@ -252,7 +252,7 @@ export default function PrizesPage() {
             <div className="w-11 h-11 bg-emerald-50 rounded-xl flex items-center justify-center mb-3">
               <Award className="h-5 w-5 text-emerald-500" />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Didistribusikan</p>
+            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Didistribusikan</p>
             <div className="flex items-baseline gap-1.5 justify-center">
               <p className="text-3xl font-extrabold text-slate-900">{totalDistributed}</p>
               <span className="text-slate-300 font-medium text-base">/ {totalPrizes}</span>
@@ -323,7 +323,7 @@ export default function PrizesPage() {
 
                         {/* Progress bar */}
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-tight text-slate-400 mb-1.5">Status Distribusi</p>
+                          <p className="text-[10px] font-bold tracking-tight text-slate-400 mb-1.5">Status Distribusi</p>
                           <div className="flex items-center gap-3">
                             <div className="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
                               <div
@@ -423,7 +423,7 @@ export default function PrizesPage() {
           {/* Filter bar */}
           <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-wrap gap-3 items-end">
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+              <label className="text-[10px] font-bold tracking-wider text-slate-400 flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Tanggal Dari
               </label>
               <input
@@ -434,7 +434,7 @@ export default function PrizesPage() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sampai</label>
+              <label className="text-[10px] font-bold tracking-wider text-slate-400">Sampai</label>
               <input
                 type="date"
                 value={distEndDate}
@@ -443,7 +443,7 @@ export default function PrizesPage() {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+              <label className="text-[10px] font-bold tracking-wider text-slate-400 flex items-center gap-1">
                 <MapPin className="h-3 w-3" /> Kabupaten
               </label>
               <select
@@ -456,7 +456,7 @@ export default function PrizesPage() {
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Kecamatan</label>
+              <label className="text-[10px] font-bold tracking-wider text-slate-400">Kecamatan</label>
               <select
                 value={distKecamatan}
                 onChange={(e) => handleKecamatanChange(e.target.value)}
@@ -468,14 +468,14 @@ export default function PrizesPage() {
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Desa / Kelurahan</label>
+              <label className="text-[10px] font-bold tracking-wider text-slate-400">Desa / Kelurahan</label>
               <select
                 value={distKelurahan}
                 onChange={(e) => setDistKelurahan(e.target.value)}
                 disabled={!distKecamatan}
                 className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <option value="">Semua Desa</option>
+                <option value="">Semua Desa/Kel.</option>
                 {kelurahanList.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
@@ -502,7 +502,7 @@ export default function PrizesPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                    <tr className="bg-slate-50 text-xs font-bold text-slate-400 tracking-wider border-b border-slate-100">
                       <th className="px-4 py-3 text-left">Penerima</th>
                       <th className="px-4 py-3 text-left">Hadiah</th>
                       <th className="px-4 py-3 text-left hidden md:table-cell">Daerah</th>

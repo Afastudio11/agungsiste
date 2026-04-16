@@ -121,7 +121,7 @@ export default function OfficersPage() {
             <div className="text-[36px] font-extrabold text-slate-900 leading-none mb-1" style={{ letterSpacing: "-0.04em" }}>
               {petugas.length}
             </div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Total Petugas</p>
+            <p className="text-xs font-semibold text-slate-400 tracking-widest">Total Petugas</p>
           </div>
 
           {/* Total Registrasi */}
@@ -137,7 +137,7 @@ export default function OfficersPage() {
             <div className="text-[36px] font-extrabold text-slate-900 leading-none mb-1" style={{ letterSpacing: "-0.04em" }}>
               {totalRegistrasi.toLocaleString("id-ID")}
             </div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Total Registrasi</p>
+            <p className="text-xs font-semibold text-slate-400 tracking-widest">Total Registrasi</p>
           </div>
 
           {/* Petugas Aktif */}
@@ -153,7 +153,7 @@ export default function OfficersPage() {
             <div className="text-[36px] font-extrabold text-slate-900 leading-none mb-1" style={{ letterSpacing: "-0.04em" }}>
               {petugasAktif}
             </div>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Petugas Aktif</p>
+            <p className="text-xs font-semibold text-slate-400 tracking-widest">Petugas Aktif</p>
           </div>
         </div>
 
@@ -266,12 +266,12 @@ export default function OfficersPage() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50/80 border-b border-slate-100">
                   <tr>
-                    <th className="text-left px-6 py-3.5 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">Nama</th>
-                    <th className="text-center px-4 py-3.5 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">Total Input</th>
-                    <th className="text-center px-4 py-3.5 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">7 Hari</th>
-                    <th className="text-center px-4 py-3.5 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">Event</th>
-                    <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">Terakhir Aktif</th>
-                    <th className="text-left px-4 py-3.5 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">Event Terlibat</th>
+                    <th className="text-left px-6 py-3.5 text-xs font-bold tracking-[0.07em] text-slate-400">Nama</th>
+                    <th className="text-center px-4 py-3.5 text-xs font-bold tracking-[0.07em] text-slate-400">Total Input</th>
+                    <th className="text-center px-4 py-3.5 text-xs font-bold tracking-[0.07em] text-slate-400">7 Hari</th>
+                    <th className="text-center px-4 py-3.5 text-xs font-bold tracking-[0.07em] text-slate-400">Event</th>
+                    <th className="text-left px-4 py-3.5 text-xs font-bold tracking-[0.07em] text-slate-400">Terakhir Aktif</th>
+                    <th className="text-left px-4 py-3.5 text-xs font-bold tracking-[0.07em] text-slate-400">Event Terlibat</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">

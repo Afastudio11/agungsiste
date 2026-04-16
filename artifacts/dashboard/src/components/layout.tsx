@@ -92,7 +92,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const Sidebar = ({ onNav }: { onNav?: () => void }) => (
     <div className="flex h-full flex-col">
-      <p className="px-5 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">Menu</p>
+      <p className="px-5 pt-4 pb-1.5 text-[10px] font-bold tracking-[0.1em] text-slate-400">Menu</p>
 
       {/* Main nav */}
       <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto pb-2">

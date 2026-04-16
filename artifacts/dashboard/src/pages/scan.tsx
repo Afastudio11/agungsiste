@@ -253,14 +253,14 @@ export default function ScanPage() {
             <div className="flex justify-end">
               <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200/60">
                 <CheckCircle className="h-4 w-4 fill-emerald-100" />
-                <span className="text-xs font-bold tracking-wider uppercase">Data Terdeteksi</span>
+                <span className="text-xs font-bold tracking-wider">Data Terdeteksi</span>
               </div>
             </div>
           )}
 
           {/* Staff name bar */}
           <GlassCard className="px-5 py-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Nama Staf</label>
+            <label className="text-[10px] font-bold tracking-widest text-slate-500 whitespace-nowrap">Nama Staf</label>
             <input
               type="text"
               placeholder="Masukkan nama Anda sebelum mulai scan..."
@@ -285,7 +285,7 @@ export default function ScanPage() {
             <div className="col-span-12 lg:col-span-5 space-y-5 lg:sticky lg:top-6">
               <GlassCard className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Document Preview</span>
+                  <span className="text-[10px] font-bold text-slate-500 tracking-widest">Document Preview</span>
                   {previewUrl && (
                     <button
                       onClick={handleReset}
@@ -376,7 +376,7 @@ export default function ScanPage() {
               {/* Event selection — only after scan */}
               {ktpData !== null && (
                 <GlassCard className="p-6">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Pilih Event & Daftarkan</p>
+                  <p className="text-[10px] font-bold text-slate-500 tracking-widest mb-4">Pilih Event & Daftarkan</p>
                   <select
                     value={selectedEventId ?? ""}
                     onChange={(e) => setSelectedEventId(e.target.value ? Number(e.target.value) : null)}
@@ -445,7 +445,7 @@ export default function ScanPage() {
 
                     {/* Divider */}
                     <div className="pt-2 pb-1">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Informasi Tambahan</p>
+                      <p className="text-[10px] font-bold tracking-widest text-slate-400">Informasi Tambahan</p>
                     </div>
                     <FieldRow label="No. Telepon" value={(editedData.phone as string) ?? ""} onChange={(v) => handleField("phone", v)} placeholder="Cth: 08123456789" />
                     <FieldRow label="Email" value={(editedData.email as string) ?? ""} onChange={(v) => handleField("email", v)} placeholder="Cth: nama@email.com" />

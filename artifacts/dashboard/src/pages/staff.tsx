@@ -16,7 +16,7 @@ function SortTh({ col, label, sortKey, sortDir, onSort, align = "left", classNam
 }) {
   const active = col === sortKey;
   return (
-    <th className={`px-5 py-3 text-[10px] font-bold uppercase tracking-wider cursor-pointer select-none ${align === "right" ? "text-right" : "text-left"} ${className}`} onClick={() => onSort(col)}>
+    <th className={`px-5 py-3 text-[10px] font-bold tracking-wider cursor-pointer select-none ${align === "right" ? "text-right" : "text-left"} ${className}`} onClick={() => onSort(col)}>
       <span className={`inline-flex items-center gap-0.5 ${active ? "text-blue-600" : "text-slate-400"} ${align === "right" ? "flex-row-reverse" : ""}`}>
         {label}<SortIcon col={col} sortKey={sortKey} sortDir={sortDir} />
       </span>
@@ -123,7 +123,7 @@ export default function StaffPage() {
               {/* Decorative circle */}
               <div className={`absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 ${circleColor}`} />
               <div className="flex items-start justify-between mb-3 relative">
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">{label}</p>
+                <p className="text-[10px] font-bold tracking-[0.1em] text-slate-400">{label}</p>
                 <Icon className={`h-5 w-5 ${iconColor}`} />
               </div>
               <p className="text-[34px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>
@@ -200,12 +200,12 @@ export default function StaffPage() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    <th className="px-5 py-3 text-center w-14 text-[10px] font-bold uppercase tracking-wider text-slate-400">#</th>
+                    <th className="px-5 py-3 text-center w-14 text-[10px] font-bold tracking-wider text-slate-400">#</th>
                     <SortTh col="staffName" label="Nama Staf" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
                     <SortTh col="totalCount" label="Total Input" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" />
                     <SortTh col="recentCount" label="7 Hari" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" className="hidden sm:table-cell" />
                     <SortTh col="lastActivity" label="Terakhir Aktif" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="right" className="hidden md:table-cell" />
-                    <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell">Performa</th>
+                    <th className="px-5 py-3 text-right text-[10px] font-bold tracking-wider text-slate-400 hidden md:table-cell">Performa</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">

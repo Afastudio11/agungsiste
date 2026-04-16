@@ -124,7 +124,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {menuItems.map(({ key, icon, defaultLabel }) => (
               <div key={key}>
-                <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
+                <label className="flex items-center gap-1.5 text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
                   <span className="material-symbols-outlined text-[13px] text-slate-300" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20" }}>
                     {icon}
                   </span>
@@ -153,7 +153,7 @@ export default function SettingsPage() {
             desc="Nama dan identitas penyelenggara"
           />
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
+            <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
               Nama Organisasi
             </label>
             <input
@@ -233,7 +233,7 @@ export default function SettingsPage() {
             desc="Warna dan tema antarmuka"
           />
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-2">
+            <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-2">
               Warna Aksen
             </label>
             <div className="flex gap-2">
@@ -274,7 +274,7 @@ export default function SettingsPage() {
               { label: "Status", value: "✓ Aktif" },
             ].map((item) => (
               <div key={item.label} className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1">
+                <p className="text-[10px] font-bold tracking-[0.08em] text-slate-400 mb-1">
                   {item.label}
                 </p>
                 <p className="text-[13px] font-semibold text-slate-700">{item.value}</p>

@@ -94,7 +94,7 @@ function QuickGuideCard({
           <Icon className="h-4 w-4 text-white" strokeWidth={2.5} />
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-0.5">
+          <p className="text-[10px] font-bold tracking-[0.08em] text-slate-400 mb-0.5">
             Langkah {step}
           </p>
           <p className="text-[13px] font-bold text-slate-800">{title}</p>
@@ -155,7 +155,7 @@ export default function HelpPage() {
                 { label: "Respons", value: "Maks. 1x24 jam kerja", icon: "⚡" },
               ].map((item) => (
                 <div key={item.label} className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1">
+                  <p className="text-[10px] font-bold tracking-[0.08em] text-slate-400 mb-1">
                     {item.icon} {item.label}
                   </p>
                   <p className="text-[12px] font-semibold text-slate-700">{item.value}</p>

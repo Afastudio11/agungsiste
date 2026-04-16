@@ -239,7 +239,7 @@ function StatCard({
       <p className="text-[26px] font-extrabold leading-none text-slate-900 mb-0.5" style={{ letterSpacing: "-0.03em" }}>
         {value}
       </p>
-      <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{label}</p>
+      <p className="text-[11px] font-bold text-slate-600 tracking-wider">{label}</p>
       {sub && <p className="text-[11px] text-slate-500 mt-0.5">{sub}</p>}
     </div>
   );
@@ -524,7 +524,7 @@ export default function EventDetailPage() {
                       ? ["NIK", "Nama", "Kelamin", "Kota", "Waktu Daftar", "Status"].map((h, i) => (
                           <th
                             key={h}
-                            className={`px-5 py-3 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 ${i === 5 ? "text-right" : "text-left"}`}
+                            className={`px-5 py-3 text-[10px] font-bold tracking-[0.08em] text-slate-400 ${i === 5 ? "text-right" : "text-left"}`}
                           >
                             {h}
                           </th>
@@ -532,7 +532,7 @@ export default function EventDetailPage() {
                       : ["NIK", "Nama", "Kelamin", "Kota", "Waktu Hadir", "Tipe", "Total"].map((h, i) => (
                           <th
                             key={h}
-                            className={`px-5 py-3 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 ${i === 6 ? "text-right" : "text-left"}`}
+                            className={`px-5 py-3 text-[10px] font-bold tracking-[0.08em] text-slate-400 ${i === 6 ? "text-right" : "text-left"}`}
                           >
                             {h}
                           </th>

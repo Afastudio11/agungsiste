@@ -68,7 +68,7 @@ function StatCard({
       />
 
       <div className="flex items-start justify-between mb-3 relative">
-        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">{label}</p>
+        <p className="text-[10px] font-bold tracking-[0.1em] text-slate-400">{label}</p>
         <MsIcon name={icon} className={`text-[20px] ${iconColor}`} />
       </div>
 
@@ -261,7 +261,7 @@ export default function DashboardPage() {
       <div className="mb-5 space-y-2">
         {/* Period quick-select */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mr-1">Periode</span>
+          <span className="text-[10px] font-bold tracking-widest text-slate-400 mr-1">Periode</span>
           {([
             { key: "hari", label: "Hari Ini" },
             { key: "minggu", label: "7 Hari" },
@@ -374,7 +374,7 @@ export default function DashboardPage() {
                 onChange={(e) => setFilterKelurahan(e.target.value)}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               >
-                <option value="">— Semua Desa —</option>
+                <option value="">— Semua Desa/Kel. —</option>
                 {(desaData ?? []).map((d) => (
                   <option key={d.kelurahan} value={d.kelurahan}>{d.kelurahan}</option>
                 ))}
@@ -423,7 +423,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-8 rounded-2xl bg-white border border-slate-100 px-6 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">Registrasi</p>
+              <p className="text-[11px] font-bold tracking-[0.1em] text-slate-400">Registrasi</p>
               <div className="flex items-baseline gap-2 mt-0.5">
                 <span className="text-[32px] font-extrabold text-slate-900 leading-none" style={{ letterSpacing: "-0.04em" }}>
                   {fmt(stats?.totalRegistrations ?? 0)}
@@ -495,7 +495,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-4 rounded-2xl bg-white border border-slate-100 px-5 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">Top Hadiah</p>
+              <p className="text-[11px] font-bold tracking-[0.1em] text-slate-400">Top Hadiah</p>
               <p className="text-[11px] text-slate-400 mt-0.5">Terbanyak dibagikan</p>
             </div>
             <Link href="/prizes">
@@ -561,7 +561,7 @@ export default function DashboardPage() {
                   {["#", "Nama Event", "Tanggal", "Peserta", "Porsi"].map((h, i) => (
                     <th
                       key={h}
-                      className={`px-5 py-3 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 ${i >= 3 ? "text-right" : "text-left"}`}
+                      className={`px-5 py-3 text-[10px] font-bold tracking-[0.08em] text-slate-400 ${i >= 3 ? "text-right" : "text-left"}`}
                     >
                       {h}
                     </th>
@@ -620,7 +620,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-4 space-y-4">
           {/* Komposisi Peserta */}
           <div className="rounded-2xl bg-white border border-slate-100 px-5 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400 mb-4">Komposisi Peserta</p>
+            <p className="text-[11px] font-bold tracking-[0.1em] text-slate-400 mb-4">Komposisi Peserta</p>
             {genderData.length > 0 ? (
               <>
                 <div className="flex h-2.5 w-full overflow-hidden rounded-full gap-0.5 mb-4">
@@ -654,7 +654,7 @@ export default function DashboardPage() {
 
           {/* Daerah Teratas */}
           <div className="rounded-2xl bg-white border border-slate-100 px-5 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400 mb-4">Daerah Teratas</p>
+            <p className="text-[11px] font-bold tracking-[0.1em] text-slate-400 mb-4">Daerah Teratas</p>
             <div className="space-y-3">
               {daerahData.slice(0, 5).map((p, i) => (
                 <div key={p.label}>
@@ -751,7 +751,7 @@ export default function DashboardPage() {
               {/* Floating glass label over map */}
               {daerahData[0] && (
                 <div className="absolute bottom-4 left-4 bg-white/85 backdrop-blur-md border border-white/70 rounded-xl px-3 py-2 shadow-md z-[500] pointer-events-none">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Teratas</p>
+                  <p className="text-[10px] font-bold text-slate-400 tracking-wide">Teratas</p>
                   <p className="text-[13px] font-extrabold text-slate-800 leading-tight">{daerahData[0].label}</p>
                   <p className="text-[11px] text-blue-600 font-bold">{fmt(daerahData[0].count)} peserta</p>
                 </div>

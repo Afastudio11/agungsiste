@@ -46,7 +46,7 @@ function SortTh({ col, label, sortKey, sortDir, onSort, className = "" }: {
   const active = col === sortKey;
   return (
     <th
-      className={`px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest cursor-pointer select-none whitespace-nowrap ${className}`}
+      className={`px-6 py-4 text-[10px] font-bold text-slate-400 tracking-widest cursor-pointer select-none whitespace-nowrap ${className}`}
       onClick={() => onSort(col)}
     >
       <span className={`inline-flex items-center gap-0.5 ${active ? "text-blue-600" : ""}`}>
@@ -275,7 +275,7 @@ export default function ParticipantsPage() {
           {showDomisili && (
             <div className="flex flex-wrap items-center gap-2 bg-white border border-blue-100 rounded-2xl px-4 py-3 shadow-sm">
               <MapPin className="h-4 w-4 text-blue-500 shrink-0" />
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Filter Domisili</span>
+              <span className="text-[11px] font-bold text-slate-400 tracking-widest">Filter Domisili</span>
 
               {/* Kabupaten */}
               <select
@@ -327,7 +327,7 @@ export default function ParticipantsPage() {
                     }}
                     className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] text-slate-700 focus:outline-none focus:border-blue-400 transition-colors min-w-[150px]"
                   >
-                    <option value="">— Semua Desa —</option>
+                    <option value="">— Semua Desa/Kel. —</option>
                     {(desaList ?? []).map((d) => (
                       <option key={d.kelurahan} value={d.kelurahan}>{d.kelurahan}</option>
                     ))}
@@ -484,7 +484,7 @@ export default function ParticipantsPage() {
                             <span className="text-sm font-bold text-slate-900">
                               {String(p.eventCount).padStart(2, "0")}
                             </span>
-                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${
+                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${
                               isMulti
                                 ? "bg-amber-50 text-amber-700"
                                 : "bg-slate-100 text-slate-500"

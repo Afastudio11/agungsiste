@@ -112,7 +112,7 @@ function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabD
           <div key={label} className="bg-white rounded-2xl border border-slate-100 p-4">
             <div className="flex items-center gap-2 mb-2">
               <Icon className="h-3.5 w-3.5 text-slate-400" />
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</div>
+              <div className="text-xs font-bold text-slate-400 tracking-wider">{label}</div>
             </div>
             <div className="text-2xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>
               {Number(value).toLocaleString()}
@@ -140,7 +140,7 @@ function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabD
                 <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${colors[i % colors.length]}`} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between mb-1.5">
-                    <span className="font-bold text-sm text-slate-900 group-hover:text-blue-700 transition-colors uppercase tracking-wide">
+                    <span className="font-bold text-sm text-slate-900 group-hover:text-blue-700 transition-colors tracking-wide">
                       {k.kabupaten}
                     </span>
                     <span className="text-xl font-extrabold text-slate-900 ml-3" style={{ letterSpacing: "-0.04em" }}>
@@ -151,7 +151,7 @@ function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabD
                     <div className={`h-full rounded-full transition-all ${barColors[i % barColors.length]}`} style={{ width: `${pct}%` }} />
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
-                    <span>{k.totalDesa} desa</span>
+                    <span>{k.totalDesa} desa/kel.</span>
                     <span className="text-slate-200">·</span>
                     <span>{k.totalKecamatan} kec</span>
                     <span className="text-slate-200">·</span>
@@ -203,7 +203,7 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
           <div className="absolute inset-0 bg-gradient-to-b from-transparent from-[55%] to-white" />
         </div>
         <div className="px-5 pb-5 bg-white">
-          <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-2.5 inline-block">
+          <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest mb-2.5 inline-block">
             Kabupaten
           </span>
           <div className="text-[1.6rem] font-extrabold text-slate-900 leading-tight tracking-tight">{kabupaten}</div>
@@ -221,7 +221,7 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
             <div key={label} className="rounded-2xl p-4 flex items-center gap-3 bg-white border border-slate-100 shadow-sm">
               <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">{icon}</div>
               <div>
-                <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{label}</div>
+                <div className="text-[9px] font-bold tracking-widest text-slate-400 mb-0.5">{label}</div>
                 <div className="text-2xl font-extrabold text-slate-900 leading-none">{value}</div>
               </div>
             </div>
@@ -241,10 +241,10 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                <tr className="bg-slate-50 text-xs font-bold text-slate-400 tracking-wider border-b border-slate-100">
                   <th className="px-4 py-3 text-center w-12">No.</th>
                   <th className="px-4 py-3 text-left">Nama Kecamatan</th>
-                  <th className="px-4 py-3 text-right">Jumlah Desa</th>
+                  <th className="px-4 py-3 text-right">Jumlah Desa/Kel.</th>
                   <th className="px-4 py-3 text-right">Jumlah Event</th>
                   <th className="px-4 py-3 text-right">Total Peserta</th>
                   <th className="px-3 py-3 w-8" />
@@ -301,7 +301,7 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
           <div className="absolute inset-0 bg-gradient-to-b from-transparent from-[55%] to-white" />
         </div>
         <div className="px-5 pb-5 bg-white">
-          <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-2.5 inline-block">
+          <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest mb-2.5 inline-block">
             Kecamatan
           </span>
           <div className="text-[1.6rem] font-extrabold text-slate-900 leading-tight tracking-tight">{kecamatan}</div>
@@ -313,13 +313,13 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
         <div className="grid grid-cols-3 gap-3">
           {[
             { icon: <TrendingUp className="h-6 w-6 text-indigo-500" />, label: "Total Peserta", value: Number(kecInfo.totalInput).toLocaleString() },
-            { icon: <Home className="h-6 w-6 text-indigo-500" />, label: "Desa", value: kecInfo.totalDesa },
+            { icon: <Home className="h-6 w-6 text-indigo-500" />, label: "Desa/Kel.", value: kecInfo.totalDesa },
             { icon: <CalendarDays className="h-6 w-6 text-indigo-500" />, label: "Event", value: kecInfo.totalEvent },
           ].map(({ icon, label, value }) => (
             <div key={label} className="rounded-2xl p-4 flex items-center gap-3 bg-white border border-slate-100 shadow-sm">
               <div className="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">{icon}</div>
               <div>
-                <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{label}</div>
+                <div className="text-[9px] font-bold tracking-widest text-slate-400 mb-0.5">{label}</div>
                 <div className="text-2xl font-extrabold text-slate-900 leading-none">{value}</div>
               </div>
             </div>
@@ -331,15 +331,15 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <span className="font-bold text-slate-900">Daftar Desa / Kelurahan</span>
-          <span className="ml-auto text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-lg">{desaData.length} desa</span>
+          <span className="ml-auto text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-lg">{desaData.length} desa/kel.</span>
         </div>
         {isLoading ? (
-          <div className="p-10 text-center text-slate-400 text-sm">Memuat data desa...</div>
+          <div className="p-10 text-center text-slate-400 text-sm">Memuat data desa/kel....</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                <tr className="bg-slate-50 text-xs font-bold text-slate-400 tracking-wider border-b border-slate-100">
                   <th className="px-4 py-3 text-center w-12">No.</th>
                   <th className="px-4 py-3 text-left">Nama Desa / Kelurahan</th>
                   <th className="px-4 py-3 text-right">Jumlah Event</th>
@@ -358,7 +358,7 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
                   </tr>
                 ))}
                 {desaData.length === 0 && (
-                  <tr><td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-sm">Tidak ada data desa</td></tr>
+                  <tr><td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-sm">Tidak ada data desa/kel.</td></tr>
                 )}
               </tbody>
             </table>
@@ -381,7 +381,7 @@ function DesaDetailView({
     queryKey: ["pemetaan-desa-detail", kelurahan],
     queryFn: () => fetch(`${BASE}/api/pemetaan/desa/${encodeURIComponent(kelurahan)}`, { credentials: "include" }).then((r) => r.json()),
   });
-  if (isLoading) return <div className="py-16 text-center text-slate-400 text-sm">Memuat data desa...</div>;
+  if (isLoading) return <div className="py-16 text-center text-slate-400 text-sm">Memuat data desa/kel....</div>;
   if (!data) return null;
   return (
     <div className="space-y-4">
@@ -396,8 +396,8 @@ function DesaDetailView({
           <div className="absolute inset-0 bg-gradient-to-b from-transparent from-[55%] to-white" />
         </div>
         <div className="px-5 pb-5 bg-white">
-          <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-2.5 inline-block">
-            Profil Desa
+          <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest mb-2.5 inline-block">
+            Profil Desa/Kel.
           </span>
           <div className="text-[1.6rem] font-extrabold text-slate-900 leading-tight tracking-tight">{data.kelurahan}</div>
           <div className="text-slate-500 text-xs mt-1">Kec. {data.kecamatan} · {data.kabupaten}</div>
@@ -426,7 +426,7 @@ function DesaDetailView({
               {icon}
             </div>
             <div>
-              <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{label}</div>
+              <div className="text-[9px] font-bold tracking-widest text-slate-400 mb-0.5">{label}</div>
               <div className="text-2xl font-extrabold text-slate-900 leading-none">{value}</div>
             </div>
           </div>
@@ -446,7 +446,7 @@ function DesaDetailView({
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 tracking-widest border-b border-slate-100">
                   <th className="px-4 py-3 text-center w-12">No.</th>
                   <th className="px-4 py-3 text-left">Nama Event</th>
                   <th className="px-4 py-3 text-right">Total Peserta</th>
@@ -511,7 +511,7 @@ function PesertaView({
           <div className="absolute inset-0 bg-gradient-to-b from-transparent from-[55%] to-white" />
         </div>
         <div className="px-5 pb-5 bg-white">
-          <span className="bg-violet-100 text-violet-600 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-2.5 inline-block">
+          <span className="bg-violet-100 text-violet-600 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-widest mb-2.5 inline-block">
             Daftar Peserta
           </span>
           <div className="text-[1.6rem] font-extrabold text-slate-900 leading-tight tracking-tight">{eventName}</div>
@@ -527,7 +527,7 @@ function PesertaView({
           <Users className="h-6 w-6 text-violet-500" />
         </div>
         <div>
-          <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Total Peserta dari Desa Ini</div>
+          <div className="text-[9px] font-bold tracking-widest text-slate-400 mb-0.5">Total Peserta dari Desa/Kel. Ini</div>
           <div className="text-2xl font-extrabold text-slate-900 leading-none">{isLoading ? "..." : peserta.length}</div>
         </div>
       </div>

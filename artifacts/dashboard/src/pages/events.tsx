@@ -381,7 +381,7 @@ export default function EventsPage() {
         <div className="space-y-5">
           {/* Section header */}
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-900 tracking-widest flex items-center gap-2">
               Daftar Event
               <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px]">
                 {events?.length ?? 0}
@@ -478,7 +478,7 @@ export default function EventsPage() {
                     </div>
                     {(event as any).targetParticipants && (
                       <div className="text-right hidden lg:block">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target</p>
+                        <p className="text-[10px] font-bold text-slate-400 tracking-wider">Target</p>
                         <p className="text-sm font-extrabold text-slate-700">{(event as any).targetParticipants}</p>
                       </div>
                     )}
@@ -543,7 +543,7 @@ export default function EventsPage() {
             <form onSubmit={handleSubmit} className="p-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
+                  <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
                     Nama Event *
                   </label>
                   <input
@@ -556,7 +556,7 @@ export default function EventsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
+                  <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
                     Tanggal *
                   </label>
                   <input
@@ -568,7 +568,7 @@ export default function EventsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
+                  <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
                     Jam Mulai
                   </label>
                   <input
@@ -579,7 +579,7 @@ export default function EventsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
+                  <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
                     Lokasi
                   </label>
                   <LocationInput
@@ -588,7 +588,7 @@ export default function EventsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
+                  <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
                     Kategori
                   </label>
                   <input
@@ -600,7 +600,7 @@ export default function EventsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
+                  <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
                     Target Peserta
                   </label>
                   <input
@@ -613,7 +613,7 @@ export default function EventsPage() {
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
+                  <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
                     Deskripsi
                   </label>
                   <input

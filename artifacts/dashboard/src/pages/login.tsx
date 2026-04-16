@@ -101,7 +101,7 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="username"
-                className="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 ml-1"
+                className="block text-[10px] font-bold tracking-[0.12em] text-slate-500 ml-1"
               >
                 Username
               </label>
@@ -143,7 +143,7 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <label
                 htmlFor="password"
-                className="block text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 ml-1"
+                className="block text-[10px] font-bold tracking-[0.12em] text-slate-500 ml-1"
               >
                 Password
               </label>
@@ -256,7 +256,7 @@ export default function LoginPage() {
 
           {/* ── Demo accounts ────────────────────────────────── */}
           <div className="mt-7 pt-6 border-t border-white/60">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 text-center mb-3">
+            <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400 text-center mb-3">
               Akun Demo
             </p>
             <div className="flex gap-2">
