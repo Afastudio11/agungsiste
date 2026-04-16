@@ -215,32 +215,39 @@ function StatCard({
   value,
   sub,
   icon,
-  gradient,
-  barColor,
-  barPct,
+  accentColor,
+  iconBg,
+  numberColor,
 }: {
   label: string;
   value: number | string;
   sub?: string;
   icon: React.ReactNode;
-  gradient: string;
-  barColor: string;
-  barPct?: number;
+  accentColor: string;
+  iconBg: string;
+  numberColor: string;
 }) {
   return (
-    <div
-      className={`relative overflow-hidden rounded-2xl border border-white/60 ${gradient} backdrop-blur-sm shadow-[0_4px_16px_rgba(0,0,0,0.08)] px-4 py-3.5`}
-    >
-      <div className="flex items-start justify-between mb-2">
-        <div className="w-8 h-8 rounded-lg bg-white/40 backdrop-blur-sm flex items-center justify-center shadow-sm">
-          {icon}
-        </div>
+    <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.07)] px-5 py-5">
+      {/* Top: icon */}
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${iconBg}`}>
+        {icon}
       </div>
-      <p className="text-[26px] font-extrabold leading-none text-slate-900 mb-0.5" style={{ letterSpacing: "-0.03em" }}>
+      {/* Number */}
+      <p
+        className={`text-[36px] font-extrabold leading-none mb-1 ${numberColor}`}
+        style={{ letterSpacing: "-0.04em" }}
+      >
         {value}
       </p>
-      <p className="text-[11px] font-bold text-slate-600 tracking-wider">{label}</p>
-      {sub && <p className="text-[11px] text-slate-500 mt-0.5">{sub}</p>}
+      {/* Label */}
+      <p className="text-[13px] font-bold text-slate-700">{label}</p>
+      {/* Sub-label */}
+      {sub && (
+        <p className="text-[11px] text-slate-400 font-medium mt-0.5">{sub}</p>
+      )}
+      {/* Accent bar at bottom */}
+      <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${accentColor}`} />
     </div>
   );
 }
@@ -401,26 +408,27 @@ export default function EventDetailPage() {
             value={participantsLoading ? "—" : rsvpTotal}
             sub={participantsLoading ? undefined : rsvpCheckedIn > 0 ? `${rsvpCheckedIn} sudah hadir` : "Belum ada check-in"}
             icon={<Users className="h-5 w-5 text-indigo-600" />}
-            gradient="bg-gradient-to-br from-indigo-50 via-white to-blue-50"
-            barColor="bg-indigo-500"
+            iconBg="bg-indigo-100"
+            numberColor="text-indigo-700"
+            accentColor="bg-indigo-500"
           />
           <StatCard
             label="Absen"
             value={participantsLoading ? "—" : hadirTotal}
             sub={participantsLoading ? undefined : walkinCount > 0 ? `${walkinCount} walk-in` : "Semua via RSVP"}
             icon={<UserCheck className="h-5 w-5 text-emerald-600" />}
-            gradient="bg-gradient-to-br from-emerald-50 via-white to-teal-50"
-            barColor="bg-emerald-500"
-            barPct={pct !== null ? pct : undefined}
+            iconBg="bg-emerald-100"
+            numberColor="text-emerald-700"
+            accentColor="bg-emerald-500"
           />
           <StatCard
             label="Tidak Hadir"
             value={participantsLoading ? "—" : rsvpNoShow}
             sub={participantsLoading ? undefined : rsvpTotal > 0 ? `dari ${rsvpTotal} reservasi` : "Tidak ada reservasi"}
             icon={<UserX className="h-5 w-5 text-rose-500" />}
-            gradient="bg-gradient-to-br from-rose-50 via-white to-orange-50"
-            barColor="bg-rose-400"
-            barPct={rsvpTotal > 0 ? Math.round((rsvpNoShow / rsvpTotal) * 100) : undefined}
+            iconBg="bg-rose-100"
+            numberColor="text-rose-600"
+            accentColor="bg-rose-400"
           />
         </div>
           <div className="w-full lg:w-52 shrink-0">
