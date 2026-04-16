@@ -367,7 +367,7 @@ export default function EventDetailPage() {
             </div>
 
             {/* Right: action buttons */}
-            <div className="flex items-center gap-2 shrink-0 lg:pt-1">
+            <div className="flex flex-wrap items-center gap-2 lg:pt-1">
               {(event as any).isRsvp && (
                 <Link href={`/events/${id}/rsvp`}>
                   <button className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm">

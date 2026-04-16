@@ -332,14 +332,14 @@ export default function EventsPage() {
                 className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-600 font-bold rounded-xl border border-slate-200 hover:bg-slate-50 transition-all text-sm"
               >
                 <Download className="h-4 w-4" />
-                Export
+                <span className="hidden sm:inline">Export</span>
               </button>
               <button
                 onClick={openCreate}
                 className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm"
               >
                 <Plus className="h-4 w-4" />
-                Tambah Event
+                <span className="hidden sm:inline">Tambah Event</span>
               </button>
             </div>
           </div>

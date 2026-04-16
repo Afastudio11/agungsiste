@@ -407,9 +407,9 @@ export default function ParticipantsPage() {
                 <tr className="bg-slate-50/60">
                   <SortTh col="nik" label="NIK Peserta" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
                   <SortTh col="fullName" label="Nama Lengkap" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-                  <SortTh col="gender" label="Kelamin" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                  <SortTh col="gender" label="Kelamin" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="hidden sm:table-cell" />
                   <SortTh col="city" label="Domisili" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-                  <SortTh col="firstRegisteredAt" label="Terdaftar" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                  <SortTh col="firstRegisteredAt" label="Terdaftar" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="hidden md:table-cell" />
                   <SortTh col="eventCount" label="Total Event" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
                   <th className="px-6 py-4 text-right" />
                 </tr>
@@ -451,7 +451,7 @@ export default function ParticipantsPage() {
                         </td>
 
                         {/* Kelamin */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 hidden sm:table-cell">
                           {p.gender ? (
                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
                               p.gender === "LAKI-LAKI"
@@ -472,7 +472,7 @@ export default function ParticipantsPage() {
                         </td>
 
                         {/* Terdaftar */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 hidden md:table-cell">
                           <p className="text-xs font-medium text-slate-600">
                             {new Date(p.firstRegisteredAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                           </p>
