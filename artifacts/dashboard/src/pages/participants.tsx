@@ -5,7 +5,7 @@ import {
   useListParticipants,
   getListParticipantsQueryKey,
 } from "@workspace/api-client-react";
-import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Gift, CalendarCheck2, Eye } from "lucide-react";
+import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Gift, CalendarCheck2, Eye, MapPin, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 type SortKey = "nik" | "fullName" | "gender" | "city" | "province" | "firstRegisteredAt" | "eventCount";
@@ -81,15 +81,47 @@ export default function ParticipantsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("firstRegisteredAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [showDomisili, setShowDomisili] = useState(false);
+  const [filterKabupaten, setFilterKabupaten] = useState("");
+  const [filterKecamatan, setFilterKecamatan] = useState("");
+  const [filterKelurahan, setFilterKelurahan] = useState("");
 
-  const params = {
+  const params: Record<string, string> = {
     ...(search ? { search } : {}),
     ...(startDate ? { startDate } : {}),
     ...(endDate ? { endDate } : {}),
+    ...(filterKabupaten ? { city: filterKabupaten } : {}),
+    ...(filterKecamatan ? { kecamatan: filterKecamatan } : {}),
+    ...(filterKelurahan ? { kelurahan: filterKelurahan } : {}),
   };
 
   const { data: rawParticipants, isLoading } = useListParticipants(params as any, {
     query: { queryKey: getListParticipantsQueryKey(params as any) },
+  });
+
+  // Cascading domisili data
+  const { data: kabupatenList } = useQuery<{ kabupaten: string }[]>({
+    queryKey: ["participant-kabupaten"],
+    queryFn: () => fetch("/api/pemetaan/kabupaten").then((r) => r.json()),
+    staleTime: 120_000,
+    enabled: showDomisili,
+  });
+  const { data: kecamatanList } = useQuery<{ kecamatan: string }[]>({
+    queryKey: ["participant-kecamatan", filterKabupaten],
+    queryFn: () => fetch(`/api/pemetaan/kecamatan${filterKabupaten ? `?kabupaten=${encodeURIComponent(filterKabupaten)}` : ""}`).then((r) => r.json()),
+    staleTime: 120_000,
+    enabled: showDomisili,
+  });
+  const { data: desaList } = useQuery<{ kelurahan: string }[]>({
+    queryKey: ["participant-desa", filterKabupaten, filterKecamatan],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      if (filterKabupaten) q.set("kabupaten", filterKabupaten);
+      if (filterKecamatan) q.set("kecamatan", filterKecamatan);
+      return fetch(`/api/pemetaan/desa?${q.toString()}`).then((r) => r.json());
+    },
+    staleTime: 120_000,
+    enabled: showDomisili && !!(filterKabupaten || filterKecamatan),
   });
 
   const participants = useMemo(() => {
@@ -137,8 +169,13 @@ export default function ParticipantsPage() {
     else { setSortKey(key); setSortDir("asc"); }
   };
 
-  const hasFilter = search || startDate || endDate;
-  const resetAll = () => { setSearch(""); setStartDate(""); setEndDate(""); setCurrentPage(1); };
+  const hasDomisiliFilter = filterKabupaten || filterKecamatan || filterKelurahan;
+  const hasFilter = search || startDate || endDate || hasDomisiliFilter;
+  const resetAll = () => {
+    setSearch(""); setStartDate(""); setEndDate("");
+    setFilterKabupaten(""); setFilterKecamatan(""); setFilterKelurahan("");
+    setCurrentPage(1);
+  };
 
   const goToPage = (p: number) => setCurrentPage(Math.min(Math.max(1, p), totalPages));
 
@@ -176,6 +213,23 @@ export default function ParticipantsPage() {
                 className="border-0 bg-transparent text-[12px] text-slate-600 focus:outline-none w-[115px]" />
             </div>
 
+            {/* Domisili toggle button */}
+            <button
+              onClick={() => { setShowDomisili((v) => !v); }}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[12px] font-bold transition-all ${
+                hasDomisiliFilter
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : showDomisili
+                  ? "bg-blue-50 text-blue-600 border border-blue-200"
+                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+              }`}
+            >
+              <MapPin className="h-3.5 w-3.5" />
+              {hasDomisiliFilter
+                ? filterKelurahan || filterKecamatan || filterKabupaten
+                : "Domisili"}
+            </button>
+
             {hasFilter && (
               <button onClick={resetAll}
                 className="flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[12px] font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors">
@@ -192,6 +246,81 @@ export default function ParticipantsPage() {
               Export CSV
             </button>
           </div>
+
+          {/* Domisili cascading filter panel */}
+          {showDomisili && (
+            <div className="flex flex-wrap items-center gap-2 bg-white border border-blue-100 rounded-2xl px-4 py-3 shadow-sm">
+              <MapPin className="h-4 w-4 text-blue-500 shrink-0" />
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Filter Domisili</span>
+
+              {/* Kabupaten */}
+              <select
+                value={filterKabupaten}
+                onChange={(e) => {
+                  setFilterKabupaten(e.target.value);
+                  setFilterKecamatan("");
+                  setFilterKelurahan("");
+                  setCurrentPage(1);
+                }}
+                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] text-slate-700 focus:outline-none focus:border-blue-400 transition-colors min-w-[160px]"
+              >
+                <option value="">— Semua Kabupaten —</option>
+                {(kabupatenList ?? []).map((k) => (
+                  <option key={k.kabupaten} value={k.kabupaten}>{k.kabupaten}</option>
+                ))}
+              </select>
+
+              {/* Kecamatan */}
+              {filterKabupaten && (
+                <>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                  <select
+                    value={filterKecamatan}
+                    onChange={(e) => {
+                      setFilterKecamatan(e.target.value);
+                      setFilterKelurahan("");
+                      setCurrentPage(1);
+                    }}
+                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] text-slate-700 focus:outline-none focus:border-blue-400 transition-colors min-w-[150px]"
+                  >
+                    <option value="">— Semua Kecamatan —</option>
+                    {(kecamatanList ?? []).map((k) => (
+                      <option key={k.kecamatan} value={k.kecamatan}>{k.kecamatan}</option>
+                    ))}
+                  </select>
+                </>
+              )}
+
+              {/* Kelurahan / Desa */}
+              {filterKecamatan && (
+                <>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                  <select
+                    value={filterKelurahan}
+                    onChange={(e) => {
+                      setFilterKelurahan(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] text-slate-700 focus:outline-none focus:border-blue-400 transition-colors min-w-[150px]"
+                  >
+                    <option value="">— Semua Desa —</option>
+                    {(desaList ?? []).map((d) => (
+                      <option key={d.kelurahan} value={d.kelurahan}>{d.kelurahan}</option>
+                    ))}
+                  </select>
+                </>
+              )}
+
+              {hasDomisiliFilter && (
+                <button
+                  onClick={() => { setFilterKabupaten(""); setFilterKecamatan(""); setFilterKelurahan(""); setCurrentPage(1); }}
+                  className="ml-auto flex items-center gap-1 text-[11px] text-red-400 hover:text-red-600 transition-colors"
+                >
+                  <X className="h-3 w-3" /> Hapus filter
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Stats Bento ── */}

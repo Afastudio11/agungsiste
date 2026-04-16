@@ -14,6 +14,7 @@ router.get("/", requireAuth, async (req, res) => {
   try {
     const query = ListParticipantsQueryParams.safeParse(req.query);
     const { search, startDate, endDate, gender, city, province, minEvents } = query.success ? query.data : {};
+    const { kecamatan, kelurahan } = req.query as Record<string, string>;
 
     const conditions: any[] = [];
     if (search) {
@@ -38,6 +39,8 @@ router.get("/", requireAuth, async (req, res) => {
     if (gender) conditions.push(eq(participantsTable.gender, gender));
     if (city) conditions.push(ilike(participantsTable.city, `%${city}%`));
     if (province) conditions.push(ilike(participantsTable.province, `%${province}%`));
+    if (kecamatan) conditions.push(ilike(participantsTable.kecamatan, `%${kecamatan}%`));
+    if (kelurahan) conditions.push(ilike(participantsTable.kelurahan, `%${kelurahan}%`));
 
     const baseQuery = db
       .select({
