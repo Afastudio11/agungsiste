@@ -258,7 +258,7 @@ function StatCard({
           {icon}
         </div>
       </div>
-      <p className="text-[42px] font-extrabold leading-none text-slate-900 mb-1" style={{ letterSpacing: "-0.04em" }}>
+      <p className="text-[28px] font-extrabold leading-none text-slate-900 mb-1" style={{ letterSpacing: "-0.03em" }}>
         {value}
       </p>
       <p className="text-[12px] font-bold text-slate-600 uppercase tracking-wider">{label}</p>
