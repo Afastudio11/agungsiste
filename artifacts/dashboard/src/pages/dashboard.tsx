@@ -499,7 +499,7 @@ export default function DashboardPage() {
               <p className="text-[11px] text-slate-400 mt-0.5">Terbanyak dibagikan</p>
             </div>
             <Link href="/prizes">
-              <span className="text-[11px] font-bold text-purple-600 hover:text-purple-800 cursor-pointer flex items-center gap-0.5">
+              <span className="text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer flex items-center gap-0.5">
                 Kelola <MsIcon name="arrow_outward" className="text-[13px]" />
               </span>
             </Link>
@@ -515,10 +515,10 @@ export default function DashboardPage() {
                       <span className="text-[10px] font-bold text-slate-300 w-4 shrink-0 font-mono text-right">{i + 1}</span>
                       <span className="text-[12px] font-semibold text-slate-700 truncate">{prize.name}</span>
                     </div>
-                    <span className="text-[12px] font-extrabold text-purple-700 shrink-0">{prize.distributedCount}/{prize.quantity}</span>
+                    <span className="text-[12px] font-extrabold text-blue-600 shrink-0">{prize.distributedCount}/{prize.quantity}</span>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 ml-5">
-                    <div className="h-full rounded-full bg-purple-400" style={{ width: `${pct}%` }} />
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full bg-blue-400" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );
