@@ -50,6 +50,7 @@ export default function PetugasScanPage() {
   const [showCamera, setShowCamera] = useState(false);
 
   const [ktp, setKtp] = useState<KtpData>({});
+  const [capturedBase64, setCapturedBase64] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
@@ -66,6 +67,7 @@ export default function PetugasScanPage() {
     setScanning(true);
     setError("");
     setOcrMeta(null);
+    setCapturedBase64(base64);
     try {
       const r = await fetch(`${BASE}/api/ktp/scan`, {
         method: "POST",
@@ -135,6 +137,15 @@ export default function PetugasScanPage() {
         return;
       }
       setSuccessMsg(data.message || "Berhasil didaftarkan!");
+      // Simpan foto KTP ke storage (background, tidak blokir UI)
+      if (capturedBase64 && ktp.nik) {
+        fetch(`${BASE}/api/ktp/save-image`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nik: ktp.nik, imageBase64: capturedBase64 }),
+        }).catch(() => {}); // silent fail
+      }
       setStep("done");
     } catch {
       setError("Terjadi kesalahan jaringan");
@@ -144,7 +155,7 @@ export default function PetugasScanPage() {
   };
 
   const resetForm = () => {
-    setKtp({}); setPhone(""); setEmail(""); setNotes(""); setTags([]);
+    setKtp({}); setCapturedBase64(null); setPhone(""); setEmail(""); setNotes(""); setTags([]);
     setError(""); setSuccessMsg(""); setOcrMeta(null); setStep("upload");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };

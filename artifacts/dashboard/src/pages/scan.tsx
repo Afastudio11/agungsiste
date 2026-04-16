@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import Layout from "@/components/layout";
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 import {
   useScanKtp,
   useRegisterKtp,
@@ -50,6 +51,7 @@ const qualityMessages: Record<string, { icon: React.ReactNode; text: string; col
 export default function ScanPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [capturedBase64, setCapturedBase64] = useState<string | null>(null);
   const [ktpData, setKtpData] = useState<KtpData | null>(null);
   const [editedData, setEditedData] = useState<KtpData>({});
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
@@ -71,6 +73,7 @@ export default function ScanPage() {
 
   const processBase64 = async (base64: string, previewSrc?: string) => {
     setKtpData(null); setEditedData({}); setResult(null); setIsDuplicate(false);
+    setCapturedBase64(base64);
     if (previewSrc) setPreviewUrl(previewSrc);
     try {
       const data = await scanKtp.mutateAsync({ data: { imageBase64: base64 } });
@@ -123,6 +126,15 @@ export default function ScanPage() {
       const s = getSettings();
       const msg = s.showTotalOnSuccess === false ? "Peserta berhasil didaftarkan" : res.message;
       setResult({ success: true, message: msg, totalEventsJoined: res.totalEventsJoined });
+      // Simpan foto KTP ke storage (background, tidak blokir UI)
+      if (capturedBase64 && editedData.nik) {
+        fetch(`${BASE}/api/ktp/save-image`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nik: editedData.nik, imageBase64: capturedBase64 }),
+        }).catch(() => {}); // silent fail
+      }
       if (s.autoResetForm) setTimeout(() => handleReset(), 2500);
     } catch (err: any) {
       const body = err?.response?.data ?? err?.data;
@@ -136,7 +148,7 @@ export default function ScanPage() {
   };
 
   const handleReset = () => {
-    setPreviewUrl(null); setKtpData(null); setEditedData({});
+    setPreviewUrl(null); setCapturedBase64(null); setKtpData(null); setEditedData({});
     setResult(null); setIsDuplicate(false); setSelectedEventId(null);
     if (fileRef.current) fileRef.current.value = "";
   };
