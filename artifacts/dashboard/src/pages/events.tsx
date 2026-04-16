@@ -13,18 +13,14 @@ import { useToast } from "@/hooks/use-toast";
 import {
   CalendarDays,
   MapPin,
-  Users,
   Plus,
   Pencil,
   Trash2,
   Search,
   X,
   Download,
-  ChevronRight,
-  ArrowUpDown,
   ChevronUp,
   ChevronDown,
-  Filter,
 } from "lucide-react";
 
 type SortKey = "name" | "eventDate" | "location" | "participantCount";
@@ -120,11 +116,6 @@ export default function EventsPage() {
     });
   }, [rawEvents, sortKey, sortDir]);
 
-  const avgParticipants =
-    events && events.length > 0
-      ? Math.round(events.reduce((s, e) => s + (e.participantCount ?? 0), 0) / events.length)
-      : 0;
-
   const handleSort = (key: SortKey) => {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
@@ -214,24 +205,6 @@ export default function EventsPage() {
     <Layout>
       <div className="space-y-8">
 
-        {/* ── Actions ── */}
-        <div className="flex items-center gap-3 justify-end">
-          <button
-            onClick={() => events && exportCSV(events)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-600 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-all text-sm"
-          >
-            <Download className="h-4 w-4" />
-            Export
-          </button>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Tambah Event
-          </button>
-        </div>
-
         {/* ── Toolbar ── */}
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
@@ -284,12 +257,22 @@ export default function EventsPage() {
                 </button>
               )}
 
-              {/* Inline stat */}
-              <div className="hidden md:flex items-center gap-2 ml-1 pl-3 border-l border-slate-200">
-                <Users className="h-4 w-4 text-slate-400" />
-                <span className="text-sm font-semibold text-slate-700">{isLoading ? "—" : avgParticipants}</span>
-                <span className="text-xs text-slate-400">avg · {events?.length ?? 0} event</span>
-              </div>
+              <div className="h-6 w-px bg-slate-200" />
+
+              <button
+                onClick={() => events && exportCSV(events)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-600 font-bold rounded-xl border border-slate-200 hover:bg-slate-50 transition-all text-sm"
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </button>
+              <button
+                onClick={openCreate}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm"
+              >
+                <Plus className="h-4 w-4" />
+                Tambah Event
+              </button>
             </div>
           </div>
 
