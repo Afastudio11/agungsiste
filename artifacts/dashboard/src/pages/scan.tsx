@@ -8,7 +8,7 @@ import {
   getListEventsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { Camera, Upload, AlertTriangle, Sun, Contrast, Eye, Zap, ScanLine, CheckCircle, RotateCcw, PenLine } from "lucide-react";
+import { Camera, Upload, Sun, Contrast, Eye, Zap, ScanLine, CheckCircle, RotateCcw, PenLine } from "lucide-react";
 import KtpCamera from "@/components/ktp-camera";
 
 type QualityWarning = "dark" | "overexposed" | "blurry" | "low_contrast" | null;
@@ -217,7 +217,6 @@ export default function ScanPage() {
 
   const meta = ktpData?._meta;
   const qw = meta?.qualityWarning;
-  const engineLabel = meta?.engine?.startsWith("gemini") ? "Gemini 2.5 Flash" : meta?.engine === "python-opencv" ? "OpenCV" : "Tesseract";
 
   return (
     <Layout role="any">
@@ -349,28 +348,6 @@ export default function ScanPage() {
                   <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-800">
                     {qualityMessages[qw].icon}
                     <span>{qualityMessages[qw].text}</span>
-                  </div>
-                )}
-                {meta?.lowConfidence && !qw && (
-                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-800">
-                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    <span>Kepercayaan OCR rendah ({meta.tesseractScore}/100). Periksa & perbaiki data.</span>
-                  </div>
-                )}
-
-                {/* OCR meta cards */}
-                {meta && (
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="bg-slate-50 px-4 py-3 rounded-xl">
-                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter mb-1">Engine</p>
-                      <p className="text-xs font-bold text-slate-700">{engineLabel}</p>
-                    </div>
-                    <div className="bg-slate-50 px-4 py-3 rounded-xl">
-                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter mb-1">Skor OCR</p>
-                      <p className={`text-sm font-bold ${meta.lowConfidence ? "text-amber-600" : "text-emerald-600"}`}>
-                        {meta.tesseractScore}/100
-                      </p>
-                    </div>
                   </div>
                 )}
 
