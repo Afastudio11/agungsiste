@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import Layout from "@/components/layout";
 import {
@@ -8,7 +8,7 @@ import {
   useDeleteEvent,
   getListEventsQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   CalendarDays,
@@ -25,6 +25,85 @@ import {
 
 type SortKey = "name" | "eventDate" | "location" | "participantCount";
 type SortDir = "asc" | "desc";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+interface DesaOption { kelurahan: string; kecamatan: string; kabupaten: string; }
+
+function LocationInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [query, setQuery] = useState(value);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const { data: options = [] } = useQuery<DesaOption[]>({
+    queryKey: ["desa-options", query],
+    queryFn: () =>
+      fetch(`${BASE}/api/pemetaan/desa?search=${encodeURIComponent(query)}`, {
+        credentials: "include",
+      })
+        .then((r) => r.json())
+        .then((d) => (Array.isArray(d) ? d.slice(0, 40) : [])),
+    enabled: query.length >= 2,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => { setQuery(value); }, [value]);
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  const filtered = options.filter((o) =>
+    o.kelurahan.toLowerCase().includes(query.toLowerCase()) ||
+    o.kecamatan.toLowerCase().includes(query.toLowerCase())
+  );
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        type="text"
+        value={query}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        placeholder="Ketik nama desa / kecamatan..."
+        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+          {filtered.map((o, i) => (
+            <button
+              key={`${o.kelurahan}-${i}`}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onChange(o.kelurahan);
+                setQuery(o.kelurahan);
+                setOpen(false);
+              }}
+              className="w-full text-left px-3 py-2.5 hover:bg-indigo-50 transition flex items-center justify-between gap-3 border-b border-slate-50 last:border-0"
+            >
+              <span className="text-[13px] font-semibold text-slate-800">{o.kelurahan}</span>
+              <span className="text-[11px] text-slate-400 shrink-0">Kec. {o.kecamatan}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {open && query.length >= 2 && filtered.length === 0 && (
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-slate-200 bg-white shadow-lg px-3 py-3 text-[12px] text-slate-400 text-center">
+          Tidak ada desa yang cocok
+        </div>
+      )}
+    </div>
+  );
+}
 
 const emptyForm = {
   name: "",
@@ -514,12 +593,9 @@ export default function EventsPage() {
                   <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
                     Lokasi
                   </label>
-                  <input
-                    type="text"
+                  <LocationInput
                     value={form.location}
-                    onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    placeholder="Lokasi event"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                    onChange={(v) => setForm({ ...form, location: v })}
                   />
                 </div>
                 <div>
