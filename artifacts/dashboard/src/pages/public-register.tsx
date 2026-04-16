@@ -196,11 +196,200 @@ export default function PublicRegisterPage() {
     setParticipantQr(null); setLoadingQr(false);
   };
 
-  const downloadQr = () => {
-    if (!participantQr) return;
+  const downloadTicket = async () => {
+    if (!participantQr || !event) return;
+
+    const SCALE = 2;
+    const W = 400, H = 680;
+    const canvas = document.createElement("canvas");
+    canvas.width = W * SCALE;
+    canvas.height = H * SCALE;
+    const ctx = canvas.getContext("2d")!;
+    ctx.scale(SCALE, SCALE);
+
+    const radius = 24;
+
+    /* ── Outer ticket shape ── */
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(radius, 0);
+    ctx.lineTo(W - radius, 0);
+    ctx.quadraticCurveTo(W, 0, W, radius);
+    ctx.lineTo(W, H - radius);
+    ctx.quadraticCurveTo(W, H, W - radius, H);
+    ctx.lineTo(radius, H);
+    ctx.quadraticCurveTo(0, H, 0, H - radius);
+    ctx.lineTo(0, radius);
+    ctx.quadraticCurveTo(0, 0, radius, 0);
+    ctx.closePath();
+    ctx.clip();
+
+    /* ── Header gradient (top 44%) ── */
+    const headerH = H * 0.44;
+    const grad = ctx.createLinearGradient(0, 0, W, headerH);
+    grad.addColorStop(0, "#1e1b4b");   // indigo-950
+    grad.addColorStop(0.5, "#1d4ed8"); // blue-700
+    grad.addColorStop(1, "#0e7490");   // cyan-700
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, headerH);
+
+    /* Decorative circles top-right */
+    ctx.save();
+    ctx.globalAlpha = 0.08;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(W - 20, 20, 90, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W + 10, 80, 70, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    /* ── Badge label ── */
+    ctx.fillStyle = "rgba(255,255,255,0.25)";
+    const badgeW = 170, badgeH = 22, badgeX = (W - badgeW) / 2, badgeY = 26;
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 11);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.90)";
+    ctx.font = "bold 10px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.letterSpacing = "2px";
+    ctx.textAlign = "center";
+    ctx.fillText("✦  TIKET RESERVASI  ✦", W / 2, badgeY + 14.5);
+    ctx.letterSpacing = "0px";
+
+    /* ── Event name ── */
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 26px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.textAlign = "center";
+    const name = event.name;
+    const maxW = W - 48;
+    // word-wrap the event name manually
+    const words = name.split(" ");
+    const lines: string[] = [];
+    let cur = "";
+    for (const w of words) {
+      const test = cur ? `${cur} ${w}` : w;
+      if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
+      else cur = test;
+    }
+    if (cur) lines.push(cur);
+    const lineH = 32;
+    const nameY = 68;
+    lines.forEach((line, i) => {
+      ctx.fillText(line, W / 2, nameY + i * lineH);
+    });
+
+    /* ── Date & location ── */
+    const detailY = nameY + lines.length * lineH + 10;
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.font = "500 12px 'Plus Jakarta Sans', Arial, sans-serif";
+    const dateStr = `${event.eventDate}${event.startTime ? " · " + event.startTime : ""}`;
+    ctx.fillText(dateStr, W / 2, detailY);
+    if (event.location) {
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font = "500 11px 'Plus Jakarta Sans', Arial, sans-serif";
+      ctx.fillText(event.location, W / 2, detailY + 17);
+    }
+
+    /* ── White body ── */
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, headerH, W, H - headerH);
+
+    /* ── Perforated divider ── */
+    const notchR = 14;
+    // left notch
+    ctx.fillStyle = "#f1f5f9"; // slate-100 (background colour)
+    ctx.beginPath(); ctx.arc(-1, headerH, notchR, -Math.PI / 2, Math.PI / 2); ctx.fill();
+    // right notch
+    ctx.beginPath(); ctx.arc(W + 1, headerH, notchR, Math.PI / 2, -Math.PI / 2); ctx.fill();
+    // dashed line
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath();
+    ctx.moveTo(notchR + 4, headerH);
+    ctx.lineTo(W - notchR - 4, headerH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* ── Participant name ── */
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 20px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(participantQr.fullName, W / 2, headerH + 36);
+
+    /* ── "Peserta Terdaftar" label ── */
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "500 10px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.letterSpacing = "1.5px";
+    ctx.fillText("PESERTA TERDAFTAR", W / 2, headerH + 52);
+    ctx.letterSpacing = "0px";
+
+    /* ── QR code ── */
+    await new Promise<void>((resolve) => {
+      const qrImg = new Image();
+      qrImg.onload = () => {
+        const qrSize = 180;
+        const qrX = (W - qrSize) / 2;
+        const qrY = headerH + 66;
+        // white border around QR
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#e2e8f0";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24, 14);
+        ctx.fill();
+        ctx.stroke();
+        ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+        resolve();
+      };
+      qrImg.onerror = () => resolve();
+      qrImg.src = participantQr.qrDataUrl;
+    });
+
+    /* ── "Scan QR untuk check-in" label ── */
+    ctx.fillStyle = "#64748b";
+    ctx.font = "500 11px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Tunjukkan tiket ini kepada petugas saat check-in", W / 2, headerH + 66 + 180 + 30);
+
+    /* ── Bottom gradient footer strip ── */
+    const footerH = 52;
+    const footerY = H - footerH;
+    const footerGrad = ctx.createLinearGradient(0, footerY, W, footerY);
+    footerGrad.addColorStop(0, "#1e1b4b");
+    footerGrad.addColorStop(1, "#1d4ed8");
+    ctx.fillStyle = footerGrad;
+    ctx.fillRect(0, footerY, W, footerH);
+
+    /* Footer text */
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.font = "bold 11px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.letterSpacing = "1px";
+    ctx.textAlign = "center";
+    ctx.fillText("KTP REGISTRASI SYSTEM", W / 2, footerY + 20);
+    ctx.letterSpacing = "0px";
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.font = "500 10px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.fillText(event.eventDate + (event.location ? "  ·  " + event.location : ""), W / 2, footerY + 38);
+
+    ctx.restore();
+
+    /* ── Shadow wrapper: draw on a larger canvas ── */
+    const padded = document.createElement("canvas");
+    padded.width = (W + 40) * SCALE;
+    padded.height = (H + 40) * SCALE;
+    const pCtx = padded.getContext("2d")!;
+    pCtx.scale(SCALE, SCALE);
+    pCtx.fillStyle = "#f1f5f9";
+    pCtx.fillRect(0, 0, W + 40, H + 40);
+    // draw shadow
+    pCtx.shadowColor = "rgba(0,0,0,0.18)";
+    pCtx.shadowBlur = 24;
+    pCtx.shadowOffsetY = 8;
+    pCtx.drawImage(canvas, 20, 16);
+
+    /* ── Download ── */
     const a = document.createElement("a");
-    a.href = participantQr.qrDataUrl;
-    a.download = `reservasi-${event?.name?.replace(/\s+/g, "-") ?? "event"}.png`;
+    a.href = padded.toDataURL("image/png");
+    a.download = `tiket-${event.name.replace(/\s+/g, "-").toLowerCase()}.png`;
     a.click();
   };
 
@@ -240,74 +429,133 @@ export default function PublicRegisterPage() {
   /* ── Success ─────────────────────────────────────────────────── */
   if (step === "success") {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 relative overflow-hidden" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-200/25 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-200/20 blur-[120px] rounded-full pointer-events-none" />
+      <div
+        className="min-h-screen flex flex-col items-center justify-start p-5 pb-12 relative overflow-hidden"
+        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: "linear-gradient(160deg, #0f172a 0%, #1e3a5f 45%, #0c4a6e 100%)" }}
+      >
+        {/* Ambient glows */}
+        <div className="fixed top-[-20%] left-[-15%] w-[60%] h-[60%] bg-blue-500/10 blur-[160px] rounded-full pointer-events-none" />
+        <div className="fixed bottom-[-20%] right-[-15%] w-[60%] h-[60%] bg-cyan-500/10 blur-[160px] rounded-full pointer-events-none" />
 
-        <div className="w-full max-w-sm relative z-10 space-y-4">
-          {/* Success header */}
-          <GlassCard className="p-8 text-center">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-500/25">
-              <CheckCircle className="h-10 w-10 text-white" />
-            </div>
-            <h2 className="text-[22px] font-extrabold text-slate-900 mb-1" style={{ letterSpacing: "-0.03em" }}>
+        <div className="w-full max-w-sm relative z-10 pt-8 space-y-4">
+
+          {/* ── Celebration header ── */}
+          <div className="text-center mb-2">
+            <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[11px] font-extrabold tracking-widest px-4 py-2 rounded-full mb-5">
+              <CheckCircle className="h-3.5 w-3.5" />
               {successMsg}
-            </h2>
-            <p className="text-[15px] font-bold text-slate-700 mb-1">{event?.name}</p>
-            <p className="text-[12px] text-slate-400 font-medium">
-              {event?.eventDate}
-              {event?.startTime ? ` · ${event.startTime}` : ""}
-              {event?.location ? ` · ${event.location}` : ""}
-            </p>
-          </GlassCard>
-
-          {/* QR Card */}
-          <GlassCard className="p-6">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-7 h-7 rounded-xl bg-blue-100 flex items-center justify-center">
-                <QrCode className="h-4 w-4 text-blue-600" />
-              </div>
-              <h3 className="text-[14px] font-extrabold text-slate-900">QR Code Reservasi</h3>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium mb-5">
-              Tunjukkan QR ini kepada petugas saat check-in
-            </p>
+            <h1 className="text-[24px] font-extrabold text-white leading-tight mb-2" style={{ letterSpacing: "-0.03em" }}>
+              {event?.name}
+            </h1>
+            <div className="flex flex-wrap items-center justify-center gap-2 text-[12px] text-blue-300/80 font-medium">
+              {event?.eventDate && (
+                <span className="flex items-center gap-1">
+                  <CalendarDays size={11} />
+                  {event.eventDate}{event.startTime ? ` · ${event.startTime}` : ""}
+                </span>
+              )}
+              {event?.location && (
+                <span className="flex items-center gap-1">
+                  <MapPin size={11} />
+                  {event.location}
+                </span>
+              )}
+            </div>
+          </div>
 
-            {loadingQr ? (
-              <div className="py-10 text-center">
-                <Loader2 className="h-10 w-10 animate-spin text-blue-500 mx-auto mb-2" />
-                <p className="text-sm text-slate-400">Membuat QR Code...</p>
+          {/* ── Concert ticket card ── */}
+          <div className="rounded-3xl overflow-hidden shadow-2xl shadow-black/40">
+            {/* Ticket header */}
+            <div
+              className="px-6 pt-6 pb-5 text-center"
+              style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #1d4ed8 60%, #0e7490 100%)" }}
+            >
+              <div className="inline-flex items-center gap-1.5 bg-white/15 border border-white/20 text-white/80 text-[10px] font-extrabold tracking-[0.15em] px-3 py-1 rounded-full mb-4">
+                ✦ TIKET RESERVASI ✦
               </div>
-            ) : participantQr ? (
-              <div className="space-y-4">
-                <div className="flex justify-center">
-                  <div className="p-3 bg-white rounded-2xl border-2 border-slate-100 shadow-sm">
-                    <img src={participantQr.qrDataUrl} alt="QR Reservasi" className="w-52 h-52" />
+
+              {loadingQr ? (
+                <div className="py-8 flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center animate-pulse">
+                    <QrCode className="h-6 w-6 text-white/60" />
                   </div>
+                  <p className="text-white/60 text-xs font-medium">Membuat tiket...</p>
                 </div>
-                <p className="text-sm font-bold text-slate-800 text-center">{participantQr.fullName}</p>
-                <button
-                  onClick={downloadQr}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold transition shadow-sm shadow-blue-200"
-                >
-                  <Download className="h-4 w-4" />
-                  Download QR Code
-                </button>
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
-                  <div className="flex items-center justify-center gap-1.5 text-amber-700 font-bold text-sm mb-1">
-                    <Smartphone className="h-4 w-4" /> Screenshot QR ini!
-                  </div>
-                  <p className="text-[11px] text-amber-600 font-medium">
-                    Simpan ke galeri HP. QR digunakan saat absensi di lokasi event.
+              ) : participantQr ? (
+                <>
+                  <p className="text-white font-extrabold text-lg leading-tight mb-0.5" style={{ letterSpacing: "-0.02em" }}>
+                    {participantQr.fullName}
                   </p>
-                </div>
-              </div>
-            ) : (
-              <div className="py-6 text-center text-slate-400 text-sm">QR tidak tersedia</div>
-            )}
-          </GlassCard>
+                  <p className="text-white/50 text-[10px] font-bold tracking-widest">PESERTA TERDAFTAR</p>
+                </>
+              ) : null}
+            </div>
 
-          <button onClick={resetForm} className="w-full py-3.5 bg-white/80 backdrop-blur border border-slate-200 text-slate-600 rounded-2xl font-bold hover:bg-white transition text-sm">
+            {/* Perforated divider */}
+            <div className="relative bg-white">
+              <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-900" />
+              <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-900" />
+              <div
+                className="mx-5 border-0 border-t-2 border-dashed border-slate-200"
+                style={{ height: 0 }}
+              />
+            </div>
+
+            {/* Ticket body — QR */}
+            <div className="bg-white px-6 py-6 text-center">
+              {loadingQr ? (
+                <div className="py-10 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+                </div>
+              ) : participantQr ? (
+                <>
+                  <div className="flex justify-center mb-4">
+                    <div className="p-3 bg-white border-2 border-slate-100 rounded-2xl shadow-inner">
+                      <img src={participantQr.qrDataUrl} alt="QR Tiket" className="w-48 h-48" />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    Tunjukkan kepada petugas saat check-in
+                  </p>
+                </>
+              ) : (
+                <p className="py-8 text-slate-400 text-sm">QR tidak tersedia</p>
+              )}
+            </div>
+
+            {/* Ticket footer */}
+            <div
+              className="px-6 py-3.5 flex items-center justify-between"
+              style={{ background: "linear-gradient(90deg, #1e1b4b, #1d4ed8)" }}
+            >
+              <span className="text-[10px] font-extrabold text-white/50 tracking-widest">KTP REGISTRASI</span>
+              <span className="text-[10px] text-white/40 font-medium">{event?.eventDate}</span>
+            </div>
+          </div>
+
+          {/* ── Action buttons ── */}
+          {participantQr && !loadingQr && (
+            <button
+              onClick={downloadTicket}
+              className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl font-extrabold text-[15px] transition active:scale-[0.98] shadow-lg"
+              style={{ background: "linear-gradient(135deg, #1d4ed8, #0e7490)", color: "#fff", boxShadow: "0 8px 32px rgba(14,116,144,0.35)" }}
+            >
+              <Download className="h-5 w-5" />
+              Download Tiket
+            </button>
+          )}
+
+          <div className="bg-amber-500/15 border border-amber-400/25 rounded-2xl p-4 text-center">
+            <div className="flex items-center justify-center gap-1.5 text-amber-300 font-bold text-sm mb-1">
+              <Smartphone className="h-4 w-4" /> Screenshot tiket ini!
+            </div>
+            <p className="text-[11px] text-amber-300/70 font-medium">
+              Simpan ke galeri HP. Tiket digunakan saat absensi di lokasi event.
+            </p>
+          </div>
+
+          <button onClick={resetForm} className="w-full py-3.5 bg-white/10 border border-white/15 text-white/70 rounded-2xl font-bold hover:bg-white/15 transition text-sm">
             Daftar Peserta Lain
           </button>
         </div>
