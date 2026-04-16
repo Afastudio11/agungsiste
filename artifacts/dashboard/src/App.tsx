@@ -75,7 +75,7 @@ function AppRoutes() {
     }
   }
 
-  if (user?.role === "admin" || user?.role === "supervisor") {
+  if (user?.role === "admin") {
     if (location.startsWith("/petugas")) {
       return <Redirect to="/dashboard" />;
     }
