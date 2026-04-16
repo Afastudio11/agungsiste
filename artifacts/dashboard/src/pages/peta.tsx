@@ -224,8 +224,11 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
   function onEachDesa(feature: any, layer: L.Layer) {
     const villageName = feature.properties?.village || "";
     const displayName = feature.properties?.kelurahan || villageName;
-    const count = countByDesa[villageName.toLowerCase()] || 0;
-    const events = eventByDesa[villageName.toLowerCase()] || 0;
+    // GeoJSON stores kelurahan with "KELURAHAN " prefix; jatimWilayah stores without.
+    // Try both: exact match first, then stripped prefix.
+    const stripped = villageName.replace(/^kelurahan\s+/i, "").trim().toLowerCase();
+    const count = countByDesa[villageName.toLowerCase()] ?? countByDesa[stripped] ?? 0;
+    const events = eventByDesa[villageName.toLowerCase()] ?? eventByDesa[stripped] ?? 0;
     (layer as L.Path).setStyle({
       fillColor: getColor(count, maxDesa),
       weight: 1, opacity: 1, color: "white", fillOpacity: 0.80,
