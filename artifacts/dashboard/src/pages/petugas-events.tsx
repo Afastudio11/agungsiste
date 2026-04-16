@@ -346,7 +346,7 @@ export default function PetugasEventsPage() {
                         className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:scale-95 transition-all"
                       >
                         <QrCode size={14} />
-                        Scan QR
+                        Scan Absen
                       </button>
                     </div>
                   </div>
