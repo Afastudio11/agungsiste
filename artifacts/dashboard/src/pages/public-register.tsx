@@ -439,25 +439,21 @@ export default function PublicRegisterPage() {
   if (step === "success") {
     return (
       <div
-        className="min-h-screen flex flex-col items-center justify-start p-5 pb-12 relative overflow-hidden"
-        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: "linear-gradient(160deg, #0f172a 0%, #1e3a5f 45%, #0c4a6e 100%)" }}
+        className="min-h-screen bg-slate-50 flex flex-col items-center justify-start p-5 pb-12"
+        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
       >
-        {/* Ambient glows */}
-        <div className="fixed top-[-20%] left-[-15%] w-[60%] h-[60%] bg-blue-500/10 blur-[160px] rounded-full pointer-events-none" />
-        <div className="fixed bottom-[-20%] right-[-15%] w-[60%] h-[60%] bg-cyan-500/10 blur-[160px] rounded-full pointer-events-none" />
+        <div className="w-full max-w-sm pt-8 space-y-4">
 
-        <div className="w-full max-w-sm relative z-10 pt-8 space-y-4">
-
-          {/* ── Celebration header ── */}
-          <div className="text-center mb-2">
-            <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[11px] font-extrabold tracking-widest px-4 py-2 rounded-full mb-5">
+          {/* ── Status badge + event info ── */}
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-extrabold tracking-widest px-4 py-2 rounded-full mb-5">
               <CheckCircle className="h-3.5 w-3.5" />
               {successMsg}
             </div>
-            <h1 className="text-[24px] font-extrabold text-white leading-tight mb-2" style={{ letterSpacing: "-0.03em" }}>
+            <h1 className="text-[22px] font-extrabold text-slate-900 leading-tight mb-2" style={{ letterSpacing: "-0.02em" }}>
               {event?.name}
             </h1>
-            <div className="flex flex-wrap items-center justify-center gap-2 text-[12px] text-blue-300/80 font-medium">
+            <div className="flex flex-wrap items-center justify-center gap-3 text-[12px] text-slate-400 font-medium">
               {event?.eventDate && (
                 <span className="flex items-center gap-1">
                   <CalendarDays size={11} />
@@ -473,54 +469,39 @@ export default function PublicRegisterPage() {
             </div>
           </div>
 
-          {/* ── Concert ticket card ── */}
-          <div className="rounded-3xl overflow-hidden shadow-2xl shadow-black/40">
-            {/* Ticket header */}
-            <div
-              className="px-6 pt-6 pb-5 text-center"
-              style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #1d4ed8 60%, #0e7490 100%)" }}
-            >
-              <div className="inline-flex items-center gap-1.5 bg-white/15 border border-white/20 text-white/80 text-[10px] font-extrabold tracking-[0.15em] px-3 py-1 rounded-full mb-4">
-                ✦ TIKET RESERVASI ✦
-              </div>
+          {/* ── Ticket card ── */}
+          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
 
+            {/* Name section */}
+            <div className="px-6 pt-6 pb-5 text-center border-b border-dashed border-slate-200">
+              <p className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2">TIKET RESERVASI</p>
               {loadingQr ? (
-                <div className="py-8 flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center animate-pulse">
-                    <QrCode className="h-6 w-6 text-white/60" />
+                <div className="py-4 flex flex-col items-center gap-2">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center animate-pulse">
+                    <QrCode className="h-5 w-5 text-slate-300" />
                   </div>
-                  <p className="text-white/60 text-xs font-medium">Membuat tiket...</p>
+                  <p className="text-slate-400 text-xs">Membuat tiket...</p>
                 </div>
               ) : participantQr ? (
                 <>
-                  <p className="text-white font-extrabold text-lg leading-tight mb-0.5" style={{ letterSpacing: "-0.02em" }}>
+                  <p className="text-[20px] font-extrabold text-slate-900 leading-tight" style={{ letterSpacing: "-0.02em" }}>
                     {participantQr.fullName}
                   </p>
-                  <p className="text-white/50 text-[10px] font-bold tracking-widest">PESERTA TERDAFTAR</p>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-1">PESERTA TERDAFTAR</p>
                 </>
               ) : null}
             </div>
 
-            {/* Perforated divider */}
-            <div className="relative bg-white">
-              <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-900" />
-              <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-900" />
-              <div
-                className="mx-5 border-0 border-t-2 border-dashed border-slate-200"
-                style={{ height: 0 }}
-              />
-            </div>
-
-            {/* Ticket body — QR */}
-            <div className="bg-white px-6 py-6 text-center">
+            {/* QR section */}
+            <div className="px-6 py-6 text-center">
               {loadingQr ? (
-                <div className="py-10 flex items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+                <div className="py-8 flex items-center justify-center">
+                  <Loader2 className="h-7 w-7 animate-spin text-slate-300" />
                 </div>
               ) : participantQr ? (
                 <>
-                  <div className="flex justify-center mb-4">
-                    <div className="p-3 bg-white border-2 border-slate-100 rounded-2xl shadow-inner">
+                  <div className="flex justify-center mb-3">
+                    <div className="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm">
                       <img src={participantQr.qrDataUrl} alt="QR Tiket" className="w-48 h-48" />
                     </div>
                   </div>
@@ -533,38 +514,36 @@ export default function PublicRegisterPage() {
               )}
             </div>
 
-            {/* Ticket footer */}
-            <div
-              className="px-6 py-3.5 flex items-center justify-between"
-              style={{ background: "linear-gradient(90deg, #1e1b4b, #1d4ed8)" }}
-            >
-              <span className="text-[10px] font-extrabold text-white/50 tracking-widest">KTP REGISTRASI</span>
-              <span className="text-[10px] text-white/40 font-medium">{event?.eventDate}</span>
-            </div>
+            {/* Footer info */}
+            {event?.eventDate && (
+              <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-slate-400">Tanggal Event</span>
+                <span className="text-[10px] font-bold text-slate-600">{event.eventDate}</span>
+              </div>
+            )}
           </div>
 
           {/* ── Action buttons ── */}
           {participantQr && !loadingQr && (
             <button
               onClick={downloadTicket}
-              className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl font-extrabold text-[15px] transition active:scale-[0.98] shadow-lg"
-              style={{ background: "linear-gradient(135deg, #1d4ed8, #0e7490)", color: "#fff", boxShadow: "0 8px 32px rgba(14,116,144,0.35)" }}
+              className="w-full flex items-center justify-center gap-2.5 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-extrabold text-[15px] transition active:scale-[0.98]"
             >
               <Download className="h-5 w-5" />
               Download Tiket
             </button>
           )}
 
-          <div className="bg-amber-500/15 border border-amber-400/25 rounded-2xl p-4 text-center">
-            <div className="flex items-center justify-center gap-1.5 text-amber-300 font-bold text-sm mb-1">
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
+            <div className="flex items-center justify-center gap-1.5 text-amber-700 font-bold text-sm mb-1">
               <Smartphone className="h-4 w-4" /> Screenshot tiket ini!
             </div>
-            <p className="text-[11px] text-amber-300/70 font-medium">
+            <p className="text-[11px] text-amber-600/80 font-medium">
               Simpan ke galeri HP. Tiket digunakan saat absensi di lokasi event.
             </p>
           </div>
 
-          <button onClick={resetForm} className="w-full py-3.5 bg-white/10 border border-white/15 text-white/70 rounded-2xl font-bold hover:bg-white/15 transition text-sm">
+          <button onClick={resetForm} className="w-full py-3.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-2xl font-bold transition text-sm">
             Daftar Peserta Lain
           </button>
         </div>
