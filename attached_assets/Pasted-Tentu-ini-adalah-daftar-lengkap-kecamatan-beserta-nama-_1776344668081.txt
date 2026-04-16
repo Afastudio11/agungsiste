@@ -1,0 +1,35 @@
+Tentu, ini adalah daftar lengkap kecamatan beserta nama-nama desa dan kelurahannya untuk lima kabupaten tersebut. Formatnya sudah saya buat bersih agar mudah Anda **copy-paste** ke Excel atau Notepad.
+### **1. Kabupaten Ponorogo**
+ * **Slahung:** Caluk, Crabak, Duri, Galak, Gombang, Gundik, Janti, Jebeng, Kambeng, Menggare, Mojopitu, Ngilo-ilo, Ngloning, Plancungan, Senepo, Slahung, Truneng, Tugurejo, Wates, Wonokarti, Wonovojo.
+ * **Balong:** Bajang, Balong, Bulak, Bulukidul, Dadapan, Jalen, Karangan, Karangpatihan, Karangmojo, Ngampel, Ngasinan, Ngraket, Ngumpul, Pandak, Purworejo, Sedarat, Singkil, Sumberejo, Tatung, Temon.
+ * **Bungkal:** Bancar, Bedikulon, Bediwetan, Bekare, Belang, Bungkal, Kalisat, Ketonggo, Koripan, Kunti, Kupuk, Kwajon, Munggu, Nambak, Padas, Pager, Pelem, Sambilawang, Taji.
+ * **Sukorejo:** Bangunrejo, Gandukepuh, Gegeran, Gelanglor, Karanglolor, Kedungbanteng, Kalimalang, Kranggan, Lengkong, Morosari, Nambangrejo, Prajegan, Serangan, Sidorejo, Sukorejo, Sragi, Tapakrejo, Tulung.
+ * **Pulung:** Banaran, Bedrug, Kesugihan, Munggung, Patik, Plunturan, Pomahan, Pulung, Pulung Merdiko, Serag, Sidoharjo, Singgahan, Tegalrejo, Wagir Kidul, Wayang, Wotan.
+ * **Sambit:** Bancangan, Bangsalan, Beji, Besuki, Campurejo, Campursari, Gajah, Jrakah, Kemuning, Maguwan, Ngadisanan, Nglewan, Sambit, Wilangan, Wringinanom.
+ * **Siman:** Beton, Brahu, Demangan, Jarak, Kepuhrubuh, Madusari, Manuk, Ngabar, Patihan Kidul, Prawoto, Ronosentanan, Sawuh, Siman, Tajug, Tamanan, Trinitisan (Kelurahan: Mangunsuman, Ronowijayan).
+ * **Ponorogo (Kota):** (Hanya Kelurahan) Bangunsari, Banyudono, Beduri, Brotonegaran, Cokromenggalan, Jingglong, Kauman, Keniten, Kepatihan, Mangkujayan, Nologaten, Paju, Pakunden, Pinggirsari, Purwosari, Surodikraman, Tamanarum, Tambakbayan, Tonatan.
+### **2. Kabupaten Magetan**
+ * **Magetan (Kota):** Baron, Candirejo, Kebonagung, Ringinagung, Selosari, Sukowinangun, Tambakrejo, Tawanganom, Mangkujayan.
+ * **Maospati:** Gulun, Klagen Gambiran, Malang, Ngujung, Pandeyan, Pesu, Ronowijayan, Sempol, Sugihwaras, Suratmajan, Tanjungsepreh.
+ * **Plaosan:** Bulugunung, Buluharjo, Dadi, Ngancar, Nitikan, Pacalan, Plaosan, Puntukdoro, Sarangan, Sendangagung, Sidomukti, Wonomulyo.
+ * **Panekan:** Banjarejo, Bedagung, Cepoko, Jabung, Manjung, Milangasri, Ngiliran, Panekan, Rejomulyo, Sidowayah, Sukowidi, Tanjungsari, Tapak, Terung, Turi, Wates.
+ * **Takeran:** Duyung, Jatisari, Kepuhrejo, Kerang, Kerik, Kiringan, Kuwon, Madigondo, Sawojajar, Takeran, Waduk.
+### **3. Kabupaten Ngawi**
+ * **Ngawi (Kota):** Beran, Grudo, Jururejo, Kandangan, Karangtengah Prandon, Karang Asri, Kartoharjo, Kerep, Ngawi, Watualang (Kelurahan: Karangtengah Kota, Ketanggi, Margomulyo, Pelem).
+ * **Mantingan:** Jatimulyo, Kedungharjo, Mantingan, Pakis, Pengkol, Sambirejo, Tambakboyo.
+ * **Widodaren:** Banyubiru, Gendingan, Karanganyar, Kauman, Kayutrejo, Kedungghalar, Sekaralas, Sidolaju, Sidomakmur, Walikukun, Widodaren.
+ * **Paron:** Babadan, Gelung, Gentong, Jambangan, Kebon, Kedungputri, Ngale, Paron, Semen, Sirigan, Teguhan, Tempuran.
+ * **Jogorogo:** Brubuh, Dawung, Girimulyo, Jaten, Jogorogo, Kuncen, Macanan, Ngrayudan, Soco, Tanjungsari, Umbulrejo.
+### **4. Kabupaten Pacitan**
+ * **Pacitan (Kota):** Arjowinangun, Bangunsari, Banjarsari, Kayen, Menadi, Mentoro, Nanggungan, Purworejo, Sambong, Sedeng, Sirnoboyo, Sukoharjo, Tanjungsari, Widoro (Kelurahan: Baleharjo, Pacitan, Ploso, Pucangsewu, Sidoharjo).
+ * **Donorojo:** Belah, Cemeng, Donorojo, Gedompol, Kalak, Klepu, Sawahan, Sekar, Sendang.
+ * **Punung:** Bomo, Gondosari, Kebonsari, Kendal, Mantren, Mendolo Kidul, Mendolo Lor, Ploso, Punung, Sooka, Tinatar, Wareng.
+ * **Arjosari:** Arjosari, Borang, Gayuhan, Gegeran, Gunungsari, Jatimalang, Karanggede, Karangrejo, Kedungbendo, Mangunharjo, Mlati, Pagerejo, Sedayu, Temon, Tremas.
+ * **Nawangan:** Mujing, Nawangan, Pakis Baru, Pengger, Sempu, Tokawi, Gondang.
+### **5. Kabupaten Trenggalek**
+ * **Trenggalek (Kota):** Dawuhan, Karangsoko, Ngares, Parakan, Rejowinangun, Sambirejo, Sukosari, Sumberdadi, Tamanan (Kelurahan: Kelutan, Ngantru, Sumbergedong, Surodakan, Tamanan).
+ * **Watulimo:** Gemaharjo, Karanganyar, Margomulyo, Ngadimulyo, Prigi, Sawahan, Slawe, Tasikmadu, Watuagung, Watulimo.
+ * **Panggul:** Banjar, Besuki, Bodag, Gayam, Karangtengah, Kertosono, Manggis, Ngampel, Panggul, Sawahan, Terbis.
+ * **Dongko:** Cakul, Dongko, Nglebo, Pandean, Petung, Pringapus, Salam Wates, Siki, Sumber Bening, Watuagung.
+ * **Durenan:** Baruharjo, Durenan, Gamping, Kamulan, Karanganyar, Kendalrejo, Malasan, Ngadisuko, Pakis, Pandean, Panggungsari, Semarum, Sumberejo.
+**Tips:** Jika Anda ingin memindahkan data ini ke Excel, Anda bisa menyalin teks di atas lalu gunakan fitur *Text to Columns* dengan pemisah koma (comma delimited).
