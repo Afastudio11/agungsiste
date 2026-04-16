@@ -1,7 +1,11 @@
 import { useState, useRef, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Camera, Upload, CheckCircle2, AlertCircle, AlertTriangle, Phone, Mail, Tag, FileText, User, Users, Zap, Sun, Eye, Contrast } from "lucide-react";
+import {
+  ArrowLeft, Camera, Upload, CheckCircle2, AlertCircle, AlertTriangle,
+  Phone, Mail, Tag, FileText, User, Users, Zap, Sun, Eye, Contrast,
+  RotateCcw, ScanLine, ChevronRight
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import KtpCamera from "@/components/ktp-camera";
 
@@ -9,7 +13,12 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type QualityWarning = "dark" | "overexposed" | "blurry" | "low_contrast" | null;
 
-interface KtpMeta { tesseractScore: number; qualityWarning: QualityWarning; lowConfidence: boolean; engine?: string; }
+interface KtpMeta {
+  tesseractScore: number;
+  qualityWarning: QualityWarning;
+  lowConfidence: boolean;
+  engine?: string;
+}
 
 interface KtpData {
   nik?: string; fullName?: string; address?: string; birthPlace?: string;
@@ -19,20 +28,72 @@ interface KtpData {
   _meta?: KtpMeta;
 }
 
-interface EventInfo { id: number; name: string; location?: string; eventDate: string; participantCount: number; }
+interface EventInfo {
+  id: number; name: string; location?: string;
+  eventDate: string; participantCount: number;
+}
 
 const profesiList = [
-  "Karyawan Swasta","PNS","Wiraswasta","Petani","Pedagang","Guru","Dokter",
-  "Mahasiswa","Pelajar","TNI/Polri","Buruh","Nelayan","Ibu Rumah Tangga","Freelancer",
-  "Arsitek","Insinyur","Akuntan","Programmer","Desainer","Jurnalis","Perawat","Bidan",
+  "Karyawan Swasta", "PNS", "Wiraswasta", "Petani", "Pedagang",
+  "Guru", "Dokter", "Mahasiswa", "TNI/Polri", "Ibu Rumah Tangga",
 ];
 
 const qualityMessages: Record<string, { icon: React.ReactNode; text: string }> = {
-  dark: { icon: <Sun className="h-3.5 w-3.5 shrink-0" />, text: "Gambar terlalu gelap, coba di tempat lebih terang" },
-  overexposed: { icon: <Sun className="h-3.5 w-3.5 shrink-0" />, text: "Gambar terlalu terang, hindari cahaya langsung" },
-  blurry: { icon: <Eye className="h-3.5 w-3.5 shrink-0" />, text: "Gambar kurang tajam, tahan kamera lebih stabil" },
-  low_contrast: { icon: <Contrast className="h-3.5 w-3.5 shrink-0" />, text: "Kontras rendah, mungkin dari fotokopi pudar" },
+  dark: { icon: <Sun className="h-3.5 w-3.5 shrink-0" />, text: "Gambar terlalu gelap — coba di tempat lebih terang" },
+  overexposed: { icon: <Sun className="h-3.5 w-3.5 shrink-0" />, text: "Gambar terlalu terang — hindari cahaya langsung" },
+  blurry: { icon: <Eye className="h-3.5 w-3.5 shrink-0" />, text: "Gambar kurang tajam — tahan kamera lebih stabil" },
+  low_contrast: { icon: <Contrast className="h-3.5 w-3.5 shrink-0" />, text: "Kontras rendah — kemungkinan dari fotokopi pudar" },
 };
+
+function StepBar({ step }: { step: "upload" | "form" | "done" }) {
+  const steps = [
+    { key: "upload", label: "Scan KTP", icon: <ScanLine size={14} /> },
+    { key: "form", label: "Isi Data", icon: <User size={14} /> },
+    { key: "done", label: "Selesai", icon: <CheckCircle2 size={14} /> },
+  ];
+  const idx = steps.findIndex((s) => s.key === step);
+  return (
+    <div className="flex items-center">
+      {steps.map((s, i) => {
+        const done = i < idx;
+        const active = i === idx;
+        return (
+          <div key={s.key} className="flex items-center flex-1 last:flex-none">
+            <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition-all ${
+              active ? "bg-blue-600 text-white shadow-sm"
+              : done ? "bg-emerald-100 text-emerald-700"
+              : "bg-slate-100 text-slate-400"
+            }`}>
+              {s.icon}
+              <span className="hidden sm:inline">{s.label}</span>
+            </div>
+            {i < steps.length - 1 && (
+              <div className={`flex-1 mx-1.5 h-0.5 rounded-full transition-colors ${done ? "bg-emerald-300" : "bg-slate-200"}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FieldInput({ label, value, onChange, placeholder, textarea }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; textarea?: boolean;
+}) {
+  const cls = "w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition font-medium placeholder:text-slate-300";
+  return (
+    <div>
+      <label className="block text-[11px] font-bold text-slate-500 mb-1 tracking-wide">{label}</label>
+      {textarea ? (
+        <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={2}
+          className={`${cls} resize-none`} />
+      ) : (
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+          className={cls} />
+      )}
+    </div>
+  );
+}
 
 export default function PetugasScanPage() {
   const { id } = useParams();
@@ -48,6 +109,7 @@ export default function PetugasScanPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [ocrMeta, setOcrMeta] = useState<KtpMeta | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [ktp, setKtp] = useState<KtpData>({});
   const [capturedBase64, setCapturedBase64] = useState<string | null>(null);
@@ -59,7 +121,8 @@ export default function PetugasScanPage() {
 
   const { data: event } = useQuery<EventInfo>({
     queryKey: ["event", eventId],
-    queryFn: () => fetch(`${BASE}/api/events/${eventId}`, { credentials: "include" }).then((r) => r.json()),
+    queryFn: () =>
+      fetch(`${BASE}/api/events/${eventId}`, { credentials: "include" }).then((r) => r.json()),
     enabled: eventId > 0,
   });
 
@@ -88,18 +151,13 @@ export default function PetugasScanPage() {
     }
   }, []);
 
-  const handleFile = async (file: File) => {
+  const handleFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = (e.target?.result as string).split(",")[1];
       processBase64(base64);
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
   };
 
   const handleCameraCapture = (base64: string) => {
@@ -109,319 +167,452 @@ export default function PetugasScanPage() {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
   };
 
-  const addTag = (t: string) => { if (t && !tags.includes(t)) setTags([...tags, t]); setCustomTag(""); };
-  const removeTag = (t: string) => setTags(tags.filter((x) => x !== t));
+  const addTag = (t: string) => {
+    if (t && !tags.includes(t)) setTags([...tags, t]);
+    setCustomTag("");
+  };
+  const removeTag = (t: string) => setTags(tags.filter((x) => x !== x && t !== t ? false : x !== t));
 
   const handleSubmit = async () => {
-    if (!ktp.nik || !ktp.fullName) { setError("NIK dan nama lengkap diperlukan"); return; }
-    setSubmitting(true); setError("");
+    if (!ktp.nik || !ktp.fullName) { setError("NIK dan nama lengkap wajib diisi"); return; }
+    setSubmitting(true);
+    setError("");
     try {
       const r = await fetch(`${BASE}/api/ktp/register`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventId, staffId: user?.id, staffName: user?.name,
-          phone: phone || undefined, email: email || undefined,
-          notes: notes || undefined, tags: tags.join(", ") || undefined,
+          eventId,
+          staffId: user?.id,
+          staffName: user?.name,
+          phone: phone || undefined,
+          email: email || undefined,
+          notes: notes || undefined,
+          tags: tags.join(", ") || undefined,
           ...ktp,
         }),
       });
       const data = await r.json();
       if (!r.ok) {
-        setError(r.status === 409 ? "Peserta ini sudah terdaftar di event ini." : (data.error || "Gagal mendaftarkan"));
+        setError(
+          r.status === 409
+            ? "Peserta ini sudah terdaftar di event ini."
+            : data.error || "Gagal mendaftarkan"
+        );
         return;
       }
       setSuccessMsg(data.message || "Berhasil didaftarkan!");
-      // Simpan foto KTP ke storage (background, tidak blokir UI)
       if (capturedBase64 && ktp.nik) {
         fetch(`${BASE}/api/ktp/save-image`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ nik: ktp.nik, imageBase64: capturedBase64 }),
-        }).catch(() => {}); // silent fail
+        }).catch(() => {});
       }
       setStep("done");
     } catch {
-      setError("Terjadi kesalahan jaringan");
+      setError("Terjadi kesalahan jaringan. Coba lagi.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const resetForm = () => {
-    setKtp({}); setCapturedBase64(null); setPhone(""); setEmail(""); setNotes(""); setTags([]);
-    setError(""); setSuccessMsg(""); setOcrMeta(null); setStep("upload");
+    setKtp({});
+    setCapturedBase64(null);
+    setPhone("");
+    setEmail("");
+    setNotes("");
+    setTags([]);
+    setError("");
+    setSuccessMsg("");
+    setOcrMeta(null);
+    setStep("upload");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
-
-  const F = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
-    <div>
-      <label className="block text-xs font-semibold text-slate-600 mb-1">{label}</label>
-      <input value={value} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
-    </div>
-  );
 
   const qw = ocrMeta?.qualityWarning;
 
   return (
-    <div className="min-h-screen bg-[#f0f4ff] pb-8" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="min-h-screen bg-slate-50 pb-10" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {showCamera && (
-        <KtpCamera
-          onCapture={handleCameraCapture}
-          onClose={() => setShowCamera(false)}
-        />
+        <KtpCamera onCapture={handleCameraCapture} onClose={() => setShowCamera(false)} />
       )}
 
-      {/* Top bar */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-        <button onClick={() => navigate("/petugas")} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+      {/* ── Top Bar ──────────────────────────────────────────────── */}
+      <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+        <button
+          onClick={() => navigate("/petugas")}
+          className="p-2 hover:bg-slate-100 rounded-xl transition-colors shrink-0"
+        >
           <ArrowLeft className="h-4 w-4 text-slate-600" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-bold text-blue-600 tracking-wide">Scan KTP — On The Spot</div>
-          <div className="text-sm font-extrabold text-slate-900 truncate">{event?.name || "Memuat..."}</div>
+          <div className="text-[10px] font-extrabold text-blue-600 tracking-widest">SCAN KTP</div>
+          <div className="text-[13px] font-extrabold text-slate-900 truncate leading-tight">
+            {event?.name || "Memuat..."}
+          </div>
         </div>
         {event && (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 shrink-0 bg-slate-50 px-2.5 py-1 rounded-lg">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 shrink-0 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-xl">
             <Users className="h-3 w-3" />
             {event.participantCount}
           </div>
         )}
       </div>
 
-      <div className="max-w-lg mx-auto px-4 pt-4">
+      <div className="max-w-lg mx-auto px-4 pt-5 space-y-4">
 
-        {/* STEP: Upload */}
+        {/* Step indicator */}
+        <StepBar step={step} />
+
+        {/* ── STEP 1: Upload ───────────────────────────────────────── */}
         {step === "upload" && (
-          <div>
-            {/* Camera button (primary) */}
+          <div className="space-y-3">
+            {/* Primary: Camera */}
             <button
               onClick={() => !scanning && setShowCamera(true)}
               disabled={scanning}
-              className={`w-full border-2 rounded-2xl p-8 text-center transition ${
-                scanning ? "border-blue-300 bg-blue-50 cursor-wait" : "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer"
+              className={`w-full rounded-2xl border-2 p-6 text-center transition-all duration-200 ${
+                scanning
+                  ? "border-blue-300 bg-blue-50 cursor-wait"
+                  : "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50/30 active:scale-[0.99] cursor-pointer"
               }`}
             >
-              <div className="flex justify-center mb-3">
-                {scanning ? (
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center animate-pulse">
-                    <Camera className="h-6 w-6 text-blue-600" />
-                  </div>
-                ) : (
-                  <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center">
-                    <Camera className="h-6 w-6 text-white" />
-                  </div>
-                )}
-              </div>
-              <div className="font-bold text-sm text-slate-800 mb-1">
-                {scanning ? "Membaca KTP..." : "Buka Kamera"}
-              </div>
-              <div className="text-xs text-slate-500 mb-2">
-                {scanning ? "Mohon tunggu beberapa saat" : "Foto KTP langsung dari kamera dengan panduan bingkai"}
-              </div>
-              {scanning && (
-                <div className="mb-3 mx-8 h-1 overflow-hidden rounded-full bg-blue-100">
-                  <div className="h-full rounded-full bg-blue-500 animate-pulse" style={{ width: "70%", animation: "pulse 1.5s ease-in-out infinite" }}></div>
+              <div className="flex justify-center mb-4">
+                <div
+                  className={`h-16 w-16 rounded-2xl flex items-center justify-center transition-all ${
+                    scanning
+                      ? "bg-blue-100 animate-pulse"
+                      : "bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30"
+                  }`}
+                >
+                  <Camera className="h-8 w-8 text-white" />
                 </div>
-              )}
-              {!scanning && (
-                <div className="flex gap-2 justify-center">
-                  <div className="flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-xl">
+              </div>
+
+              {scanning ? (
+                <>
+                  <div className="text-[15px] font-extrabold text-blue-700 mb-1">Membaca KTP...</div>
+                  <div className="text-xs text-blue-400 mb-3">OCR sedang berjalan, mohon tunggu</div>
+                  <div className="mx-auto max-w-[200px] h-1.5 overflow-hidden rounded-full bg-blue-100">
+                    <div
+                      className="h-full rounded-full bg-blue-500 animate-pulse"
+                      style={{ width: "70%" }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-[15px] font-extrabold text-slate-900 mb-1">Buka Kamera</div>
+                  <div className="text-xs text-slate-400 mb-3">
+                    Foto KTP dengan panduan bingkai otomatis
+                  </div>
+                  <div className="inline-flex items-center gap-2 bg-blue-600 text-white text-xs font-bold px-5 py-2 rounded-xl">
                     <Camera className="h-3.5 w-3.5" />
                     Buka Kamera
                   </div>
-                </div>
+                  <div className="flex items-center justify-center gap-1 mt-3 text-[10px] text-slate-400">
+                    <Zap className="h-3 w-3 text-emerald-500" />
+                    OCR otomatis — data terisi langsung
+                  </div>
+                </>
               )}
-              <div className="text-[10px] text-slate-400 mt-3 flex items-center justify-center gap-1">
-                <Zap className="h-3 w-3 text-green-500" />
-                OCR otomatis — Tesseract tanpa AI
-              </div>
             </button>
 
-            {/* Upload from file (secondary) */}
+            {/* Secondary: Upload */}
             <div
               onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
               onClick={() => !scanning && fileInputRef.current?.click()}
-              className="mt-3 border border-dashed border-slate-200 rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition"
+              className={`border-2 border-dashed rounded-2xl px-5 py-4 flex items-center gap-3 cursor-pointer transition-all ${
+                isDragging
+                  ? "border-blue-400 bg-blue-50"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+              }`}
             >
-              <Upload className="h-4 w-4 text-slate-400 shrink-0" />
-              <span className="text-xs text-slate-500">Atau upload dari galeri / file</span>
+              <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                <Upload className="h-4 w-4 text-slate-500" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-slate-600">Upload dari galeri</div>
+                <div className="text-xs text-slate-400">Drag & drop atau klik untuk pilih file</div>
+              </div>
+              <ChevronRight size={16} className="text-slate-300 ml-auto shrink-0" />
             </div>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} className="hidden" />
 
-            {/* Tips kualitas foto */}
-            <div className="mt-3 bg-white rounded-xl border border-slate-100 px-4 py-3">
-              <p className="text-[11px] font-bold text-slate-400 tracking-wider mb-2">Tips foto KTP</p>
-              <div className="space-y-1.5">
+            {/* Tips */}
+            <div className="bg-white rounded-2xl border border-slate-100 px-5 py-4">
+              <p className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-3">TIPS FOTO KTP</p>
+              <div className="space-y-2.5">
                 {[
-                  { icon: <Sun className="h-3 w-3 text-amber-500" />, tip: "Foto di tempat terang, hindari bayangan" },
-                  { icon: <Eye className="h-3 w-3 text-blue-500" />, tip: "Tahan kamera stabil, jangan blur" },
-                  { icon: <Camera className="h-3 w-3 text-slate-500" />, tip: "Masukkan KTP ke dalam bingkai, pastikan terbaca jelas" },
-                ].map(({ icon, tip }, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs text-slate-500">
-                    {icon} {tip}
+                  { icon: <Sun className="h-3.5 w-3.5 text-amber-500 shrink-0" />, text: "Foto di tempat terang, hindari bayangan di atas KTP" },
+                  { icon: <Eye className="h-3.5 w-3.5 text-blue-500 shrink-0" />, text: "Tahan kamera stabil agar gambar tidak blur" },
+                  { icon: <Camera className="h-3.5 w-3.5 text-slate-500 shrink-0" />, text: "Pastikan seluruh teks KTP terlihat jelas dan terbaca" },
+                ].map(({ icon, text }, i) => (
+                  <div key={i} className="flex items-start gap-2.5 text-[12px] text-slate-500">
+                    {icon}
+                    <span>{text}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {error && (
-              <div className="mt-3 bg-red-50 border border-red-100 text-red-700 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                {error}
+              <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-2xl px-4 py-3.5 flex items-start gap-2.5">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
+                <span>{error}</span>
               </div>
             )}
           </div>
         )}
 
-        {/* STEP: Form */}
+        {/* ── STEP 2: Form ─────────────────────────────────────────── */}
         {step === "form" && (
           <div className="space-y-4">
-            {/* KTP preview card */}
-            <div className="bg-blue-900 rounded-2xl p-4 text-white">
-              <div className="flex items-start justify-between mb-2">
-                <div className="text-[10px] font-bold tracking-widest opacity-70">KARTU TANDA PENDUDUK</div>
-                {/* OCR score badge */}
-                {ocrMeta && (
-                  <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    ocrMeta.lowConfidence
-                      ? "bg-amber-500/30 text-amber-200"
-                      : "bg-green-500/30 text-green-200"
-                  }`}>
-                    <Zap className="h-2.5 w-2.5" /> {ocrMeta.engine?.startsWith("gemini") ? "Gemini 2.5 Flash" : ocrMeta.engine === "python-opencv" ? "OpenCV" : "Tesseract"} {ocrMeta.tesseractScore}%
-                  </span>
-                )}
-              </div>
-
-              {/* Quality / confidence warning */}
-              {(qw || ocrMeta?.lowConfidence) && (
-                <div className="flex items-center gap-1.5 bg-amber-400/20 text-amber-200 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg mb-3">
-                  {qw ? qualityMessages[qw].icon : <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
-                  <span>
-                    {qw ? qualityMessages[qw].text : `Kepercayaan rendah (${ocrMeta?.tesseractScore}%) — periksa data di bawah`}
-                  </span>
+            {/* KTP Preview Card */}
+            <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 shadow-lg">
+              <div className="px-5 pt-4 pb-5">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="text-[9px] font-extrabold tracking-[0.2em] text-slate-400">
+                    KARTU TANDA PENDUDUK
+                  </div>
+                  {ocrMeta && (
+                    <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      ocrMeta.lowConfidence
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                        : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    }`}>
+                      <Zap className="h-2.5 w-2.5" />
+                      {ocrMeta.engine?.startsWith("gemini")
+                        ? "Gemini"
+                        : ocrMeta.engine === "python-opencv"
+                        ? "OpenCV"
+                        : "Tesseract"}{" "}
+                      {ocrMeta.tesseractScore}%
+                    </span>
+                  )}
                 </div>
-              )}
 
-              <div className="font-mono text-lg font-bold tracking-wider mb-1">{ktp.nik || "—"}</div>
-              <div className="font-bold text-base mb-3">{ktp.fullName || "—"}</div>
-              <div className="grid grid-cols-2 gap-2 text-xs opacity-80">
-                <div><div className="opacity-60 text-[10px]">Tempat/Tgl Lahir</div><div>{ktp.birthPlace}, {ktp.birthDate}</div></div>
-                <div><div className="opacity-60 text-[10px]">Jenis Kelamin</div><div>{ktp.gender}</div></div>
-                <div><div className="opacity-60 text-[10px]">Pekerjaan</div><div>{ktp.occupation}</div></div>
-                <div><div className="opacity-60 text-[10px]">Gol. Darah</div><div>{ktp.bloodType}</div></div>
+                {(qw || ocrMeta?.lowConfidence) && (
+                  <div className="flex items-center gap-2 bg-amber-500/15 text-amber-300 text-[11px] font-semibold px-3 py-2 rounded-xl mb-3">
+                    {qw ? qualityMessages[qw].icon : <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+                    <span>
+                      {qw
+                        ? qualityMessages[qw].text
+                        : `Kepercayaan rendah (${ocrMeta?.tesseractScore}%) — periksa dan koreksi data`}
+                    </span>
+                  </div>
+                )}
+
+                <div className="font-mono text-[17px] font-bold tracking-widest text-white/90 mb-0.5">
+                  {ktp.nik || "—"}
+                </div>
+                <div className="text-[18px] font-extrabold text-white leading-tight mb-3" style={{ letterSpacing: "-0.02em" }}>
+                  {ktp.fullName || "—"}
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px] text-slate-300">
+                  <div>
+                    <div className="text-[9px] text-slate-500 font-bold tracking-wider">Tempat/Tgl Lahir</div>
+                    <div className="font-medium text-slate-200">{[ktp.birthPlace, ktp.birthDate].filter(Boolean).join(", ") || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-slate-500 font-bold tracking-wider">Jenis Kelamin</div>
+                    <div className="font-medium text-slate-200">{ktp.gender || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-slate-500 font-bold tracking-wider">Pekerjaan</div>
+                    <div className="font-medium text-slate-200">{ktp.occupation || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-slate-500 font-bold tracking-wider">Gol. Darah</div>
+                    <div className="font-medium text-slate-200">{ktp.bloodType || "—"}</div>
+                  </div>
+                </div>
               </div>
-              <button onClick={() => setStep("upload")} className="mt-3 text-xs bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg transition">
-                📷 Scan Ulang
+              <button
+                onClick={() => setStep("upload")}
+                className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white/80 text-xs font-bold py-2.5 transition"
+              >
+                <RotateCcw size={12} />
+                Scan Ulang KTP
               </button>
             </div>
 
-            {/* Edit KTP fields */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-2">
-                <User className="h-4 w-4 text-slate-500" />
-                Data KTP (dapat diedit)
+            {/* Edit fields */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <User size={14} className="text-blue-600" />
+                </div>
+                <span className="text-[13px] font-extrabold text-slate-900">Data KTP</span>
+                <span className="text-[10px] text-slate-400 font-medium ml-1">— koreksi jika ada kesalahan</span>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2"><F label="NIK *" value={ktp.nik || ""} onChange={(v) => setKtp({ ...ktp, nik: v })} /></div>
-                <div className="col-span-2"><F label="Nama Lengkap *" value={ktp.fullName || ""} onChange={(v) => setKtp({ ...ktp, fullName: v })} /></div>
-                <F label="Kota/Kabupaten" value={ktp.city || ""} onChange={(v) => setKtp({ ...ktp, city: v })} />
-                <F label="Kecamatan" value={ktp.kecamatan || ""} onChange={(v) => setKtp({ ...ktp, kecamatan: v })} />
-                <F label="Kelurahan/Desa" value={ktp.kelurahan || ""} onChange={(v) => setKtp({ ...ktp, kelurahan: v })} />
-                <F label="Pekerjaan" value={ktp.occupation || ""} onChange={(v) => setKtp({ ...ktp, occupation: v })} />
+                <div className="col-span-2">
+                  <FieldInput label="NIK *" value={ktp.nik || ""} onChange={(v) => setKtp({ ...ktp, nik: v })} placeholder="16 digit NIK" />
+                </div>
+                <div className="col-span-2">
+                  <FieldInput label="Nama Lengkap *" value={ktp.fullName || ""} onChange={(v) => setKtp({ ...ktp, fullName: v })} placeholder="Sesuai KTP" />
+                </div>
+                <FieldInput label="Kota/Kabupaten" value={ktp.city || ""} onChange={(v) => setKtp({ ...ktp, city: v })} />
+                <FieldInput label="Kecamatan" value={ktp.kecamatan || ""} onChange={(v) => setKtp({ ...ktp, kecamatan: v })} />
+                <FieldInput label="Kelurahan/Desa" value={ktp.kelurahan || ""} onChange={(v) => setKtp({ ...ktp, kelurahan: v })} />
+                <FieldInput label="Pekerjaan" value={ktp.occupation || ""} onChange={(v) => setKtp({ ...ktp, occupation: v })} />
               </div>
             </div>
 
             {/* Contact */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-2">
-                <Phone className="h-4 w-4 text-slate-500" />
-                Data Kontak
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <Phone size={14} className="text-emerald-600" />
+                </div>
+                <span className="text-[13px] font-extrabold text-slate-900">Kontak</span>
+                <span className="text-[10px] text-slate-400 font-medium ml-1">— opsional</span>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Nomor HP</label>
-                <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+62 8xx xxxx xxxx" className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1"><Mail className="h-3.5 w-3.5 inline mr-1" />Email</label>
-                <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@domain.com" type="email" className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
-              </div>
+              <FieldInput label="Nomor HP" value={phone} onChange={setPhone} placeholder="+62 8xx xxxx xxxx" />
+              <FieldInput label="Email" value={email} onChange={setEmail} placeholder="nama@email.com" />
             </div>
 
-            {/* Keterangan & Tagging */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-2">
-                <Tag className="h-4 w-4 text-slate-500" />
-                Keterangan & Tagging
+            {/* Tags */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
+                  <Tag size={14} className="text-violet-600" />
+                </div>
+                <span className="text-[13px] font-extrabold text-slate-900">Kategori & Catatan</span>
               </div>
+
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-2">Profesi / Kategori</label>
+                <label className="block text-[11px] font-bold text-slate-500 mb-2 tracking-wide">Profesi / Kategori</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {profesiList.slice(0, 8).map((p) => (
-                    <button key={p} type="button" onClick={() => { if (tags.includes(p)) removeTag(p); else addTag(p); }}
-                      className={`text-xs px-2.5 py-1 rounded-full border transition ${tags.includes(p) ? "bg-blue-600 border-blue-600 text-white" : "border-slate-200 text-slate-600 hover:border-blue-300"}`}>
+                  {profesiList.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => { if (tags.includes(p)) removeTag(p); else addTag(p); }}
+                      className={`text-[11px] px-2.5 py-1 rounded-full border font-semibold transition-all ${
+                        tags.includes(p)
+                          ? "bg-blue-600 border-blue-600 text-white"
+                          : "border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600"
+                      }`}
+                    >
                       {p}
                     </button>
                   ))}
                 </div>
               </div>
+
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Tag Tambahan</label>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wide">Tag Tambahan</label>
                 <div className="flex gap-2">
-                  <input value={customTag} onChange={(e) => setCustomTag(e.target.value)}
+                  <input
+                    value={customTag}
+                    onChange={(e) => setCustomTag(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(customTag); } }}
-                    placeholder="Tambah tag..." className="flex-1 px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
-                  <button type="button" onClick={() => addTag(customTag)} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition">+</button>
+                    placeholder="Tambah tag..."
+                    className="flex-1 px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addTag(customTag)}
+                    className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-bold rounded-xl transition border border-blue-200"
+                  >
+                    +
+                  </button>
                 </div>
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {tags.map((t) => (
-                      <span key={t} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">
-                        {t}<button onClick={() => removeTag(t)} className="hover:text-red-600">×</button>
+                      <span key={t} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-semibold">
+                        {t}
+                        <button onClick={() => removeTag(t)} className="hover:text-red-600 ml-0.5">×</button>
                       </span>
                     ))}
                   </div>
                 )}
               </div>
+
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1"><FileText className="h-3.5 w-3.5 inline mr-1" />Catatan</label>
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Catatan tambahan..."
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none" />
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <FileText size={11} className="text-slate-400" />
+                  <label className="text-[11px] font-bold text-slate-500 tracking-wide">Catatan</label>
+                </div>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Catatan tambahan tentang peserta..."
+                  className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition resize-none"
+                />
               </div>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                {error}
+              <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-2xl px-4 py-3.5 flex items-start gap-2.5">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
+                <span>{error}</span>
               </div>
             )}
 
-            <button onClick={handleSubmit} disabled={submitting}
-              className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-bold rounded-2xl py-3.5 text-sm transition">
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-60 text-white font-extrabold rounded-2xl py-4 text-[15px] transition-all shadow-lg shadow-emerald-500/25 active:scale-[0.98]"
+            >
               <CheckCircle2 className="h-5 w-5" />
-              {submitting ? "Menyimpan..." : "Submit Absen"}
+              {submitting ? "Menyimpan..." : "Daftarkan Peserta"}
             </button>
           </div>
         )}
 
-        {/* STEP: Done */}
+        {/* ── STEP 3: Done ─────────────────────────────────────────── */}
         {step === "done" && (
-          <div className="text-center py-8">
-            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-4">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
+          <div className="flex flex-col items-center text-center py-8">
+            <div className="relative mb-6">
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-500/30">
+                <CheckCircle2 className="h-12 w-12 text-white" />
+              </div>
+              <div className="absolute -top-2 -right-2 w-8 h-8 bg-amber-400 rounded-xl flex items-center justify-center shadow-md">
+                <span className="text-white text-sm font-extrabold">✓</span>
+              </div>
             </div>
-            <div className="text-xl font-extrabold text-slate-900 mb-2">Berhasil!</div>
-            <div className="text-sm text-slate-500 mb-6 max-w-xs mx-auto">{successMsg}</div>
-            <button onClick={resetForm} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-2xl text-sm transition">
-              📷 Scan Peserta Berikutnya
+
+            <h2 className="text-[24px] font-extrabold text-slate-900 mb-2" style={{ letterSpacing: "-0.03em" }}>
+              Berhasil Didaftarkan!
+            </h2>
+            <p className="text-sm text-slate-400 max-w-xs mb-3">{successMsg}</p>
+
+            {ktp.fullName && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-3 mb-6">
+                <div className="text-[10px] font-bold text-emerald-600 tracking-wider mb-0.5">PESERTA</div>
+                <div className="text-[15px] font-extrabold text-slate-900">{ktp.fullName}</div>
+                <div className="text-xs text-slate-400 font-mono mt-0.5">{ktp.nik}</div>
+              </div>
+            )}
+
+            <button
+              onClick={resetForm}
+              className="flex items-center justify-center gap-2.5 w-full max-w-xs px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-extrabold text-[15px] transition-all shadow-lg shadow-blue-500/25 active:scale-[0.98]"
+            >
+              <RotateCcw className="h-5 w-5" />
+              Scan Peserta Berikutnya
+            </button>
+            <button
+              onClick={() => navigate("/petugas")}
+              className="mt-3 text-sm text-slate-400 hover:text-slate-600 font-semibold transition"
+            >
+              Kembali ke daftar event
             </button>
           </div>
         )}
