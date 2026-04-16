@@ -3,10 +3,8 @@ import { Link } from "wouter";
 import Layout from "@/components/layout";
 import { useHeaderContext } from "@/lib/header-context";
 import {
-  useGetDashboardStats,
   useGetDailyRegistrations,
   useGetEventsSummary,
-  getGetDashboardStatsQueryKey,
   getGetDailyRegistrationsQueryKey,
   getGetEventsSummaryQueryKey,
 } from "@workspace/api-client-react";
@@ -14,9 +12,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -99,16 +94,47 @@ function StatCard({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { startDate, endDate } = useHeaderContext();
+  const { startDate, endDate, setStartDate, setEndDate } = useHeaderContext();
   const [regPeriod, setRegPeriod] = useState<"day" | "week" | "month">("day");
+  const [activePeriod, setActivePeriod] = useState<"hari" | "minggu" | "bulan" | "tahun" | "custom" | null>(null);
+  const [filterKabupaten, setFilterKabupaten] = useState("");
+  const [filterKecamatan, setFilterKecamatan] = useState("");
+  const [filterKelurahan, setFilterKelurahan] = useState("");
+  const [showDaerahFilter, setShowDaerahFilter] = useState(false);
+
+  const setPeriod = (p: typeof activePeriod) => {
+    const today = new Date();
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    if (p === "hari") { setStartDate(fmt(today)); setEndDate(fmt(today)); }
+    else if (p === "minggu") { const d = new Date(today); d.setDate(d.getDate() - 7); setStartDate(fmt(d)); setEndDate(fmt(today)); }
+    else if (p === "bulan") { const d = new Date(today); d.setDate(d.getDate() - 30); setStartDate(fmt(d)); setEndDate(fmt(today)); }
+    else if (p === "tahun") { setStartDate(`${today.getFullYear()}-01-01`); setEndDate(fmt(today)); }
+    else { setStartDate(""); setEndDate(""); }
+    setActivePeriod(p);
+  };
+
+  const daerahParams = new URLSearchParams();
+  if (filterKabupaten) daerahParams.set("kabupaten", filterKabupaten);
+  if (filterKecamatan) daerahParams.set("kecamatan", filterKecamatan);
+  if (filterKelurahan) daerahParams.set("kelurahan", filterKelurahan);
+  const daerahQs = daerahParams.toString();
 
   const params = {
     ...(startDate ? { startDate } : {}),
     ...(endDate ? { endDate } : {}),
   };
 
-  const { data: stats } = useGetDashboardStats(params, {
-    query: { queryKey: getGetDashboardStatsQueryKey(params) },
+  const statsQs = new URLSearchParams({
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+    ...(filterKabupaten ? { kabupaten: filterKabupaten } : {}),
+    ...(filterKecamatan ? { kecamatan: filterKecamatan } : {}),
+    ...(filterKelurahan ? { kelurahan: filterKelurahan } : {}),
+  }).toString();
+  const { data: stats } = useQuery({
+    queryKey: ["dashboard-stats", statsQs],
+    queryFn: () => fetch(`/api/dashboard/stats${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
+    staleTime: 30_000,
   });
   const { data: daily } = useGetDailyRegistrations(params, {
     query: { queryKey: getGetDailyRegistrationsQueryKey(params) },
@@ -129,6 +155,28 @@ export default function DashboardPage() {
   const { data: kabupatenData } = useQuery<{ kabupaten: string; totalInput: number }[]>({
     queryKey: ["pemetaan-kabupaten"],
     queryFn: () => fetch("/api/pemetaan/kabupaten").then((r) => r.json()),
+    staleTime: 60_000,
+  });
+  const { data: kecamatanData } = useQuery<{ kecamatan: string }[]>({
+    queryKey: ["pemetaan-kecamatan", filterKabupaten],
+    queryFn: () => fetch(`/api/pemetaan/kecamatan${filterKabupaten ? `?kabupaten=${encodeURIComponent(filterKabupaten)}` : ""}`).then((r) => r.json()),
+    enabled: showDaerahFilter,
+    staleTime: 60_000,
+  });
+  const { data: desaData } = useQuery<{ kelurahan: string }[]>({
+    queryKey: ["pemetaan-desa-filter", filterKabupaten, filterKecamatan],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      if (filterKabupaten) q.set("kabupaten", filterKabupaten);
+      if (filterKecamatan) q.set("kecamatan", filterKecamatan);
+      return fetch(`/api/pemetaan/desa?${q.toString()}`).then((r) => r.json());
+    },
+    enabled: showDaerahFilter && !!(filterKabupaten || filterKecamatan),
+    staleTime: 60_000,
+  });
+  const { data: topPrizes } = useQuery<{ id: number; name: string; eventName: string | null; quantity: number; distributedCount: number }[]>({
+    queryKey: ["dashboard-top-prizes"],
+    queryFn: () => fetch("/api/dashboard/top-prizes").then((r) => r.json()),
     staleTime: 60_000,
   });
 
@@ -171,9 +219,6 @@ export default function DashboardPage() {
     return base;
   }, [segments]);
 
-  const multiRate = stats?.totalParticipants
-    ? Math.round((stats.multiEventParticipants / stats.totalParticipants) * 100)
-    : 0;
 
   const genderData = useMemo(() => {
     const palette = [
@@ -207,6 +252,99 @@ export default function DashboardPage() {
 
   return (
     <Layout>
+      {/* ── Filter Bar ──────────────────────────────────────────── */}
+      <div className="mb-5 space-y-2">
+        {/* Period quick-select */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mr-1">Periode</span>
+          {([
+            { key: "hari", label: "Hari Ini" },
+            { key: "minggu", label: "7 Hari" },
+            { key: "bulan", label: "30 Hari" },
+            { key: "tahun", label: "Tahun Ini" },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setPeriod(activePeriod === key ? null : key)}
+              className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all ${
+                activePeriod === key
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <div className="h-4 w-px bg-slate-200 mx-1" />
+          <button
+            onClick={() => setShowDaerahFilter((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition-all ${
+              (filterKabupaten || filterKecamatan || filterKelurahan)
+                ? "bg-emerald-600 text-white"
+                : showDaerahFilter
+                ? "bg-slate-800 text-white"
+                : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"
+            }`}
+          >
+            <MsIcon name="location_on" className="text-[14px]" />
+            Daerah
+            {(filterKabupaten || filterKecamatan || filterKelurahan) && (
+              <span className="ml-0.5 truncate max-w-[80px]">
+                : {filterKelurahan || filterKecamatan || filterKabupaten}
+              </span>
+            )}
+          </button>
+          {(filterKabupaten || filterKecamatan || filterKelurahan || activePeriod) && (
+            <button
+              onClick={() => { setPeriod(null); setFilterKabupaten(""); setFilterKecamatan(""); setFilterKelurahan(""); }}
+              className="px-3 py-1.5 rounded-full text-[12px] font-medium text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 transition"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+
+        {/* Daerah dropdowns */}
+        {showDaerahFilter && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            <select
+              value={filterKabupaten}
+              onChange={(e) => { setFilterKabupaten(e.target.value); setFilterKecamatan(""); setFilterKelurahan(""); }}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="">— Semua Kabupaten —</option>
+              {(kabupatenData ?? []).map((k) => (
+                <option key={k.kabupaten} value={k.kabupaten}>{k.kabupaten}</option>
+              ))}
+            </select>
+            {filterKabupaten && (
+              <select
+                value={filterKecamatan}
+                onChange={(e) => { setFilterKecamatan(e.target.value); setFilterKelurahan(""); }}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="">— Semua Kecamatan —</option>
+                {(kecamatanData ?? []).map((k) => (
+                  <option key={k.kecamatan} value={k.kecamatan}>{k.kecamatan}</option>
+                ))}
+              </select>
+            )}
+            {filterKecamatan && (
+              <select
+                value={filterKelurahan}
+                onChange={(e) => setFilterKelurahan(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="">— Semua Desa —</option>
+                {(desaData ?? []).map((d) => (
+                  <option key={d.kelurahan} value={d.kelurahan}>{d.kelurahan}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* ── Stat cards ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <StatCard
@@ -231,12 +369,11 @@ export default function DashboardPage() {
           iconColor="text-emerald-400"
         />
         <StatCard
-          label="7 Hari Terakhir"
-          value={stats?.recentRegistrations ?? 0}
-          icon="trending_up"
-          circleColor="bg-amber-400"
-          iconColor="text-amber-400"
-          trend={recentTrend}
+          label="Total Hadiah"
+          value={stats?.totalPrizesDistributed ?? 0}
+          icon="card_giftcard"
+          circleColor="bg-purple-500"
+          iconColor="text-purple-400"
         />
       </div>
 
@@ -315,60 +452,43 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Right: Multi-Event Rate donut */}
-        <div className="lg:col-span-4 rounded-2xl bg-white border border-slate-100 px-5 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400 mb-1">Multi-Event Rate</p>
-          <p className="text-[11px] text-slate-400 mb-3">Peserta yang ikut lebih dari 1 event</p>
-
-          <div className="relative flex justify-center">
-            <ResponsiveContainer width="100%" height={130}>
-              <PieChart>
-                <Pie
-                  data={[{ value: multiRate }, { value: 100 - multiRate }]}
-                  cx="50%"
-                  cy="100%"
-                  startAngle={180}
-                  endAngle={0}
-                  innerRadius={55}
-                  outerRadius={70}
-                  dataKey="value"
-                  strokeWidth={0}
-                >
-                  <Cell fill="#10b981" />
-                  <Cell fill="#f1f5f9" />
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
-              <p className="text-[28px] font-extrabold text-slate-900 leading-none" style={{ letterSpacing: "-0.04em" }}>
-                {multiRate}%
-              </p>
+        {/* Right: Top Hadiah */}
+        <div className="lg:col-span-4 rounded-2xl bg-white border border-slate-100 px-5 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">Top Hadiah</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Terbanyak dibagikan</p>
             </div>
+            <Link href="/prizes">
+              <span className="text-[11px] font-bold text-purple-600 hover:text-purple-800 cursor-pointer flex items-center gap-0.5">
+                Kelola <MsIcon name="arrow_outward" className="text-[13px]" />
+              </span>
+            </Link>
           </div>
-
-          <p className="mt-2 text-center text-[11px] text-slate-400 font-medium">
-            {fmt(stats?.multiEventParticipants ?? 0)} dari {fmt(stats?.totalParticipants ?? 0)} peserta
-          </p>
-
-          <div className="mt-4 space-y-2.5">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-semibold text-slate-500">Multi-Event</span>
-                <span className="text-[11px] font-bold text-emerald-600">{multiRate}%</span>
+          <div className="space-y-3 flex-1">
+            {topPrizes && topPrizes.length > 0 ? topPrizes.slice(0, 6).map((prize, i) => {
+              const maxDist = topPrizes[0]?.distributedCount || 1;
+              const pct = Math.round((prize.distributedCount / Math.max(maxDist, 1)) * 100);
+              return (
+                <div key={prize.id}>
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[10px] font-bold text-slate-300 w-4 shrink-0 font-mono text-right">{i + 1}</span>
+                      <span className="text-[12px] font-semibold text-slate-700 truncate">{prize.name}</span>
+                    </div>
+                    <span className="text-[12px] font-extrabold text-purple-700 shrink-0">{prize.distributedCount}/{prize.quantity}</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 ml-5">
+                    <div className="h-full rounded-full bg-purple-400" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            }) : (
+              <div className="flex flex-col items-center justify-center flex-1 py-8 text-center">
+                <MsIcon name="card_giftcard" className="text-[40px] text-slate-200 mb-2" />
+                <p className="text-sm text-slate-300">Belum ada hadiah</p>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${multiRate}%` }} />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-semibold text-slate-500">Single Event</span>
-                <span className="text-[11px] font-bold text-slate-400">{100 - multiRate}%</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-slate-300" style={{ width: `${100 - multiRate}%` }} />
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

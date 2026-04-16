@@ -20,7 +20,18 @@ router.get("/", requireAuth, async (req, res) => {
       conditions.push(
         or(
           ilike(participantsTable.fullName, `%${search}%`),
-          ilike(participantsTable.nik, `%${search}%`)
+          ilike(participantsTable.nik, `%${search}%`),
+          ilike(participantsTable.occupation, `%${search}%`),
+          ilike(participantsTable.address, `%${search}%`),
+          ilike(participantsTable.religion, `%${search}%`),
+          ilike(participantsTable.maritalStatus, `%${search}%`),
+          ilike(participantsTable.kelurahan, `%${search}%`),
+          ilike(participantsTable.kecamatan, `%${search}%`),
+          ilike(participantsTable.city, `%${search}%`),
+          ilike(participantsTable.province, `%${search}%`),
+          ilike(participantsTable.phone, `%${search}%`),
+          ilike(participantsTable.email, `%${search}%`),
+          ilike(participantsTable.socialStatus, `%${search}%`)
         )
       );
     }
@@ -64,6 +75,21 @@ router.get("/", requireAuth, async (req, res) => {
     res.json(participants);
   } catch (err) {
     req.log.error({ err }, "Error listing participants");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Social status categories — unique values from participants
+router.get("/social-status-categories", requireAuth, async (req, res) => {
+  try {
+    const rows = await db
+      .selectDistinct({ socialStatus: participantsTable.socialStatus })
+      .from(participantsTable)
+      .where(sql`${participantsTable.socialStatus} is not null and ${participantsTable.socialStatus} != ''`)
+      .orderBy(participantsTable.socialStatus);
+    res.json(rows.map((r) => r.socialStatus).filter(Boolean));
+  } catch (err) {
+    req.log.error({ err }, "Error getting social status categories");
     res.status(500).json({ error: "Internal server error" });
   }
 });

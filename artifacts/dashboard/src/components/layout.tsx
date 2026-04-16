@@ -12,7 +12,6 @@ const adminNav = [
   { href: "/events", label: "Event", icon: "event" },
   { href: "/participants", label: "Peserta", icon: "group" },
   { href: "/officers", label: "Petugas", icon: "badge" },
-  { href: "/staff", label: "Statistik Staf", icon: "bar_chart" },
   { href: "/scan", label: "Scan KTP", icon: "document_scanner" },
   { href: "/prizes", label: "Hadiah", icon: "card_giftcard" },
   { href: "/pemetaan", label: "Pemetaan", icon: "map" },

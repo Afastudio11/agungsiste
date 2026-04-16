@@ -34,6 +34,9 @@ export const participantsTable = pgTable("participants", {
   city: text("city"),
   bloodType: text("blood_type"),
   ktpImagePath: text("ktp_image_path"),
+  phone: text("phone"),
+  email: text("email"),
+  socialStatus: text("social_status"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

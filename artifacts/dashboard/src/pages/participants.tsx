@@ -5,7 +5,8 @@ import {
   useListParticipants,
   getListParticipantsQueryKey,
 } from "@workspace/api-client-react";
-import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Eye, Users, TrendingUp, Activity } from "lucide-react";
+import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Gift, CalendarCheck2, Eye } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 type SortKey = "nik" | "fullName" | "gender" | "city" | "province" | "firstRegisteredAt" | "eventCount";
 type SortDir = "asc" | "desc";
@@ -106,14 +107,23 @@ export default function ParticipantsPage() {
   }, [rawParticipants, sortKey, sortDir]);
 
   const stats = useMemo(() => {
-    if (!rawParticipants) return { today: 0, multiEvent: 0, total: 0 };
-    const today = new Date().toDateString();
+    if (!rawParticipants) return { total: 0, totalEvents: 0 };
     return {
       total: rawParticipants.length,
-      today: rawParticipants.filter((p) => new Date(p.firstRegisteredAt).toDateString() === today).length,
-      multiEvent: rawParticipants.filter((p) => p.eventCount > 1).length,
+      totalEvents: rawParticipants.reduce((s, p) => s + (p.eventCount ?? 0), 0),
     };
   }, [rawParticipants]);
+
+  const { data: totalHadiah } = useQuery({
+    queryKey: ["participants-total-hadiah"],
+    queryFn: async () => {
+      const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+      const res = await fetch(`${BASE}/api/prizes`, { credentials: "include" });
+      const data: { distributedCount: number }[] = await res.json();
+      return data.reduce((s, p) => s + (p.distributedCount ?? 0), 0);
+    },
+    staleTime: 60_000,
+  });
 
   const totalPages = Math.max(1, Math.ceil((participants?.length ?? 0) / PAGE_SIZE));
   const paginatedParticipants = useMemo(() => {
@@ -145,7 +155,7 @@ export default function ParticipantsPage() {
               <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
               <input
                 type="text"
-                placeholder="Cari nama atau NIK..."
+                placeholder="Cari nama, NIK, pekerjaan, alamat, status..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                 className="bg-transparent text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none w-44"
@@ -188,11 +198,11 @@ export default function ParticipantsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)] relative overflow-hidden group">
             <div className="relative z-10">
-              <p className="text-slate-400 text-sm font-semibold mb-1">Registrasi Hari Ini</p>
-              <h3 className="text-4xl font-extrabold text-slate-900">{isLoading ? "—" : stats.today}</h3>
-              <p className="text-emerald-600 text-xs font-bold mt-2 flex items-center gap-1">
-                <TrendingUp className="h-3.5 w-3.5" />
-                Peserta baru hari ini
+              <p className="text-slate-400 text-sm font-semibold mb-1">Teregister</p>
+              <h3 className="text-4xl font-extrabold text-slate-900">{isLoading ? "—" : stats.total.toLocaleString("id-ID")}</h3>
+              <p className="text-blue-600 text-xs font-bold mt-2 flex items-center gap-1">
+                <Users className="h-3.5 w-3.5" />
+                Total peserta unik
               </p>
             </div>
             <div className="absolute -right-3 -bottom-3 opacity-5 group-hover:scale-110 transition-transform duration-700">
@@ -202,29 +212,29 @@ export default function ParticipantsPage() {
 
           <div className="bg-white rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)] relative overflow-hidden group">
             <div className="relative z-10">
-              <p className="text-slate-400 text-sm font-semibold mb-1">Multi Event</p>
-              <h3 className="text-4xl font-extrabold text-slate-900">{isLoading ? "—" : stats.multiEvent}</h3>
+              <p className="text-slate-400 text-sm font-semibold mb-1">Event</p>
+              <h3 className="text-4xl font-extrabold text-slate-900">{isLoading ? "—" : stats.totalEvents.toLocaleString("id-ID")}</h3>
               <p className="text-amber-600 text-xs font-bold mt-2 flex items-center gap-1">
-                <Activity className="h-3.5 w-3.5" />
-                Peserta lebih dari 1 event
+                <CalendarCheck2 className="h-3.5 w-3.5" />
+                Total registrasi event
               </p>
             </div>
             <div className="absolute -right-3 -bottom-3 opacity-5 group-hover:scale-110 transition-transform duration-700">
-              <Activity className="h-28 w-28" />
+              <CalendarCheck2 className="h-28 w-28" />
             </div>
           </div>
 
-          <div className="bg-blue-600 rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,84,202,0.25)] relative overflow-hidden group">
+          <div className="bg-purple-600 rounded-2xl p-6 shadow-[0_2px_16px_rgba(147,51,234,0.25)] relative overflow-hidden group">
             <div className="relative z-10">
-              <p className="text-blue-200 text-sm font-semibold mb-1">Status Sistem</p>
-              <h3 className="text-4xl font-extrabold text-white">Aktif</h3>
-              <p className="text-blue-200 text-xs font-bold mt-2 flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                Database terhubung
+              <p className="text-purple-200 text-sm font-semibold mb-1">Hadiah</p>
+              <h3 className="text-4xl font-extrabold text-white">{totalHadiah?.toLocaleString("id-ID") ?? "—"}</h3>
+              <p className="text-purple-200 text-xs font-bold mt-2 flex items-center gap-1">
+                <Gift className="h-3.5 w-3.5" />
+                Total hadiah dibagikan
               </p>
             </div>
             <div className="absolute -right-3 -bottom-3 opacity-10 group-hover:scale-110 transition-transform duration-700">
-              <Eye className="h-28 w-28 text-white" />
+              <Gift className="h-28 w-28 text-white" />
             </div>
           </div>
         </div>

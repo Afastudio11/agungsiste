@@ -58,6 +58,7 @@ const RegisterBody = z.object({
   staffName: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   email: z.string().nullable().optional(),
+  socialStatus: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   tags: z.string().nullable().optional(),
   nik: z.string(),
@@ -1493,19 +1494,26 @@ router.post("/scan", async (req, res) => {
 router.post("/register", async (req, res) => {
   try {
     const body = RegisterBody.parse(req.body);
-    const { eventId, staffId, staffName, phone, email, notes, tags, nik, fullName, ...rest } = body;
+    const { eventId, staffId, staffName, phone, email, socialStatus, notes, tags, nik, fullName, ...rest } = body;
 
     let participant = await db.query.participantsTable.findFirst({
       where: eq(participantsTable.nik, nik),
     });
     const isNewParticipant = !participant;
 
+    const participantFields = {
+      ...rest,
+      ...(phone ? { phone } : {}),
+      ...(email ? { email } : {}),
+      ...(socialStatus ? { socialStatus } : {}),
+    };
+
     if (!participant) {
-      const [p] = await db.insert(participantsTable).values({ nik, fullName, ...rest }).returning();
+      const [p] = await db.insert(participantsTable).values({ nik, fullName, ...participantFields }).returning();
       participant = p;
     } else {
       await db.update(participantsTable)
-        .set({ fullName, ...rest, updatedAt: new Date() })
+        .set({ fullName, ...participantFields, updatedAt: new Date() })
         .where(eq(participantsTable.id, participant.id));
     }
 

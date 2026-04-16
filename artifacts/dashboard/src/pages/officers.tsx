@@ -35,6 +35,11 @@ export default function OfficersPage() {
     queryKey: ["officers"],
     queryFn: () => fetch(`${BASE}/api/users`, { credentials: "include" }).then((r) => r.json()),
   });
+  const { data: staffStats = [] } = useQuery<{ staffId: number; staffName: string | null; totalInput: number; totalEvent: number; recentInput: number; lastActivity: string | null; events: { eventName: string; count: number }[] }[]>({
+    queryKey: ["staff-stats"],
+    queryFn: () => fetch(`${BASE}/api/dashboard/staff`, { credentials: "include" }).then((r) => r.json()),
+    staleTime: 60_000,
+  });
 
   const create = useMutation({
     mutationFn: (data: typeof empty) =>
@@ -207,6 +212,68 @@ export default function OfficersPage() {
             )}
           </div>
         </div>
+
+        {/* Staff Detailed Stats */}
+        {staffStats.length > 0 && (
+          <div className="rounded-2xl bg-white border border-slate-100 overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+              <Activity className="h-4 w-4 text-slate-400" />
+              <span className="font-bold text-slate-900 text-sm">Statistik Input per Petugas</span>
+              <span className="ml-auto text-xs text-slate-400">7 hari terakhir</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr>
+                    <th className="text-left px-5 py-3 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">Nama</th>
+                    <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">Total Input</th>
+                    <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">7 Hari</th>
+                    <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">Event</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">Terakhir Aktif</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-[0.07em] text-slate-400">Event Terlibat</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {staffStats.map((s, i) => (
+                    <tr key={s.staffId ?? i} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-5 py-3">
+                        <div className="font-semibold text-slate-900">{s.staffName ?? "—"}</div>
+                      </td>
+                      <td className="px-4 py-3 text-center font-extrabold text-slate-800">
+                        {Number(s.totalInput).toLocaleString("id-ID")}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          s.recentInput > 0 ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400"
+                        }`}>
+                          {Number(s.recentInput).toLocaleString("id-ID")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center text-slate-600 font-semibold">{s.totalEvent}</td>
+                      <td className="px-4 py-3 text-xs text-slate-400">
+                        {s.lastActivity
+                          ? new Date(s.lastActivity).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "2-digit" })
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {(s.events ?? []).slice(0, 3).map((ev, j) => (
+                            <span key={j} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium truncate max-w-[120px]" title={ev.eventName}>
+                              {ev.eventName} ({ev.count})
+                            </span>
+                          ))}
+                          {(s.events ?? []).length > 3 && (
+                            <span className="text-xs text-slate-400">+{s.events.length - 3} lainnya</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Add Officer Modal */}
         {showForm && (

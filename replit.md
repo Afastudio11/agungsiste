@@ -31,14 +31,13 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ## Features
 
 ### Admin Role
-- Dashboard with stats (total registrations, events, participants, officers)
+- Dashboard with stats (total registrations, events, participants, total hadiah), period filter (Hari Ini/7 Hari/30 Hari/Tahun Ini), daerah filter (Kabupaten→Kecamatan→Desa), Top Hadiah ranked list replacing Multi-Event Rate donut
 - Event management: create, edit, delete, view participant lists, export CSV
 - Event detail: QR code/link generation for public registration and attendance (token-based)
-- Participant management: search by NIK/name, city fix (uses `city` not `nationality`), export CSV
+- Participant management: search by NIK/name/pekerjaan/alamat/status sosial, export CSV; stat cards: Teregister/Event/Hadiah
 - Participant detail: KTP image viewer (show/hide toggle for stored KTP photos)
-- Officers (Petugas) management: view all users, "Petugas Aktif" count, leaderboard
-- Staff statistics page (`/staff`): top-performing staff with input/event counts
-- KTP Scan admin page: scan KTP image with Tesseract.js OCR (dual persistent workers, parallel PSM-6+PSM-11, ~1.8s), register to event, auto-reset form
+- Officers (Petugas) management: view all users, leaderboard, staff stats table with per-event activity (integrated from former Statistik Staf page)
+- KTP Scan admin page: scan KTP image, register to event, additional fields (No. Telepon, Email, Status Sosial with autocomplete)
 - Prize monitoring page (`/prizes`): CRUD for event prizes, distribution tracking with progress bars
 - Pemetaan page (`/pemetaan`): participant density by kabupaten/kecamatan/desa with pagination (100/page)
 - Peta Interaktif page (`/peta`): Leaflet choropleth map, 5 kabupaten Jawa Timur, kabupaten→kecamatan drill-down, data from Overpass API (client-side, sessionStorage cached)
@@ -66,7 +65,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ## Database Tables
 
 - `users` — admin/petugas accounts with role field
-- `participants` — unique per NIK; fields: nik, fullName, gender, province, city, kecamatan, kelurahan, occupation, nationality, ktpImagePath (compressed base64 data URI)
+- `participants` — unique per NIK; fields: nik, fullName, gender, province, city, kecamatan, kelurahan, occupation, nationality, phone, email, socialStatus, ktpImagePath (compressed base64 data URI)
 - `events` — event records; fields: name, category, isRsvp, startTime, endTime, targetParticipants, status, location, description, registrationToken, attendanceToken
 - `event_registrations` — junction table; unique constraint (event_id, participant_id); stores staffName, registrationType (rsvp/onsite)
 - `prizes` — event prizes; fields: eventId, name, quantity, distributedCount

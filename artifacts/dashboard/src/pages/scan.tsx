@@ -7,7 +7,7 @@ import {
   useListEvents,
   getListEventsQueryKey,
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Camera, Upload, AlertTriangle, Sun, Contrast, Eye, Zap, ScanLine, CheckCircle, RotateCcw, PenLine } from "lucide-react";
 import KtpCamera from "@/components/ktp-camera";
 
@@ -38,6 +38,9 @@ type KtpData = {
   city?: string | null;
   bloodType?: string | null;
   validUntil?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  socialStatus?: string | null;
   _meta?: KtpMeta;
 };
 
@@ -52,8 +55,8 @@ function GlassCard({ children, className = "" }: { children: React.ReactNode; cl
   );
 }
 
-function FieldRow({ label, value, onChange, placeholder, textarea }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; textarea?: boolean;
+function FieldRow({ label, value, onChange, placeholder, textarea, listId }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; textarea?: boolean; listId?: string;
 }) {
   const inputClass = "flex-1 min-w-0 px-3 py-1.5 bg-slate-50 rounded-lg text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition font-medium border-0 shadow-sm";
   return (
@@ -74,6 +77,7 @@ function FieldRow({ label, value, onChange, placeholder, textarea }: {
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder ?? "—"}
           className={inputClass}
+          list={listId}
         />
       )}
     </div>
@@ -110,6 +114,11 @@ export default function ScanPage() {
   const { data: events } = useListEvents({}, { query: { queryKey: getListEventsQueryKey({}) } });
   const scanKtp = useScanKtp();
   const registerKtp = useRegisterKtp();
+  const { data: socialStatusCategories } = useQuery<string[]>({
+    queryKey: ["social-status-categories"],
+    queryFn: () => fetch(`${BASE}/api/participants/social-status-categories`, { credentials: "include" }).then((r) => r.json()),
+    staleTime: 300_000,
+  });
 
   const processBase64 = async (base64: string, previewSrc?: string) => {
     setKtpData(null); setEditedData({}); setResult(null); setIsDuplicate(false);
@@ -456,6 +465,25 @@ export default function ScanPage() {
                     <FieldRow label="Kecamatan" value={(editedData.kecamatan as string) ?? ""} onChange={(v) => handleField("kecamatan", v)} />
                     <FieldRow label="Kabupaten/Kota" value={(editedData.city as string) ?? ""} onChange={(v) => handleField("city", v)} />
                     <FieldRow label="Provinsi" value={(editedData.province as string) ?? ""} onChange={(v) => handleField("province", v)} />
+
+                    {/* Divider */}
+                    <div className="pt-2 pb-1">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Informasi Tambahan</p>
+                    </div>
+                    <FieldRow label="No. Telepon" value={(editedData.phone as string) ?? ""} onChange={(v) => handleField("phone", v)} placeholder="Cth: 08123456789" />
+                    <FieldRow label="Email" value={(editedData.email as string) ?? ""} onChange={(v) => handleField("email", v)} placeholder="Cth: nama@email.com" />
+                    {(socialStatusCategories ?? []).length > 0 && (
+                      <datalist id="social-status-list">
+                        {(socialStatusCategories ?? []).map((c) => <option key={c} value={c} />)}
+                      </datalist>
+                    )}
+                    <FieldRow
+                      label="Status Sosial"
+                      value={(editedData.socialStatus as string) ?? ""}
+                      onChange={(v) => handleField("socialStatus", v)}
+                      placeholder="Cth: DTKS, Non-DTKS, dll"
+                      listId="social-status-list"
+                    />
                     <p className="text-[10px] text-slate-400 italic text-right pt-3">Data disimpan saat klik "Konfirmasi & Daftarkan"</p>
                   </div>
                 )}

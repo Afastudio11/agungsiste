@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { participantsTable, eventRegistrationsTable, eventsTable } from "@workspace/db";
-import { eq, sql, and, gte, lte } from "drizzle-orm";
+import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, prizesTable } from "@workspace/db";
+import { eq, sql, and, gte, lte, ilike } from "drizzle-orm";
 import { GetDashboardStatsQueryParams, GetEventsSummaryQueryParams, GetDailyRegistrationsQueryParams } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
 
@@ -11,23 +11,42 @@ router.get("/stats", requireAuth, async (req, res) => {
   try {
     const query = GetDashboardStatsQueryParams.safeParse(req.query);
     const { startDate, endDate } = query.success ? query.data : {};
+    const { kabupaten, kecamatan, kelurahan } = req.query as Record<string, string>;
+
+    const participantConds: any[] = [];
+    if (kabupaten) participantConds.push(ilike(participantsTable.city, `%${kabupaten}%`));
+    if (kecamatan) participantConds.push(ilike(participantsTable.kecamatan, `%${kecamatan}%`));
+    if (kelurahan) participantConds.push(ilike(participantsTable.kelurahan, `%${kelurahan}%`));
 
     const [totalParticipants] = await db
       .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(participantsTable);
+      .from(participantsTable)
+      .where(participantConds.length > 0 ? and(...participantConds) : undefined);
 
     const [totalEvents] = await db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(eventsTable);
 
-    let regConditions: any[] = [];
+    let regConditions: any[] = [...participantConds.map(() => null)]; // placeholder
+    regConditions = [];
     if (startDate) regConditions.push(gte(eventRegistrationsTable.registeredAt, new Date(startDate)));
     if (endDate) regConditions.push(lte(eventRegistrationsTable.registeredAt, new Date(endDate)));
+    const allRegConds = [...regConditions, ...participantConds.map((c: any) => c)];
 
-    const [totalRegistrations] = await db
+    // For daerah-filtered reg, join with participants
+    const regBase = db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(eventRegistrationsTable)
-      .where(regConditions.length > 0 ? and(...regConditions) : undefined);
+      .leftJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id));
+
+    const allRegCondsFiltered: any[] = [];
+    if (startDate) allRegCondsFiltered.push(gte(eventRegistrationsTable.registeredAt, new Date(startDate)));
+    if (endDate) allRegCondsFiltered.push(lte(eventRegistrationsTable.registeredAt, new Date(endDate)));
+    if (kabupaten) allRegCondsFiltered.push(ilike(participantsTable.city, `%${kabupaten}%`));
+    if (kecamatan) allRegCondsFiltered.push(ilike(participantsTable.kecamatan, `%${kecamatan}%`));
+    if (kelurahan) allRegCondsFiltered.push(ilike(participantsTable.kelurahan, `%${kelurahan}%`));
+
+    const [totalRegistrations] = await regBase.where(allRegCondsFiltered.length > 0 ? and(...allRegCondsFiltered) : undefined);
 
     const [multiEventParticipants] = await db
       .select({ count: sql<number>`cast(count(*) as integer)` })
@@ -64,6 +83,10 @@ router.get("/stats", requireAuth, async (req, res) => {
         )
       );
 
+    const [totalPrizesDistributed] = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(prizeDistributionsTable);
+
     res.json({
       totalParticipants: totalParticipants.count,
       totalEvents: totalEvents.count,
@@ -71,6 +94,7 @@ router.get("/stats", requireAuth, async (req, res) => {
       multiEventParticipants: multiEventParticipants.count,
       recentRegistrations: recentRegistrations.count,
       prevWeekRegistrations: prevWeekRegistrations.count,
+      totalPrizesDistributed: totalPrizesDistributed.count,
     });
   } catch (err) {
     req.log.error({ err }, "Error getting dashboard stats");
@@ -163,6 +187,28 @@ router.get("/multi-event-participants", requireAuth, async (req, res) => {
     res.json(enriched);
   } catch (err) {
     req.log.error({ err }, "Error getting multi-event participants");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Top prizes by distributed count
+router.get("/top-prizes", requireAuth, async (req, res) => {
+  try {
+    const data = await db
+      .select({
+        id: prizesTable.id,
+        name: prizesTable.name,
+        eventName: eventsTable.name,
+        quantity: prizesTable.quantity,
+        distributedCount: prizesTable.distributedCount,
+      })
+      .from(prizesTable)
+      .leftJoin(eventsTable, eq(prizesTable.eventId, eventsTable.id))
+      .orderBy(sql`${prizesTable.distributedCount} desc`)
+      .limit(8);
+    res.json(data);
+  } catch (err) {
+    req.log.error({ err }, "Error getting top prizes");
     res.status(500).json({ error: "Internal server error" });
   }
 });
