@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary-fixed": "#769dff",
+            "inverse-surface": "#0b0f10",
+            "error-dim": "#9f0519",
+            "on-surface": "#2c2f31",
+            "secondary-container": "#dac9ff",
+            "outline-variant": "#abadaf",
+            "background": "#f5f7f9",
+            "tertiary": "#006947",
+            "primary": "#0054ca",
+            "surface-tint": "#0054ca",
+            "error-container": "#fb5151",
+            "surface-container-high": "#dfe3e6",
+            "surface-variant": "#d9dde0",
+            "on-tertiary": "#c8ffe0",
+            "on-error": "#ffefee",
+            "on-surface-variant": "#595c5e",
+            "surface-container-lowest": "#ffffff",
+            "surface-dim": "#d0d5d8",
+            "on-tertiary-fixed-variant": "#006544",
+            "surface-container-low": "#eef1f3",
+            "inverse-on-surface": "#9a9d9f",
+            "surface": "#f5f7f9",
+            "tertiary-fixed": "#69f6b8",
+            "error": "#b31b25",
+            "tertiary-container": "#69f6b8",
+            "on-tertiary-container": "#005a3c",
+            "surface-bright": "#f5f7f9",
+            "on-error-container": "#570008",
+            "primary-dim": "#0049b2",
+            "secondary-fixed": "#dac9ff",
+            "on-primary-fixed-variant": "#002869",
+            "tertiary-fixed-dim": "#58e7ab",
+            "tertiary-dim": "#005c3d",
+            "on-primary-fixed": "#000000",
+            "secondary-dim": "#5e26c7",
+            "outline": "#747779",
+            "surface-container": "#e5e9eb",
+            "secondary": "#6a37d4",
+            "inverse-primary": "#5a8cff",
+            "on-tertiary-fixed": "#00452d",
+            "primary-container": "#769dff",
+            "on-primary-container": "#001f56",
+            "secondary-fixed-dim": "#ceb9ff",
+            "on-secondary-fixed": "#40009b",
+            "surface-container-highest": "#d9dde0",
+            "on-background": "#2c2f31",
+            "primary-fixed-dim": "#5f8fff",
+            "on-secondary-container": "#5517bf",
+            "on-secondary": "#f8f0ff",
+            "on-primary": "#f1f2ff",
+            "on-secondary-fixed-variant": "#5f28c8"
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            "headline": ["Plus Jakarta Sans"],
+            "body": ["Plus Jakarta Sans"],
+            "label": ["Plus Jakarta Sans"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .ambient-shadow {
+      box-shadow: 0px 20px 40px rgba(44, 47, 49, 0.06);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar Anchor -->
+<aside class="fixed left-0 top-0 h-full w-64 z-50 bg-slate-50 dark:bg-slate-950 flex flex-col p-6 gap-8 border-r border-slate-200/10">
+<div class="flex flex-col gap-1">
+<h1 class="text-2xl font-black text-blue-700 dark:text-blue-500">KTP Curator</h1>
+<p class="font-plus-jakarta text-sm text-slate-500">Management Portal</p>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-blue-500 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-plus-jakarta text-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-blue-500 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-plus-jakarta text-sm">Participants</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-bold rounded-full shadow-sm transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="document_scanner">document_scanner</span>
+<span class="font-plus-jakarta text-sm">Scan KTP</span>
+</a>
+</nav>
+<div class="mt-auto flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-blue-500 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-plus-jakarta text-sm">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:text-blue-500 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-plus-jakarta text-sm">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 min-h-screen p-8 lg:p-12">
+<!-- Top Bar Component Logic -->
+<header class="fixed top-0 right-0 left-64 h-16 z-40 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-xl flex justify-between items-center px-8 shadow-sm shadow-slate-200/50 dark:shadow-none">
+<div class="flex items-center gap-4">
+<span class="font-plus-jakarta text-sm font-semibold text-blue-600">Scan KTP</span>
+<span class="text-slate-300">/</span>
+<span class="font-plus-jakarta text-sm text-slate-500">Verification Result</span>
+</div>
+<div class="flex items-center gap-6">
+<button class="text-slate-500 hover:bg-white p-2 rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-slate-500 hover:bg-white p-2 rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional male portrait in office setting with soft natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB8FdDispFzM97HwxFdprUE3Zzl6Fhy8bMUZGqpV_fD-IuemOFc5EpM49VC_R5uA0YmnnO2HhWSSpUgwxNpra5IcXZ_m4GKn3ZZhT5rKG869-xMA5RhW3fv3JF8YxBFzwHwnoklKZzy-CaF04j97aag2hTeJW3TRkrGd5zRK0ChL__uBRbUwyK4cDZzIdVuMtemV3_9cyk9i7RJcsbj5o-eTuI46TQCpNDexWk-kR3yM6bB0EJ-ffUsV1A1YF8sv7zeD178g6qdjEw"/>
+</div>
+</div>
+</header>
+<div class="mt-20">
+<!-- Editorial Header -->
+<div class="mb-12 flex justify-between items-end">
+<div>
+<h2 class="text-4xl font-bold tracking-tight text-on-surface mb-2">Review Scan Data</h2>
+<p class="text-on-surface-variant text-lg">Verify the extracted identity information before final submission.</p>
+</div>
+<!-- Verified Badge -->
+<div class="flex items-center gap-2 px-4 py-2 bg-tertiary-container/30 text-tertiary rounded-full border border-tertiary/10">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-xs font-bold tracking-wider uppercase">Verified Identity</span>
+</div>
+</div>
+<!-- Asymmetric Grid Layout -->
+<div class="grid grid-cols-12 gap-8 items-start">
+<!-- Left Column: Scanned Image (Aura Glass style) -->
+<div class="col-span-12 lg:col-span-5 sticky top-28">
+<div class="glass-card p-6 rounded-lg ambient-shadow">
+<div class="flex items-center justify-between mb-4">
+<span class="text-xs font-bold text-on-surface-variant tracking-widest uppercase">Document Preview</span>
+<button class="text-primary hover:bg-primary/10 p-2 rounded-full transition-all">
+<span class="material-symbols-outlined" data-icon="zoom_in">zoom_in</span>
+</button>
+</div>
+<div class="relative group overflow-hidden rounded-md bg-slate-200">
+<img class="w-full aspect-[1.58/1] object-cover transition-transform duration-500 group-hover:scale-105" data-alt="close up scan of an Indonesian national identity card with clear blue background and microprint details" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBABIfrJB2UC1_1e3SkWWRvAd3pyLaSILbDqL1muBqaRNv6ngwOQ_ecc8MlkwDo6R-Bhiwr4Lg1UC07VLETAWjXpaihd00rL2ahBO6EsK1j4EJsxOOW1V6E5-l1Af3ZUavsMb-en8LCsPoCs7HM26Ni05MJffqbEO7IQbtiLxwcsKF5bAbttt787_nWMSu-LobXW60DFP1TsiVU-KsfgeuV_Me43_vlLgv-x-mDnRi2SXnwaC9-JUbeF1AavNmQLVZAcorWEsaNabA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+<p class="text-white text-xs">High Resolution Scan • OCR Precision 99.8%</p>
+</div>
+</div>
+<div class="mt-6 flex flex-wrap gap-4">
+<div class="bg-surface-container-low px-4 py-3 rounded-md flex-1">
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter">Resolution</p>
+<p class="text-sm font-semibold">300 DPI</p>
+</div>
+<div class="bg-surface-container-low px-4 py-3 rounded-md flex-1">
+<p class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter">Security Tags</p>
+<p class="text-sm font-semibold text-tertiary">Match</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Editable Data (Form) -->
+<div class="col-span-12 lg:col-span-7">
+<div class="glass-card p-8 rounded-lg ambient-shadow">
+<h3 class="text-xl font-semibold mb-8 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="edit_note">edit_note</span>
+              Identity Details
+            </h3>
+<form class="space-y-6">
+<!-- Grid for shorter fields -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- NIK -->
+<div class="col-span-2">
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2 px-1">NIK (Nomor Induk Kependudukan)</label>
+<input class="w-full px-4 py-3 bg-surface-container-lowest border-0 rounded-md shadow-sm focus:ring-2 focus:ring-primary/20 text-lg font-bold tracking-wider text-primary" type="text" value="3275000000000001"/>
+</div>
+<!-- Name -->
+<div class="col-span-2">
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2 px-1">Full Name</label>
+<input class="w-full px-4 py-3 bg-surface-container-lowest border-0 rounded-md shadow-sm focus:ring-2 focus:ring-primary/20 font-medium" type="text" value="ADITYA PRATAMA"/>
+</div>
+<!-- Birth Info -->
+<div class="col-span-2">
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2 px-1">Place/Date of Birth</label>
+<input class="w-full px-4 py-3 bg-surface-container-lowest border-0 rounded-md shadow-sm focus:ring-2 focus:ring-primary/20 font-medium" type="text" value="JAKARTA, 12-05-1992"/>
+</div>
+<!-- Address -->
+<div class="col-span-2">
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2 px-1">Address</label>
+<textarea class="w-full px-4 py-3 bg-surface-container-lowest border-0 rounded-md shadow-sm focus:ring-2 focus:ring-primary/20 font-medium resize-none" rows="3">JL. MELATI NO. 45, RT 002/RW 005, KEL. CIBUBUR, KEC. CIRACAS</textarea>
+</div>
+<!-- Occupation -->
+<div>
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2 px-1">Occupation</label>
+<input class="w-full px-4 py-3 bg-surface-container-lowest border-0 rounded-md shadow-sm focus:ring-2 focus:ring-primary/20 font-medium" type="text" value="KARYAWAN SWASTA"/>
+</div>
+<!-- Nationality -->
+<div>
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2 px-1">Nationality</label>
+<input class="w-full px-4 py-3 bg-surface-container-lowest border-0 rounded-md shadow-sm focus:ring-2 focus:ring-primary/20 font-medium" type="text" value="WNI"/>
+</div>
+</div>
+<!-- Action Bar - Anchored inside card -->
+<div class="pt-8 flex flex-col sm:flex-row items-center gap-4 border-t border-white/40 mt-8">
+<button class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-primary to-primary-container text-white rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2" type="submit">
+<span class="material-symbols-outlined" data-icon="verified">verified</span>
+                  Confirm &amp; Save
+                </button>
+<button class="w-full sm:w-auto px-8 py-4 bg-white text-error-dim rounded-full font-bold hover:bg-error-container/10 transition-all flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined" data-icon="delete_sweep">delete_sweep</span>
+                  Discard Scan
+                </button>
+<div class="hidden sm:block flex-1"></div>
+<div class="text-[10px] text-on-surface-variant/60 font-medium italic text-center sm:text-right">
+                  Scan recorded at 14:32:01 WIB
+                </div>
+</div>
+</form>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Background Decorative Elements -->
+<div class="fixed top-0 right-0 -z-10 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px]"></div>
+<div class="fixed bottom-0 left-0 -z-10 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-[100px]"></div>
+</body></html>

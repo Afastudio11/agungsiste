@@ -8,7 +8,7 @@ import {
   getListEventsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Camera, Upload, AlertTriangle, Sun, Contrast, Eye, Zap } from "lucide-react";
+import { Camera, Upload, AlertTriangle, Sun, Contrast, Eye, Zap, ScanLine, CheckCircle, RotateCcw, PenLine } from "lucide-react";
 import KtpCamera from "@/components/ktp-camera";
 
 type QualityWarning = "dark" | "overexposed" | "blurry" | "low_contrast" | null;
@@ -41,11 +41,46 @@ type KtpData = {
   _meta?: KtpMeta;
 };
 
-const qualityMessages: Record<string, { icon: React.ReactNode; text: string; color: string }> = {
-  dark: { icon: <Sun className="h-3.5 w-3.5" />, text: "Gambar terlalu gelap — coba foto di tempat lebih terang", color: "bg-amber-50 border-amber-200 text-amber-800" },
-  overexposed: { icon: <Sun className="h-3.5 w-3.5" />, text: "Gambar terlalu terang — hindari cahaya langsung di KTP", color: "bg-amber-50 border-amber-200 text-amber-800" },
-  blurry: { icon: <Eye className="h-3.5 w-3.5" />, text: "Gambar kurang tajam — tahan kamera lebih stabil saat foto", color: "bg-amber-50 border-amber-200 text-amber-800" },
-  low_contrast: { icon: <Contrast className="h-3.5 w-3.5" />, text: "Kontras rendah — foto mungkin dari fotokopi pudar", color: "bg-amber-50 border-amber-200 text-amber-800" },
+function GlassCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={`rounded-2xl border border-white/60 shadow-xl shadow-slate-200/60 ${className}`}
+      style={{ background: "rgba(255,255,255,0.72)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 px-0.5">
+      {children}
+    </label>
+  );
+}
+
+function FieldInput({ value, onChange, placeholder, large, blue }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; large?: boolean; blue?: boolean;
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder ?? "Tidak terdeteksi"}
+      className={`w-full px-4 py-2.5 bg-slate-50 border-0 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition font-medium text-slate-800 placeholder:text-slate-300 ${
+        large ? "text-lg font-bold tracking-wider" : "text-sm"
+      } ${blue ? "text-blue-700 font-bold tracking-widest" : ""}`}
+    />
+  );
+}
+
+const qualityMessages: Record<string, { icon: React.ReactNode; text: string }> = {
+  dark: { icon: <Sun className="h-3.5 w-3.5 shrink-0" />, text: "Gambar terlalu gelap — coba foto di tempat lebih terang" },
+  overexposed: { icon: <Sun className="h-3.5 w-3.5 shrink-0" />, text: "Gambar terlalu terang — hindari cahaya langsung di KTP" },
+  blurry: { icon: <Eye className="h-3.5 w-3.5 shrink-0" />, text: "Gambar kurang tajam — tahan kamera lebih stabil saat foto" },
+  low_contrast: { icon: <Contrast className="h-3.5 w-3.5 shrink-0" />, text: "Kontras rendah — foto mungkin dari fotokopi pudar" },
 };
 
 export default function ScanPage() {
@@ -59,6 +94,7 @@ export default function ScanPage() {
   const [result, setResult] = useState<{ success: boolean; message: string; totalEventsJoined?: number } | null>(null);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const getSettings = () => {
     try {
@@ -98,6 +134,20 @@ export default function ScanPage() {
     reader.readAsDataURL(file);
   };
 
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = (ev.target?.result as string).split(",")[1];
+      await processBase64(base64, url);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleCameraCapture = async (base64: string) => {
     setShowCamera(false);
     const previewSrc = `data:image/jpeg;base64,${base64}`;
@@ -126,14 +176,13 @@ export default function ScanPage() {
       const s = getSettings();
       const msg = s.showTotalOnSuccess === false ? "Peserta berhasil didaftarkan" : res.message;
       setResult({ success: true, message: msg, totalEventsJoined: res.totalEventsJoined });
-      // Simpan foto KTP ke storage (background, tidak blokir UI)
       if (capturedBase64 && editedData.nik) {
         fetch(`${BASE}/api/ktp/save-image`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ nik: editedData.nik, imageBase64: capturedBase64 }),
-        }).catch(() => {}); // silent fail
+        }).catch(() => {});
       }
       if (s.autoResetForm) setTimeout(() => handleReset(), 2500);
     } catch (err: any) {
@@ -153,159 +202,201 @@ export default function ScanPage() {
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  const fields: { key: keyof KtpData; label: string }[] = [
-    { key: "nik", label: "NIK" },
-    { key: "fullName", label: "Nama Lengkap" },
-    { key: "birthPlace", label: "Tempat Lahir" },
-    { key: "birthDate", label: "Tanggal Lahir" },
-    { key: "gender", label: "Jenis Kelamin" },
-    { key: "religion", label: "Agama" },
-    { key: "maritalStatus", label: "Status Perkawinan" },
-    { key: "occupation", label: "Pekerjaan" },
-    { key: "nationality", label: "Kewarganegaraan" },
-    { key: "address", label: "Alamat" },
-    { key: "rtRw", label: "RT/RW" },
-    { key: "kelurahan", label: "Kelurahan/Desa" },
-    { key: "kecamatan", label: "Kecamatan" },
-    { key: "city", label: "Kabupaten/Kota" },
-    { key: "province", label: "Provinsi" },
-    { key: "bloodType", label: "Golongan Darah" },
-  ];
-
   const meta = ktpData?._meta;
   const qw = meta?.qualityWarning;
+  const engineLabel = meta?.engine?.startsWith("gemini") ? "Gemini 2.5 Flash" : meta?.engine === "python-opencv" ? "OpenCV" : "Tesseract";
 
   return (
     <Layout role="any">
       {showCamera && (
-        <KtpCamera
-          onCapture={handleCameraCapture}
-          onClose={() => setShowCamera(false)}
-        />
+        <KtpCamera onCapture={handleCameraCapture} onClose={() => setShowCamera(false)} />
       )}
 
-      <div className="space-y-5">
-        <div>
-          <h1 className="text-[22px] md:text-[26px] font-extrabold text-slate-900 leading-tight" style={{ letterSpacing: "-0.03em" }}>
-            Scan KTP
-          </h1>
-          <p className="mt-1 text-sm text-slate-400 font-medium">Upload atau foto KTP, sistem akan membaca data secara otomatis</p>
-        </div>
+      {/* Background decorative blobs */}
+      <div className="fixed top-0 right-0 -z-10 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="fixed bottom-0 left-64 -z-10 w-[400px] h-[400px] bg-violet-500/4 rounded-full blur-[100px] pointer-events-none" />
 
-        {/* Staff name bar */}
-        <div className="rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-[0_1px_4px_rgba(0,0,0,0.06)] flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-          <label className="text-[12px] font-bold uppercase tracking-[0.08em] text-slate-400 whitespace-nowrap">Nama Staf</label>
-          <input
-            type="text"
-            placeholder="Masukkan nama Anda sebelum mulai scan..."
-            value={staffName}
-            onChange={(e) => setStaffName(e.target.value)}
-            className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
-          />
+      {/* Success state */}
+      {result?.success ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <GlassCard className="p-12 max-w-md w-full text-center">
+            <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 mb-5 mx-auto">
+              <CheckCircle className="h-10 w-10 text-emerald-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Berhasil Didaftarkan!</h2>
+            <p className="text-slate-500 text-sm mb-8">{result.message}</p>
+            <button
+              onClick={handleReset}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-full font-bold shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Scan KTP Berikutnya
+            </button>
+          </GlassCard>
         </div>
-
-        {result && (
-          <div className={`rounded-lg border p-4 ${result.success ? "border-green-200 bg-green-50 text-green-900" : isDuplicate ? "border-amber-200 bg-amber-50 text-amber-900" : "border-red-200 bg-red-50 text-red-900"}`}>
-            <p className="font-medium">{result.success ? "Berhasil!" : isDuplicate ? "Peringatan Duplikat" : "Gagal"}</p>
-            <p className="mt-1 text-sm">{result.message}</p>
-            {result.success && (
-              <button onClick={handleReset} className="mt-3 rounded-md bg-green-700 px-4 py-2 text-xs font-medium text-white hover:bg-green-800">
-                Scan KTP Berikutnya
-              </button>
+      ) : (
+        <div className="space-y-8">
+          {/* Page header */}
+          <div className="flex flex-wrap justify-between items-end gap-4">
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight text-slate-900 mb-1.5">Scan KTP</h1>
+              <p className="text-slate-500">Upload atau foto KTP, sistem akan membaca data secara otomatis.</p>
+            </div>
+            {ktpData !== null && !meta?.lowConfidence && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200/60">
+                <CheckCircle className="h-4 w-4 fill-emerald-100" />
+                <span className="text-xs font-bold tracking-wider uppercase">Data Terdeteksi</span>
+              </div>
             )}
           </div>
-        )}
 
-        {!result?.success && (
-          <div className="grid gap-5 lg:grid-cols-2">
-            <div className="space-y-4">
-              <div className="rounded-lg border bg-card p-5">
-                <h2 className="mb-1 text-sm font-semibold">Foto KTP</h2>
-                <p className="mb-3 text-xs text-muted-foreground">Foto hanya digunakan untuk membaca data, tidak disimpan.</p>
+          {/* Staff name bar */}
+          <GlassCard className="px-5 py-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Nama Staf</label>
+            <input
+              type="text"
+              placeholder="Masukkan nama Anda sebelum mulai scan..."
+              value={staffName}
+              onChange={(e) => setStaffName(e.target.value)}
+              className="flex-1 rounded-xl border-0 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+            />
+          </GlassCard>
 
-                {/* Camera & upload buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowCamera(true)}
-                    className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors"
-                  >
-                    <Camera className="h-3.5 w-3.5" />
-                    Buka Kamera
-                  </button>
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
-                  >
-                    <Upload className="h-3.5 w-3.5" />
-                    Upload File
-                  </button>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
+          {/* Duplicate / error result banner */}
+          {result && !result.success && (
+            <div className={`rounded-2xl border p-4 ${isDuplicate ? "border-amber-200 bg-amber-50 text-amber-900" : "border-red-200 bg-red-50 text-red-900"}`}>
+              <p className="font-bold text-sm">{isDuplicate ? "Peserta Sudah Terdaftar" : "Pendaftaran Gagal"}</p>
+              <p className="mt-1 text-xs">{result.message}</p>
+            </div>
+          )}
+
+          {/* Asymmetric 5/7 grid */}
+          <div className="grid grid-cols-12 gap-6 items-start">
+
+            {/* Left column: Document Preview */}
+            <div className="col-span-12 lg:col-span-5 space-y-5 lg:sticky lg:top-6">
+              <GlassCard className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Document Preview</span>
+                  {previewUrl && (
+                    <button
+                      onClick={handleReset}
+                      className="text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition"
+                      title="Scan ulang"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
 
-                {previewUrl && (
-                  <div className="mt-4">
-                    <img src={previewUrl} alt="Preview KTP" className="max-h-48 w-full rounded-md object-contain border" />
+                {/* Image area */}
+                {previewUrl ? (
+                  <div className="relative group overflow-hidden rounded-xl bg-slate-200" style={{ aspectRatio: "1.58/1" }}>
+                    <img
+                      src={previewUrl}
+                      alt="Foto KTP"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                      <p className="text-white text-xs font-medium">Foto KTP yang di-scan</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onDrop={handleDrop}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onClick={() => !scanKtp.isPending && fileRef.current?.click()}
+                    className={`relative overflow-hidden rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${
+                      isDragging
+                        ? "border-blue-400 bg-blue-50"
+                        : "border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/30"
+                    }`}
+                    style={{ aspectRatio: "1.58/1" }}
+                  >
+                    <div className="h-14 w-14 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                      <ScanLine className="h-7 w-7 text-slate-400" />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-500">Drag & drop foto KTP</p>
+                    <p className="text-xs text-slate-400 mt-1">atau klik untuk upload</p>
                   </div>
                 )}
 
+                {/* Scanning progress */}
                 {scanKtp.isPending && (
-                  <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-3">
-                    <div className="flex items-center gap-2.5 text-sm font-medium text-blue-700">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                  <div className="mt-4 rounded-xl bg-blue-50 border border-blue-100 px-4 py-3">
+                    <div className="flex items-center gap-2.5 text-sm font-semibold text-blue-700 mb-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
                       Membaca data KTP...
                     </div>
-                    <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-blue-100">
-                      <div className="h-full rounded-full bg-blue-500 animate-pulse" style={{ width: "70%", animation: "pulse 1.5s ease-in-out infinite" }}></div>
+                    <div className="h-1 w-full overflow-hidden rounded-full bg-blue-100">
+                      <div className="h-full rounded-full bg-blue-500 animate-pulse" style={{ width: "65%" }} />
                     </div>
                   </div>
                 )}
 
                 {/* Quality warning */}
                 {qw && qualityMessages[qw] && (
-                  <div className={`mt-3 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs font-medium ${qualityMessages[qw].color}`}>
+                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-800">
                     {qualityMessages[qw].icon}
                     <span>{qualityMessages[qw].text}</span>
                   </div>
                 )}
-
-                {/* Low confidence warning */}
                 {meta?.lowConfidence && !qw && (
-                  <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-800">
+                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-800">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    <span>Kepercayaan OCR rendah (skor {meta.tesseractScore}/100). Periksa & perbaiki data di bawah.</span>
+                    <span>Kepercayaan OCR rendah ({meta.tesseractScore}/100). Periksa & perbaiki data.</span>
                   </div>
                 )}
 
-                {/* OCR score badge */}
+                {/* OCR meta cards */}
                 {meta && (
-                  <div className="mt-3">
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                      meta.lowConfidence
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-green-100 text-green-700"
-                    }`}>
-                      <Zap className="h-3 w-3" />
-                      OCR {meta.engine?.startsWith("gemini") ? "Gemini 2.5 Flash" : meta.engine === "python-opencv" ? "OpenCV" : "Tesseract"} — skor {meta.tesseractScore}/100
-                    </span>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 px-4 py-3 rounded-xl">
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter mb-1">Engine</p>
+                      <p className="text-xs font-bold text-slate-700">{engineLabel}</p>
+                    </div>
+                    <div className="bg-slate-50 px-4 py-3 rounded-xl">
+                      <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter mb-1">Skor OCR</p>
+                      <p className={`text-sm font-bold ${meta.lowConfidence ? "text-amber-600" : "text-emerald-600"}`}>
+                        {meta.tesseractScore}/100
+                      </p>
+                    </div>
                   </div>
                 )}
-              </div>
 
+                {/* Camera & Upload buttons */}
+                <div className="mt-5 flex gap-3">
+                  <button
+                    onClick={() => setShowCamera(true)}
+                    disabled={scanKtp.isPending}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-full text-sm font-bold shadow-md shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Kamera
+                  </button>
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    disabled={scanKtp.isPending}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-full text-sm font-semibold hover:bg-slate-50 transition-all disabled:opacity-50"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Upload
+                  </button>
+                </div>
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+              </GlassCard>
+
+              {/* Event selection — only after scan */}
               {ktpData !== null && (
-                <div className="rounded-lg border bg-card p-5">
-                  <h2 className="mb-3 text-sm font-semibold">Pilih Event</h2>
+                <GlassCard className="p-6">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Pilih Event & Daftarkan</p>
                   <select
                     value={selectedEventId ?? ""}
                     onChange={(e) => setSelectedEventId(e.target.value ? Number(e.target.value) : null)}
-                    className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full rounded-xl border-0 bg-slate-50 shadow-sm px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition mb-4"
                   >
-                    <option value="">-- Pilih Event --</option>
+                    <option value="">— Pilih Event —</option>
                     {events?.map((ev) => (
                       <option key={ev.id} value={ev.id}>{ev.name} ({ev.eventDate})</option>
                     ))}
@@ -313,45 +404,162 @@ export default function ScanPage() {
                   <button
                     onClick={handleRegister}
                     disabled={!selectedEventId || registerKtp.isPending}
-                    className="mt-3 w-full rounded-md bg-primary py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-full font-bold shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
                   >
-                    {registerKtp.isPending ? "Mendaftarkan..." : "Daftarkan Peserta"}
+                    <CheckCircle className="h-4 w-4" />
+                    {registerKtp.isPending ? "Mendaftarkan..." : "Konfirmasi & Daftarkan"}
                   </button>
-                </div>
+                  {result && !result.success && (
+                    <button
+                      onClick={handleReset}
+                      className="mt-3 w-full flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-500 rounded-full text-sm font-semibold hover:bg-slate-50 transition"
+                    >
+                      Scan Ulang
+                    </button>
+                  )}
+                </GlassCard>
               )}
             </div>
 
-            <div className="rounded-lg border bg-card p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">Data KTP Terdeteksi</h2>
-                {ktpData !== null && <span className="text-xs text-muted-foreground">Edit jika ada yang salah</span>}
-              </div>
-              {ktpData === null ? (
-                <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
-                  Buka kamera atau upload foto KTP untuk melihat data
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {fields.map((f) => (
-                    <div key={f.key} className="flex items-center gap-2">
-                      <label className="w-36 shrink-0 text-xs text-muted-foreground">{f.label}</label>
-                      <input
-                        type="text"
-                        value={(editedData[f.key] as string) ?? ""}
-                        onChange={(e) => handleField(f.key, e.target.value)}
-                        className={`flex-1 rounded border px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring ${
-                          !editedData[f.key] ? "border-slate-200 bg-slate-50 text-slate-400 italic" : ""
-                        }`}
-                        placeholder="Tidak terdeteksi"
+            {/* Right column: Editable form */}
+            <div className="col-span-12 lg:col-span-7">
+              <GlassCard className="p-7">
+                <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                  <PenLine className="h-5 w-5 text-blue-600" />
+                  Identity Details
+                  {ktpData !== null && <span className="ml-auto text-xs font-normal text-slate-400">Edit jika ada yang salah</span>}
+                </h3>
+
+                {ktpData === null ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                      <ScanLine className="h-8 w-8 text-slate-300" />
+                    </div>
+                    <p className="text-slate-400 font-medium text-sm">Buka kamera atau upload foto KTP</p>
+                    <p className="text-slate-300 text-xs mt-1">Data akan terisi otomatis setelah scan</p>
+                  </div>
+                ) : (
+                  <div className="space-y-5">
+                    {/* NIK — full width, prominent */}
+                    <div>
+                      <FieldLabel>NIK (Nomor Induk Kependudukan)</FieldLabel>
+                      <FieldInput
+                        value={(editedData.nik as string) ?? ""}
+                        onChange={(v) => handleField("nik", v)}
+                        large
+                        blue
+                        placeholder="16 digit NIK"
                       />
                     </div>
-                  ))}
-                </div>
-              )}
+
+                    {/* Full Name — full width */}
+                    <div>
+                      <FieldLabel>Nama Lengkap</FieldLabel>
+                      <FieldInput
+                        value={(editedData.fullName as string) ?? ""}
+                        onChange={(v) => handleField("fullName", v)}
+                        large
+                        placeholder="Sesuai KTP"
+                      />
+                    </div>
+
+                    {/* 2-col grid: birth info */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <FieldLabel>Tempat Lahir</FieldLabel>
+                        <FieldInput value={(editedData.birthPlace as string) ?? ""} onChange={(v) => handleField("birthPlace", v)} />
+                      </div>
+                      <div>
+                        <FieldLabel>Tanggal Lahir</FieldLabel>
+                        <FieldInput value={(editedData.birthDate as string) ?? ""} onChange={(v) => handleField("birthDate", v)} />
+                      </div>
+                    </div>
+
+                    {/* 3-col: gender, religion, marital status */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <FieldLabel>Jenis Kelamin</FieldLabel>
+                        <FieldInput value={(editedData.gender as string) ?? ""} onChange={(v) => handleField("gender", v)} />
+                      </div>
+                      <div>
+                        <FieldLabel>Agama</FieldLabel>
+                        <FieldInput value={(editedData.religion as string) ?? ""} onChange={(v) => handleField("religion", v)} />
+                      </div>
+                      <div>
+                        <FieldLabel>Gol. Darah</FieldLabel>
+                        <FieldInput value={(editedData.bloodType as string) ?? ""} onChange={(v) => handleField("bloodType", v)} />
+                      </div>
+                    </div>
+
+                    {/* 2-col: occupation, marital, nationality */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <FieldLabel>Status Perkawinan</FieldLabel>
+                        <FieldInput value={(editedData.maritalStatus as string) ?? ""} onChange={(v) => handleField("maritalStatus", v)} />
+                      </div>
+                      <div>
+                        <FieldLabel>Kewarganegaraan</FieldLabel>
+                        <FieldInput value={(editedData.nationality as string) ?? ""} onChange={(v) => handleField("nationality", v)} />
+                      </div>
+                    </div>
+
+                    {/* Address — full width, textarea */}
+                    <div>
+                      <FieldLabel>Alamat</FieldLabel>
+                      <textarea
+                        value={(editedData.address as string) ?? ""}
+                        onChange={(e) => handleField("address", e.target.value)}
+                        rows={2}
+                        placeholder="Alamat sesuai KTP"
+                        className="w-full px-4 py-2.5 bg-slate-50 border-0 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition font-medium text-sm text-slate-800 placeholder:text-slate-300 resize-none"
+                      />
+                    </div>
+
+                    {/* RT/RW, Kelurahan, Kecamatan */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <FieldLabel>RT/RW</FieldLabel>
+                        <FieldInput value={(editedData.rtRw as string) ?? ""} onChange={(v) => handleField("rtRw", v)} />
+                      </div>
+                      <div>
+                        <FieldLabel>Kelurahan/Desa</FieldLabel>
+                        <FieldInput value={(editedData.kelurahan as string) ?? ""} onChange={(v) => handleField("kelurahan", v)} />
+                      </div>
+                      <div>
+                        <FieldLabel>Kecamatan</FieldLabel>
+                        <FieldInput value={(editedData.kecamatan as string) ?? ""} onChange={(v) => handleField("kecamatan", v)} />
+                      </div>
+                    </div>
+
+                    {/* City & Province */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <FieldLabel>Kabupaten/Kota</FieldLabel>
+                        <FieldInput value={(editedData.city as string) ?? ""} onChange={(v) => handleField("city", v)} />
+                      </div>
+                      <div>
+                        <FieldLabel>Provinsi</FieldLabel>
+                        <FieldInput value={(editedData.province as string) ?? ""} onChange={(v) => handleField("province", v)} />
+                      </div>
+                    </div>
+
+                    {/* Occupation — full width */}
+                    <div>
+                      <FieldLabel>Pekerjaan</FieldLabel>
+                      <FieldInput value={(editedData.occupation as string) ?? ""} onChange={(v) => handleField("occupation", v)} />
+                    </div>
+
+                    {/* Timestamp */}
+                    <div className="pt-4 border-t border-white/50 text-[10px] text-slate-400 italic text-right">
+                      Data akan disimpan saat klik "Konfirmasi & Daftarkan"
+                    </div>
+                  </div>
+                )}
+              </GlassCard>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </Layout>
   );
 }
