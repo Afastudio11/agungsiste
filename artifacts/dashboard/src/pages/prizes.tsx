@@ -130,12 +130,6 @@ export default function PrizesPage() {
     <Layout>
       <div className="p-6 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-              <Gift className="h-6 w-6 text-purple-600" /> Monitoring Hadiah
-            </h1>
-            <p className="text-sm text-slate-500 mt-1">Kelola dan lacak distribusi hadiah per event</p>
-          </div>
           <button onClick={() => setShowForm(true)} className="px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 flex items-center gap-2">
             <Plus className="h-4 w-4" /> Tambah Hadiah
           </button>

@@ -240,19 +240,15 @@ export default function ScanPage() {
         </div>
       ) : (
         <div className="space-y-8">
-          {/* Page header */}
-          <div className="flex flex-wrap justify-between items-end gap-4">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight text-slate-900 mb-1.5">Scan KTP</h1>
-              <p className="text-slate-500">Upload atau foto KTP, sistem akan membaca data secara otomatis.</p>
-            </div>
-            {ktpData !== null && !meta?.lowConfidence && (
+          {/* Scan status badge */}
+          {ktpData !== null && !meta?.lowConfidence && (
+            <div className="flex justify-end">
               <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200/60">
                 <CheckCircle className="h-4 w-4 fill-emerald-100" />
                 <span className="text-xs font-bold tracking-wider uppercase">Data Terdeteksi</span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Staff name bar */}
           <GlassCard className="px-5 py-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">

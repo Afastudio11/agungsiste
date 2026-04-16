@@ -493,7 +493,6 @@ export default function PemetaanPage() {
             </button>
           )}
           <div className="flex-1">
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Pemetaan Wilayah</h1>
             <div className="mt-1"><Breadcrumb view={view} onNav={setView} /></div>
           </div>
         </div>

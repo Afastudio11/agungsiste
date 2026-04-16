@@ -214,41 +214,23 @@ export default function EventsPage() {
     <Layout>
       <div className="space-y-8">
 
-        {/* ── Hero Header ── */}
-        <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <nav className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-              <span>Events</span>
-              <ChevronRight className="h-3 w-3" />
-              <span className="text-indigo-600">Management</span>
-            </nav>
-            <h1
-              className="text-[clamp(2rem,5vw,3.25rem)] font-extrabold text-slate-900 leading-tight"
-              style={{ letterSpacing: "-0.03em" }}
-            >
-              Manajemen Event
-            </h1>
-            <p className="text-slate-500 font-medium">
-              Temukan dan kelola semua kurasi acara Anda di satu tempat.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              onClick={() => events && exportCSV(events)}
-              className="flex items-center gap-2 px-5 py-3 bg-white text-slate-600 font-bold rounded-2xl shadow-sm border border-slate-100 hover:bg-slate-50 transition-all text-sm"
-            >
-              <Download className="h-4 w-4" />
-              Export
-            </button>
-            <button
-              onClick={openCreate}
-              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 hover:-translate-y-0.5 active:translate-y-0 transition-all text-sm"
-            >
-              <Plus className="h-4 w-4" />
-              Tambah Event
-            </button>
-          </div>
-        </section>
+        {/* ── Actions ── */}
+        <div className="flex items-center gap-3 justify-end">
+          <button
+            onClick={() => events && exportCSV(events)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-600 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-all text-sm"
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah Event
+          </button>
+        </div>
 
         {/* ── Toolbar ── */}
         <div className="space-y-3">

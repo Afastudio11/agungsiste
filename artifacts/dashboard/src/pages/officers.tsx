@@ -81,15 +81,6 @@ export default function OfficersPage() {
       <div className="space-y-6 max-w-6xl">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1
-              className="text-[26px] font-extrabold tracking-tight text-slate-900"
-              style={{ letterSpacing: "-0.03em" }}
-            >
-              Kelola Petugas
-            </h1>
-            <p className="text-sm text-slate-400 mt-0.5 font-medium">Manajemen akun dan performa tim lapangan</p>
-          </div>
           <button
             onClick={() => { setShowForm(true); setError(""); }}
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition shadow-sm shadow-blue-200"

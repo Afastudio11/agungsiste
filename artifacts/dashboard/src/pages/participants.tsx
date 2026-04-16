@@ -138,22 +138,6 @@ export default function ParticipantsPage() {
 
         {/* ── Header ── */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-extrabold uppercase tracking-widest">
-                Live Database
-              </span>
-            </div>
-            <h1 className="text-4xl font-extrabold text-slate-900 leading-tight tracking-tight">
-              Daftar Peserta
-            </h1>
-            <p className="mt-1.5 text-base font-medium text-slate-400">
-              Total Entry:{" "}
-              <span className="text-slate-800 font-bold">
-                {isLoading ? "..." : `${stats.total} Peserta`}
-              </span>
-            </p>
-          </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Search */}

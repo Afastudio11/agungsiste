@@ -207,16 +207,6 @@ export default function DashboardPage() {
 
   return (
     <Layout>
-      {/* ── Page header ──────────────────────────────────────── */}
-      <div className="flex flex-col gap-1 mb-6">
-        <h1 className="text-[24px] font-extrabold text-slate-900 leading-tight" style={{ letterSpacing: "-0.03em" }}>
-          Dashboard
-        </h1>
-        <p className="text-sm text-slate-400 font-medium">
-          Ringkasan data registrasi peserta event
-        </p>
-      </div>
-
       {/* ── Stat cards ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <StatCard
