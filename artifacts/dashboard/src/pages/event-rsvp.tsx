@@ -61,21 +61,16 @@ function downloadTemplate() {
   URL.revokeObjectURL(url);
 }
 
-function exportCSV(list: RsvpParticipant[], eventName: string) {
-  const headers = ["NIK", "Nama", "Kelamin", "Kota", "Phone", "Email", "Catatan", "Terdaftar"];
-  const rows = list.map((p) => [
-    p.nik, `"${p.fullName}"`, p.gender ?? "", p.city ?? "",
-    p.phone ?? "", p.email ?? "", `"${p.notes ?? ""}"`,
-    new Date(p.registeredAt).toLocaleString("id-ID"),
-  ]);
-  const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `rsvp_${eventName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+function exportExcelRsvp(list: RsvpParticipant[], eventName: string) {
+  import("@/lib/exportUtils").then(({ exportExcel }) => {
+    const headers = ["NIK", "Nama", "Kelamin", "Kota", "Phone", "Email", "Catatan", "Terdaftar"];
+    const rows = [headers, ...list.map((p) => [
+      p.nik, p.fullName, p.gender ?? "", p.city ?? "",
+      p.phone ?? "", p.email ?? "", p.notes ?? "",
+      new Date(p.registeredAt).toLocaleString("id-ID"),
+    ])];
+    exportExcel(rows, `rsvp_${eventName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  });
 }
 
 export default function EventRsvpPage() {
@@ -316,7 +311,7 @@ export default function EventRsvpPage() {
               </button>
               {list.length > 0 && (
                 <button
-                  onClick={() => exportCSV(list, event?.name ?? "event")}
+                  onClick={() => exportExcelRsvp(list, event?.name ?? "event")}
                   className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
                 >
                   <Download size={15} />

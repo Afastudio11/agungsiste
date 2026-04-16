@@ -33,28 +33,17 @@ import {
 
 type TabType = "rsvp" | "onsite";
 
-function exportCSV(participants: any[], eventName: string, label: string) {
-  const headers = ["NIK", "Nama", "Kelamin", "Pekerjaan", "Kota", "Waktu Daftar", "Waktu Check-in", "Staf", "Tag", "Total Event"];
-  const rows = participants.map((p) => [
-    p.nik,
-    `"${p.fullName}"`,
-    p.gender ?? "",
-    `"${p.occupation ?? ""}"`,
-    `"${p.city ?? ""}"`,
-    new Date(p.registeredAt).toLocaleString("id-ID"),
-    p.checkedInAt ? new Date(p.checkedInAt).toLocaleString("id-ID") : "",
-    `"${p.staffName ?? ""}"`,
-    `"${p.tags ?? ""}"`,
-    p.eventCount,
-  ]);
-  const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${label}_${eventName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+function exportExcel(participants: any[], eventName: string, label: string) {
+  import("@/lib/exportUtils").then(({ exportExcel: doExport }) => {
+    const headers = ["NIK", "Nama", "Kelamin", "Pekerjaan", "Kota", "Waktu Daftar", "Waktu Check-in", "Staf", "Tag", "Total Event"];
+    const rows = [headers, ...participants.map((p) => [
+      p.nik, p.fullName, p.gender ?? "", p.occupation ?? "", p.city ?? "",
+      new Date(p.registeredAt).toLocaleString("id-ID"),
+      p.checkedInAt ? new Date(p.checkedInAt).toLocaleString("id-ID") : "",
+      p.staffName ?? "", p.tags ?? "", p.eventCount,
+    ])];
+    doExport(rows, `${label}_${eventName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  });
 }
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -388,7 +377,7 @@ export default function EventDetailPage() {
                 </Link>
               )}
               <button
-                onClick={() => exportCSV(filteredList, event.name, activeTab === "rsvp" ? "registrasi" : "absen")}
+                onClick={() => exportExcel(filteredList, event.name, activeTab === "rsvp" ? "registrasi" : "absen")}
                 className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
               >
                 <Download className="h-4 w-4" />

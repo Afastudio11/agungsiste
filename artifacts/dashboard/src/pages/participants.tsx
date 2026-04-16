@@ -5,8 +5,9 @@ import {
   useListParticipants,
   getListParticipantsQueryKey,
 } from "@workspace/api-client-react";
-import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Gift, CalendarCheck2, Eye, MapPin, ChevronRight } from "lucide-react";
+import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Gift, CalendarCheck2, Eye, MapPin, ChevronRight, FileText, FileSpreadsheet, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { exportExcel, exportParticipantsPDF } from "@/lib/exportUtils";
 
 type SortKey = "nik" | "fullName" | "gender" | "city" | "province" | "firstRegisteredAt" | "eventCount";
 type SortDir = "asc" | "desc";
@@ -56,21 +57,16 @@ function SortTh({ col, label, sortKey, sortDir, onSort, className = "" }: {
   );
 }
 
-function exportCSV(participants: any[]) {
-  const headers = ["NIK", "Nama", "Kelamin", "Kota", "Provinsi", "Pekerjaan", "Pertama Daftar", "Total Event"];
-  const rows = participants.map((p) => [
-    p.nik, `"${p.fullName}"`, p.gender ?? "", `"${p.city ?? ""}"`,
-    `"${p.province ?? ""}"`, `"${p.occupation ?? ""}"`,
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function doExportExcel(participants: any[]) {
+  const headers = ["NIK", "Nama", "Kelamin", "Kota", "Provinsi", "Kelurahan", "Kecamatan", "Pekerjaan", "Pertama Daftar", "Total Event"];
+  const rows = [headers, ...participants.map((p) => [
+    p.nik, p.fullName, p.gender ?? "", p.city ?? "", p.province ?? "",
+    p.kelurahan ?? "", p.kecamatan ?? "", p.occupation ?? "",
     new Date(p.firstRegisteredAt).toLocaleDateString("id-ID"), p.eventCount,
-  ]);
-  const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `peserta_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  ])];
+  exportExcel(rows, `peserta_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 export default function ParticipantsPage() {
@@ -85,6 +81,7 @@ export default function ParticipantsPage() {
   const [filterKabupaten, setFilterKabupaten] = useState("");
   const [filterKecamatan, setFilterKecamatan] = useState("");
   const [filterKelurahan, setFilterKelurahan] = useState("");
+  const [pdfProgress, setPdfProgress] = useState<{ current: number; total: number } | null>(null);
 
   const params: Record<string, string> = {
     ...(search ? { search } : {}),
@@ -179,6 +176,24 @@ export default function ParticipantsPage() {
 
   const goToPage = (p: number) => setCurrentPage(Math.min(Math.max(1, p), totalPages));
 
+  const handleExportPDF = async () => {
+    if (!participants || participants.length === 0 || pdfProgress) return;
+    const list = participants as any[];
+    setPdfProgress({ current: 0, total: list.length });
+    const label = filterKelurahan
+      ? `peserta_${filterKelurahan.replace(/\s+/g, "_")}`
+      : filterKecamatan
+      ? `peserta_${filterKecamatan.replace(/\s+/g, "_")}`
+      : filterKabupaten
+      ? `peserta_${filterKabupaten.replace(/\s+/g, "_")}`
+      : "peserta_semua";
+    try {
+      await exportParticipantsPDF(list, BASE, (current) => setPdfProgress({ current, total: list.length }), label);
+    } finally {
+      setPdfProgress(null);
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -237,13 +252,22 @@ export default function ParticipantsPage() {
               </button>
             )}
 
-            {/* Export */}
+            {/* Export buttons */}
             <button
-              onClick={() => participants && exportCSV(participants as any[])}
-              className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-full font-bold text-sm shadow-sm hover:bg-purple-700 transition-colors active:scale-95"
+              onClick={() => participants && doExportExcel(participants as any[])}
+              disabled={!participants || participants.length === 0}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-full font-bold text-sm shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors active:scale-95"
             >
-              <Download className="h-4 w-4" />
-              Export CSV
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel
+            </button>
+            <button
+              onClick={handleExportPDF}
+              disabled={!participants || participants.length === 0 || !!pdfProgress}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-full font-bold text-sm shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors active:scale-95"
+            >
+              <FileText className="h-4 w-4" />
+              PDF + Foto KTP
             </button>
           </div>
 
@@ -563,6 +587,32 @@ export default function ParticipantsPage() {
           )}
         </div>
       </div>
+
+      {/* ── PDF Progress Modal ── */}
+      {pdfProgress && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-7 max-w-sm w-full text-center">
+            <div className="mb-4 flex justify-center">
+              <div className="h-14 w-14 rounded-full bg-blue-50 flex items-center justify-center">
+                <Loader2 className="h-7 w-7 text-blue-600 animate-spin" />
+              </div>
+            </div>
+            <h3 className="text-base font-bold text-slate-800 mb-1">Membuat PDF...</h3>
+            <p className="text-sm text-slate-500 mb-5">
+              Memuat foto KTP peserta {pdfProgress.current} dari {pdfProgress.total}
+            </p>
+            <div className="w-full bg-slate-100 rounded-full h-2.5 mb-2">
+              <div
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${pdfProgress.total > 0 ? Math.round((pdfProgress.current / pdfProgress.total) * 100) : 0}%` }}
+              />
+            </div>
+            <p className="text-xs text-slate-400">
+              {pdfProgress.total > 0 ? Math.round((pdfProgress.current / pdfProgress.total) * 100) : 0}% — Jangan tutup jendela ini
+            </p>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

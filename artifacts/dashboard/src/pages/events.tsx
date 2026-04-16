@@ -115,25 +115,14 @@ const emptyForm = {
   targetParticipants: "",
 };
 
-function exportCSV(events: any[]) {
-  const headers = ["ID", "Nama Event", "Tanggal", "Lokasi", "Kategori", "Peserta", "Status"];
-  const rows = events.map((e) => [
-    e.id,
-    `"${e.name}"`,
-    e.eventDate,
-    `"${e.location ?? ""}"`,
-    `"${e.category ?? ""}"`,
-    e.participantCount,
-    e.status ?? "active",
-  ]);
-  const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `events_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+function exportExcelEvents(events: any[]) {
+  import("@/lib/exportUtils").then(({ exportExcel }) => {
+    const headers = ["ID", "Nama Event", "Tanggal", "Lokasi", "Kategori", "Peserta", "Status"];
+    const rows = [headers, ...events.map((e) => [
+      e.id, e.name, e.eventDate, e.location ?? "", e.category ?? "", e.participantCount, e.status ?? "active",
+    ])];
+    exportExcel(rows, `events_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  });
 }
 
 function ParticipantPill({ count }: { count: number }) {
@@ -339,7 +328,7 @@ export default function EventsPage() {
               <div className="h-6 w-px bg-slate-200" />
 
               <button
-                onClick={() => events && exportCSV(events)}
+                onClick={() => events && exportExcelEvents(events)}
                 className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-600 font-bold rounded-xl border border-slate-200 hover:bg-slate-50 transition-all text-sm"
               >
                 <Download className="h-4 w-4" />
