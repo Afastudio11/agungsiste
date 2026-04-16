@@ -85,21 +85,6 @@ export default function Layout({ children }: LayoutProps) {
 
   const Sidebar = ({ onNav }: { onNav?: () => void }) => (
     <div className="flex h-full flex-col">
-      {/* Branding */}
-      <div className="px-5 pt-6 pb-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-blue-600 shadow-md shadow-blue-300/40">
-            <MsIcon name="document_scanner" className="text-[18px] text-white" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[14px] font-extrabold text-slate-900 leading-tight tracking-tight">Ethereal KTP</p>
-            <p className="text-[10px] font-medium text-slate-400 leading-tight">Digital Curator</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-4 h-px bg-slate-100" />
-
       <p className="px-5 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">Menu</p>
 
       {/* Main nav */}
@@ -119,24 +104,6 @@ export default function Layout({ children }: LayoutProps) {
       {/* Bottom section */}
       <div className="px-3 pb-4 space-y-2">
         <div className="h-px bg-slate-100 mb-3" />
-
-        {/* Help Center */}
-        <Link href="/help">
-          <div
-            onClick={onNav}
-            className={`flex items-center gap-3 rounded-full px-4 py-2.5 text-[13px] font-semibold transition-all cursor-pointer ${
-              location === "/help"
-                ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-                : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            }`}
-          >
-            <MsIcon
-              name="help_outline"
-              className={`text-[18px] shrink-0 ${location === "/help" ? "text-white" : "text-slate-400"}`}
-            />
-            <span>Help Center</span>
-          </div>
-        </Link>
 
         {/* New Scan CTA */}
         <Link href="/scan">
