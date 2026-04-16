@@ -275,6 +275,40 @@ export default function DashboardPage() {
               {label}
             </button>
           ))}
+          <button
+            onClick={() => {
+              if (activePeriod === "custom") { setActivePeriod(null); setStartDate(""); setEndDate(""); }
+              else setActivePeriod("custom");
+            }}
+            className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-1.5 ${
+              activePeriod === "custom"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"
+            }`}
+          >
+            <MsIcon name="calendar_today" className="text-[13px]" />
+            Custom
+          </button>
+
+          {/* Inline custom date inputs */}
+          {activePeriod === "custom" && (
+            <div className="flex items-center gap-1.5 bg-white border border-blue-300 rounded-full px-3 py-1 shadow-sm">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="border-0 bg-transparent text-[11px] text-slate-700 focus:outline-none w-[108px]"
+              />
+              <span className="text-slate-300 text-xs">—</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="border-0 bg-transparent text-[11px] text-slate-700 focus:outline-none w-[108px]"
+              />
+            </div>
+          )}
+
           <div className="h-4 w-px bg-slate-200 mx-1" />
           <button
             onClick={() => setShowDaerahFilter((v) => !v)}

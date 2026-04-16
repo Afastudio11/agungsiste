@@ -177,34 +177,6 @@ export default function Layout({ children }: LayoutProps) {
 
           <div className="flex-1" />
 
-          {/* Date range chip — shown on dashboard */}
-          {isDashboard && (
-            <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs shadow-sm">
-              <MsIcon name="calendar_today" className="text-[14px] text-slate-400 shrink-0" />
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="border-0 bg-transparent text-[11px] text-slate-600 focus:outline-none w-[100px]"
-              />
-              <span className="text-slate-300">—</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="border-0 bg-transparent text-[11px] text-slate-600 focus:outline-none w-[100px]"
-              />
-              {(startDate || endDate) && (
-                <button
-                  onClick={() => { setStartDate(""); setEndDate(""); }}
-                  className="text-slate-300 hover:text-slate-500 text-sm leading-none ml-0.5"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          )}
-
           {/* Export button — shown on dashboard */}
           {isDashboard && (
             <button className="hidden sm:flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-[12px] font-bold text-white shadow-sm shadow-blue-300/50 hover:bg-blue-700 transition-colors">
