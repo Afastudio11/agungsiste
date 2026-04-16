@@ -106,10 +106,14 @@ router.get("/events-summary", requireAuth, async (req, res) => {
   try {
     const query = GetEventsSummaryQueryParams.safeParse(req.query);
     const { startDate, endDate } = query.success ? query.data : {};
+    const { kabupaten, kecamatan, kelurahan } = req.query as Record<string, string>;
 
     let conditions: any[] = [];
     if (startDate) conditions.push(gte(eventsTable.eventDate, startDate));
     if (endDate) conditions.push(lte(eventsTable.eventDate, endDate));
+    if (kabupaten) conditions.push(sql`exists (select 1 from ${eventRegistrationsTable} er2 join ${participantsTable} p2 on er2.participant_id = p2.id where er2.event_id = ${eventsTable.id} and p2.city ilike ${"%" + kabupaten + "%"})`);
+    if (kecamatan) conditions.push(sql`exists (select 1 from ${eventRegistrationsTable} er2 join ${participantsTable} p2 on er2.participant_id = p2.id where er2.event_id = ${eventsTable.id} and p2.kecamatan ilike ${"%" + kecamatan + "%"})`);
+    if (kelurahan) conditions.push(sql`exists (select 1 from ${eventRegistrationsTable} er2 join ${participantsTable} p2 on er2.participant_id = p2.id where er2.event_id = ${eventsTable.id} and p2.kelurahan ilike ${"%" + kelurahan + "%"})`);
 
     const events = await db
       .select({
@@ -241,13 +245,28 @@ router.get("/staff", requireAuth, async (req, res) => {
 // Top staff by registration count
 router.get("/top-staff", requireAuth, async (req, res) => {
   try {
-    const result = await db
-      .select({
-        staffName: eventRegistrationsTable.staffName,
-        count: sql<number>`cast(count(*) as integer)`,
-      })
-      .from(eventRegistrationsTable)
-      .where(sql`${eventRegistrationsTable.staffName} is not null`)
+    const { startDate, endDate, kabupaten, kecamatan, kelurahan } = req.query as Record<string, string>;
+
+    const conds: any[] = [sql`${eventRegistrationsTable.staffName} is not null`];
+    if (startDate) conds.push(gte(eventRegistrationsTable.registeredAt, new Date(startDate)));
+    if (endDate) conds.push(lte(eventRegistrationsTable.registeredAt, new Date(endDate)));
+
+    const needsDaerah = kabupaten || kecamatan || kelurahan;
+    const base = needsDaerah
+      ? db
+          .select({ staffName: eventRegistrationsTable.staffName, count: sql<number>`cast(count(*) as integer)` })
+          .from(eventRegistrationsTable)
+          .leftJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+      : db
+          .select({ staffName: eventRegistrationsTable.staffName, count: sql<number>`cast(count(*) as integer)` })
+          .from(eventRegistrationsTable);
+
+    if (kabupaten) conds.push(ilike(participantsTable.city, `%${kabupaten}%`));
+    if (kecamatan) conds.push(ilike(participantsTable.kecamatan, `%${kecamatan}%`));
+    if (kelurahan) conds.push(ilike(participantsTable.kelurahan, `%${kelurahan}%`));
+
+    const result = await (base as any)
+      .where(and(...conds))
       .groupBy(eventRegistrationsTable.staffName)
       .orderBy(sql`count(*) desc`)
       .limit(10);
@@ -262,34 +281,64 @@ router.get("/top-staff", requireAuth, async (req, res) => {
 // New: gender + province breakdown
 router.get("/segments", requireAuth, async (req, res) => {
   try {
-    const gender = await db
-      .select({
-        gender: participantsTable.gender,
-        count: sql<number>`cast(count(*) as integer)`,
-      })
-      .from(participantsTable)
-      .groupBy(participantsTable.gender)
-      .orderBy(sql`count(*) desc`);
+    const { startDate, endDate, kabupaten, kecamatan, kelurahan } = req.query as Record<string, string>;
+    const needsDateOrDaerah = startDate || endDate || kabupaten || kecamatan || kelurahan;
 
+    // Build conditions for filtering via event_registrations join
+    const regJoinConds: any[] = [];
+    if (startDate) regJoinConds.push(gte(eventRegistrationsTable.registeredAt, new Date(startDate)));
+    if (endDate) regJoinConds.push(lte(eventRegistrationsTable.registeredAt, new Date(endDate)));
+
+    const daerahConds: any[] = [];
+    if (kabupaten) daerahConds.push(ilike(participantsTable.city, `%${kabupaten}%`));
+    if (kecamatan) daerahConds.push(ilike(participantsTable.kecamatan, `%${kecamatan}%`));
+    if (kelurahan) daerahConds.push(ilike(participantsTable.kelurahan, `%${kelurahan}%`));
+
+    // Gender: when date/daerah filter active, use inner join to event_registrations
+    let gender: { gender: string; count: number }[];
+    if (needsDateOrDaerah) {
+      const allConds = [...regJoinConds, ...daerahConds];
+      const rows = await db
+        .select({ gender: participantsTable.gender, count: sql<number>`cast(count(distinct ${participantsTable.id}) as integer)` })
+        .from(participantsTable)
+        .innerJoin(eventRegistrationsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+        .where(allConds.length > 0 ? and(...allConds) : undefined)
+        .groupBy(participantsTable.gender)
+        .orderBy(sql`count(distinct ${participantsTable.id}) desc`);
+      gender = rows;
+    } else {
+      gender = await db
+        .select({ gender: participantsTable.gender, count: sql<number>`cast(count(*) as integer)` })
+        .from(participantsTable)
+        .groupBy(participantsTable.gender)
+        .orderBy(sql`count(*) desc`);
+    }
+
+    // Province: filter by daerah only (province breakdown of participants in that area)
     const province = await db
-      .select({
-        province: participantsTable.province,
-        count: sql<number>`cast(count(*) as integer)`,
-      })
+      .select({ province: participantsTable.province, count: sql<number>`cast(count(*) as integer)` })
       .from(participantsTable)
+      .where(daerahConds.length > 0 ? and(...daerahConds) : undefined)
       .groupBy(participantsTable.province)
       .orderBy(sql`count(*) desc`)
       .limit(5);
 
-    // Day-of-week registrations (0=Sun ... 6=Sat)
-    const dow = await db
-      .select({
-        dow: sql<number>`cast(extract(dow from ${eventRegistrationsTable.registeredAt}) as integer)`,
-        count: sql<number>`cast(count(*) as integer)`,
-      })
-      .from(eventRegistrationsTable)
-      .groupBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`)
-      .orderBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`);
+    // DOW: filter by date + daerah on registrations
+    const dowConds = [...regJoinConds, ...daerahConds];
+    const dow = daerahConds.length > 0
+      ? await db
+          .select({ dow: sql<number>`cast(extract(dow from ${eventRegistrationsTable.registeredAt}) as integer)`, count: sql<number>`cast(count(*) as integer)` })
+          .from(eventRegistrationsTable)
+          .leftJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+          .where(dowConds.length > 0 ? and(...dowConds) : undefined)
+          .groupBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`)
+          .orderBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`)
+      : await db
+          .select({ dow: sql<number>`cast(extract(dow from ${eventRegistrationsTable.registeredAt}) as integer)`, count: sql<number>`cast(count(*) as integer)` })
+          .from(eventRegistrationsTable)
+          .where(regJoinConds.length > 0 ? and(...regJoinConds) : undefined)
+          .groupBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`)
+          .orderBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`);
 
     res.json({ gender, province, dow });
   } catch (err) {

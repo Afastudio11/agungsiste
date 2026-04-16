@@ -34,21 +34,30 @@ router.get("/summary", async (_req, res) => {
   }
 });
 
-router.get("/kabupaten", async (_req, res) => {
+router.get("/kabupaten", async (req, res) => {
   try {
+    const { startDate, endDate } = req.query as Record<string, string>;
+
+    const conditions: ReturnType<typeof sql>[] = [sql`${participantsTable.city} is not null`];
+    if (startDate) conditions.push(sql`${eventRegistrationsTable.registeredAt} >= ${new Date(startDate).toISOString()}`);
+    if (endDate) conditions.push(sql`${eventRegistrationsTable.registeredAt} <= ${new Date(endDate).toISOString()}`);
+
+    const hasDateFilter = !!(startDate || endDate);
     const data = await db
       .select({
         kabupaten: participantsTable.city,
-        totalInput: countDistinct(participantsTable.id),
+        totalInput: hasDateFilter
+          ? sql<number>`cast(count(distinct ${eventRegistrationsTable.id}) as integer)`
+          : countDistinct(participantsTable.id),
         totalDesa: countDistinct(participantsTable.kelurahan),
         totalKecamatan: countDistinct(participantsTable.kecamatan),
         totalEvent: countDistinct(eventRegistrationsTable.eventId),
       })
       .from(participantsTable)
       .leftJoin(eventRegistrationsTable, sql`${eventRegistrationsTable.participantId} = ${participantsTable.id}`)
-      .where(sql`${participantsTable.city} is not null`)
+      .where(sql`${conditions.reduce((a, b) => sql`${a} and ${b}`)}`)
       .groupBy(participantsTable.city)
-      .orderBy(sql`count(distinct ${participantsTable.id}) desc`);
+      .orderBy(sql`count(distinct ${hasDateFilter ? eventRegistrationsTable.id : participantsTable.id}) desc`);
     return res.json(data);
   } catch (e) {
     console.error(e);

@@ -4,9 +4,7 @@ import Layout from "@/components/layout";
 import { useHeaderContext } from "@/lib/header-context";
 import {
   useGetDailyRegistrations,
-  useGetEventsSummary,
   getGetDailyRegistrationsQueryKey,
-  getGetEventsSummaryQueryKey,
 } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -136,26 +134,33 @@ export default function DashboardPage() {
     queryFn: () => fetch(`/api/dashboard/stats${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
     staleTime: 30_000,
   });
+  const dateQs = new URLSearchParams({
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+  }).toString();
+
   const { data: daily } = useGetDailyRegistrations(params, {
     query: { queryKey: getGetDailyRegistrationsQueryKey(params) },
   });
-  const { data: eventsSummary } = useGetEventsSummary(params, {
-    query: { queryKey: getGetEventsSummaryQueryKey(params) },
+  const { data: eventsSummary } = useQuery({
+    queryKey: ["dashboard-events-summary", statsQs],
+    queryFn: () => fetch(`/api/dashboard/events-summary${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
+    staleTime: 30_000,
   });
   const { data: segments } = useQuery({
-    queryKey: ["dashboard-segments"],
-    queryFn: () => fetch("/api/dashboard/segments").then((r) => r.json()),
-    staleTime: 60_000,
+    queryKey: ["dashboard-segments", statsQs],
+    queryFn: () => fetch(`/api/dashboard/segments${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
+    staleTime: 30_000,
   });
   const { data: topStaff } = useQuery<{ staffName: string | null; count: number }[]>({
-    queryKey: ["dashboard-top-staff"],
-    queryFn: () => fetch("/api/dashboard/top-staff").then((r) => r.json()),
-    staleTime: 60_000,
+    queryKey: ["dashboard-top-staff", statsQs],
+    queryFn: () => fetch(`/api/dashboard/top-staff${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
+    staleTime: 30_000,
   });
   const { data: kabupatenData } = useQuery<{ kabupaten: string; totalInput: number }[]>({
-    queryKey: ["pemetaan-kabupaten"],
-    queryFn: () => fetch("/api/pemetaan/kabupaten").then((r) => r.json()),
-    staleTime: 60_000,
+    queryKey: ["pemetaan-kabupaten", dateQs],
+    queryFn: () => fetch(`/api/pemetaan/kabupaten${dateQs ? `?${dateQs}` : ""}`).then((r) => r.json()),
+    staleTime: 30_000,
   });
   const { data: kecamatanData } = useQuery<{ kecamatan: string }[]>({
     queryKey: ["pemetaan-kecamatan", filterKabupaten],
