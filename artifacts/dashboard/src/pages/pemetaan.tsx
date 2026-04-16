@@ -223,6 +223,7 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
                 <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                   <th className="px-4 py-3 text-center w-12">No.</th>
                   <th className="px-4 py-3 text-left">Nama Kecamatan</th>
+                  <th className="px-4 py-3 text-right">Jumlah Desa</th>
                   <th className="px-4 py-3 text-right">Jumlah Event</th>
                   <th className="px-4 py-3 text-right">Total Peserta</th>
                   <th className="px-3 py-3 w-8" />
@@ -233,13 +234,14 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
                   <tr key={k.kecamatan} onClick={() => onSelect(k.kecamatan)} className="hover:bg-blue-50/60 cursor-pointer transition group">
                     <td className="px-4 py-3 text-center text-xs text-slate-400 font-medium">{i + 1}</td>
                     <td className="px-4 py-3 text-sm font-semibold text-slate-900 group-hover:text-blue-700 transition">{k.kecamatan}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700 text-right">{k.totalDesa}</td>
                     <td className="px-4 py-3 text-sm text-slate-700 text-right">{k.totalEvent}</td>
                     <td className="px-4 py-3 text-sm font-bold text-slate-900 text-right">{Number(k.totalInput).toLocaleString()}</td>
                     <td className="px-3 py-3"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition" /></td>
                   </tr>
                 ))}
                 {kecData.length === 0 && (
-                  <tr><td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-sm">Tidak ada data kecamatan</td></tr>
+                  <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-400 text-sm">Tidak ada data kecamatan</td></tr>
                 )}
               </tbody>
             </table>
