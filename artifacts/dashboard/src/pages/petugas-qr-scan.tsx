@@ -3,19 +3,12 @@ import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, CheckCircle2, AlertCircle, Users, QrCode,
-  RefreshCw, UserCheck, Clock, Scan, XCircle, Keyboard, Camera, Zap
+  RefreshCw, UserCheck, Clock, Scan, XCircle, Keyboard, Camera
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import jsQR from "jsqr";
+import { Html5Qrcode } from "html5-qrcode";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-
-/* ── BarcodeDetector type shim (not in all TS libs yet) ── */
-declare class BarcodeDetector {
-  constructor(opts: { formats: string[] });
-  detect(source: HTMLVideoElement | HTMLCanvasElement | ImageBitmap): Promise<{ rawValue: string }[]>;
-  static getSupportedFormats(): Promise<string[]>;
-}
 
 interface EventInfo {
   id: number;
@@ -34,22 +27,15 @@ type ScanResult = {
   error?: string;
 };
 
-/* Check if native BarcodeDetector is supported */
-const NATIVE_DETECTOR = typeof window !== "undefined" && "BarcodeDetector" in window;
-
 export default function PetugasQrScanPage() {
   const { id } = useParams();
   const eventId = parseInt(id || "0");
   const [, navigate] = useLocation();
   const { user: _user } = useAuth();
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const rafRef = useRef<number>(0);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
   const processingRef = useRef(false);
-  const detectorRef = useRef<BarcodeDetector | null>(null);
-  const lastJsQrAtRef = useRef(0);
+  const READER_ID = `qr-reader-${eventId}`;
 
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState("");
@@ -58,7 +44,6 @@ export default function PetugasQrScanPage() {
   const [scanCount, setScanCount] = useState(0);
   const [manualMode, setManualMode] = useState(false);
   const [manualNik, setManualNik] = useState("");
-  const [engineLabel, setEngineLabel] = useState("");
 
   const { data: event } = useQuery<EventInfo>({
     queryKey: ["event", eventId],
@@ -67,11 +52,14 @@ export default function PetugasQrScanPage() {
     enabled: eventId > 0,
   });
 
-  const stopCamera = useCallback(() => {
-    cancelAnimationFrame(rafRef.current);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
+  const stopCamera = useCallback(async () => {
+    const s = scannerRef.current;
+    if (s) {
+      try {
+        if (s.isScanning) await s.stop();
+        s.clear();
+      } catch { /* ignore */ }
+      scannerRef.current = null;
     }
     setScanning(false);
   }, []);
@@ -81,6 +69,7 @@ export default function PetugasQrScanPage() {
       if (submitting || processingRef.current) return;
       processingRef.current = true;
       setSubmitting(true);
+      await stopCamera();
       try {
         const r = await fetch(`${BASE}/api/events/${eventId}/qr-checkin`, {
           method: "POST",
@@ -99,7 +88,6 @@ export default function PetugasQrScanPage() {
         setLastResult({ success: false, message: "Terjadi kesalahan jaringan" });
       } finally {
         setSubmitting(false);
-        stopCamera();
       }
     },
     [eventId, submitting, stopCamera]
@@ -121,110 +109,60 @@ export default function PetugasQrScanPage() {
           stopCamera();
         }
       }
+      // silently ignore non-KTP QR codes
     },
     [eventId, doCheckin, stopCamera]
   );
 
   const startCamera = useCallback(async () => {
+    if (scannerRef.current) return; // already running
     setCameraError("");
     setLastResult(null);
     processingRef.current = false;
-    lastJsQrAtRef.current = 0;
+
+    // Ensure the target div exists in DOM before creating scanner
+    await new Promise<void>((res) => setTimeout(res, 50));
+
+    const el = document.getElementById(READER_ID);
+    if (!el) { setCameraError("Komponen kamera tidak ditemukan, coba muat ulang."); return; }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
-      streamRef.current = stream;
+      const scanner = new Html5Qrcode(READER_ID, { verbose: false } as any);
+      scannerRef.current = scanner;
 
-      const video = videoRef.current!;
-      video.srcObject = stream;
-      await video.play();
+      await scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 15,
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+        } as any,
+        (decodedText: string) => {
+          if (!processingRef.current) handleRawQr(decodedText);
+        },
+        undefined
+      );
       setScanning(true);
-
-      /* ── Try to init native BarcodeDetector ── */
-      let useNative = false;
-      if (NATIVE_DETECTOR) {
-        try {
-          const formats = await BarcodeDetector.getSupportedFormats();
-          if (formats.includes("qr_code")) {
-            detectorRef.current = new BarcodeDetector({ formats: ["qr_code"] });
-            useNative = true;
-            setEngineLabel("native");
-          }
-        } catch { /* fall through to jsQR */ }
-      }
-      if (!useNative) setEngineLabel("jsqr");
-
-      /* ── Scan loop ── */
-      const tick = async () => {
-        if (processingRef.current || !streamRef.current) return;
-
-        const video = videoRef.current;
-        if (!video || video.readyState < video.HAVE_ENOUGH_DATA) {
-          rafRef.current = requestAnimationFrame(tick);
-          return;
-        }
-
-        if (useNative && detectorRef.current) {
-          /* Native BarcodeDetector — fast, no canvas needed */
-          try {
-            const results = await detectorRef.current.detect(video);
-            if (results.length > 0) {
-              handleRawQr(results[0].rawValue);
-              return;
-            }
-          } catch { /* ignore transient errors */ }
-        } else {
-          /* jsQR fallback — throttled at ~8fps */
-          const now = Date.now();
-          if (now - lastJsQrAtRef.current < 120) {
-            rafRef.current = requestAnimationFrame(tick);
-            return;
-          }
-          lastJsQrAtRef.current = now;
-
-          const canvas = canvasRef.current;
-          if (!canvas) { rafRef.current = requestAnimationFrame(tick); return; }
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) { rafRef.current = requestAnimationFrame(tick); return; }
-          ctx.drawImage(video, 0, 0);
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: "attemptBoth",
-          });
-          if (code) {
-            handleRawQr(code.data);
-            return;
-          }
-        }
-
-        rafRef.current = requestAnimationFrame(tick);
-      };
-
-      rafRef.current = requestAnimationFrame(tick);
     } catch (err: any) {
+      scannerRef.current = null;
+      const msg = String(err?.message || err || "");
       setCameraError(
-        err?.message?.includes("Permission")
+        msg.toLowerCase().includes("notallowed") || msg.toLowerCase().includes("permission")
           ? "Izin kamera ditolak. Mohon izinkan akses kamera di browser."
           : "Tidak dapat mengakses kamera. Coba muat ulang halaman."
       );
     }
-  }, [handleRawQr]);
+  }, [handleRawQr, READER_ID]);
 
   useEffect(() => {
-    startCamera();
-    return () => stopCamera();
+    if (!manualMode) startCamera();
+    return () => { stopCamera(); };
   }, []);
 
   const reset = () => {
     setLastResult(null);
     setManualNik("");
     processingRef.current = false;
-    lastJsQrAtRef.current = 0;
-    if (!manualMode) startCamera();
+    if (!manualMode) setTimeout(startCamera, 80);
   };
 
   const submitManualNik = () => {
@@ -247,8 +185,18 @@ export default function PetugasQrScanPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-8" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      {/* Hidden canvas for jsQR fallback */}
-      <canvas ref={canvasRef} className="hidden" />
+
+      {/* CSS to style the video injected by html5-qrcode */}
+      <style>{`
+        #${READER_ID} video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          display: block;
+          border-radius: 0;
+        }
+        #${READER_ID} img { display: none !important; }
+      `}</style>
 
       {/* ── Top Bar ─────────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
@@ -259,14 +207,7 @@ export default function PetugasQrScanPage() {
           <ArrowLeft className="h-4 w-4 text-slate-600" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <div className="text-[10px] font-extrabold text-emerald-600 tracking-widest">SCAN QR ABSENSI</div>
-            {engineLabel === "native" && (
-              <div className="flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] font-extrabold px-2 py-0.5 rounded-full">
-                <Zap size={9} /> NATIVE
-              </div>
-            )}
-          </div>
+          <div className="text-[10px] font-extrabold text-emerald-600 tracking-widest">SCAN QR ABSENSI</div>
           <div className="text-[13px] font-extrabold text-slate-900 truncate leading-tight">
             {event?.name || "Memuat..."}
           </div>
@@ -308,9 +249,7 @@ export default function PetugasQrScanPage() {
                 <div className="text-[11px] text-slate-400 font-medium">
                   {manualMode
                     ? "Ketik NIK jika QR tidak terbaca"
-                    : engineLabel === "native"
-                      ? "Deteksi otomatis aktif — arahkan ke QR"
-                      : "Arahkan kamera ke QR, terbaca otomatis"
+                    : "Arahkan kamera ke QR code tiket peserta"
                   }
                 </div>
               </div>
@@ -332,39 +271,27 @@ export default function PetugasQrScanPage() {
             {/* ── Camera mode ── */}
             {!manualMode && (
               <>
+                {/* html5-qrcode injects video into this div */}
                 <div className="relative bg-slate-900 mx-4 mb-4 rounded-2xl overflow-hidden" style={{ aspectRatio: "4/3" }}>
-                  <video
-                    ref={videoRef}
-                    className={`w-full h-full object-cover ${scanning ? "block" : "hidden"}`}
-                    playsInline
-                    muted
-                    autoPlay
-                  />
+                  <div id={READER_ID} className="w-full h-full" />
 
-                  {/* Corner brackets + scan line */}
+                  {/* Corner brackets overlay */}
                   {scanning && (
                     <>
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                         <div className="relative w-56 h-56">
                           <div className="absolute top-0 left-0 w-10 h-10 border-t-[3px] border-l-[3px] border-emerald-400 rounded-tl-xl" />
                           <div className="absolute top-0 right-0 w-10 h-10 border-t-[3px] border-r-[3px] border-emerald-400 rounded-tr-xl" />
                           <div className="absolute bottom-0 left-0 w-10 h-10 border-b-[3px] border-l-[3px] border-emerald-400 rounded-bl-xl" />
                           <div className="absolute bottom-0 right-0 w-10 h-10 border-b-[3px] border-r-[3px] border-emerald-400 rounded-br-xl" />
-                          {/* Only show scan line on jsQR mode; native doesn't need it */}
-                          {engineLabel !== "native" && (
-                            <div
-                              className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent rounded-full"
-                              style={{ animation: "scanLine 2s ease-in-out infinite", top: "50%" }}
-                            />
-                          )}
-                          {/* Native: pulsing ring instead */}
-                          {engineLabel === "native" && (
-                            <div className="absolute inset-4 rounded-xl border-2 border-emerald-400/60 animate-pulse" />
-                          )}
+                          <div
+                            className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent rounded-full"
+                            style={{ animation: "scanLine 2s ease-in-out infinite", top: "50%" }}
+                          />
                         </div>
                       </div>
                       <div
-                        className="absolute inset-0 pointer-events-none"
+                        className="absolute inset-0 pointer-events-none z-[9]"
                         style={{ background: "radial-gradient(ellipse 200px 200px at center, transparent 40%, rgba(0,0,0,0.5) 100%)" }}
                       />
                       <style>{`
@@ -379,7 +306,7 @@ export default function PetugasQrScanPage() {
 
                   {/* Processing overlay */}
                   {submitting && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-900/80">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-900/80 z-20">
                       <div className="w-16 h-16 rounded-2xl bg-emerald-900 flex items-center justify-center animate-pulse">
                         <Scan className="h-8 w-8 text-emerald-400" />
                       </div>
@@ -390,21 +317,30 @@ export default function PetugasQrScanPage() {
                     </div>
                   )}
 
-                  {/* Inactive state */}
-                  {!scanning && !submitting && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                  {/* Inactive / not yet started */}
+                  {!scanning && !submitting && !cameraError && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10">
                       <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center">
                         <QrCode className="h-8 w-8 text-slate-500" />
                       </div>
                       <div className="text-center">
-                        <p className="text-slate-300 font-semibold text-sm">Kamera tidak aktif</p>
-                        <button
-                          onClick={startCamera}
-                          className="mt-3 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition mx-auto"
-                        >
-                          <RefreshCw size={13} /> Aktifkan Kamera
-                        </button>
+                        <p className="text-slate-300 font-semibold text-sm">Memulai kamera...</p>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Not scanning + no error but user clicked retry */}
+                  {!scanning && !submitting && cameraError && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10">
+                      <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center">
+                        <QrCode className="h-8 w-8 text-slate-500" />
+                      </div>
+                      <button
+                        onClick={startCamera}
+                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition mx-auto"
+                      >
+                        <RefreshCw size={13} /> Aktifkan Kamera
+                      </button>
                     </div>
                   )}
                 </div>
@@ -545,31 +481,22 @@ export default function PetugasQrScanPage() {
         )}
 
         {/* ── Tips Card ────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl border border-slate-100 px-5 py-4">
-          <div className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-3">PETUNJUK</div>
-          <div className="space-y-2 text-[12px] text-slate-500">
-            <div className="flex items-start gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[9px] font-extrabold text-emerald-600">1</span>
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4">
+          <p className="text-[11px] font-extrabold text-slate-400 mb-2.5">TIPS SCAN</p>
+          <div className="space-y-2">
+            {[
+              "Pastikan QR code tercetak jelas dan tidak kusut",
+              "Jaga jarak 10–20 cm dari QR code",
+              "Pastikan pencahayaan cukup terang",
+              "Jika tidak terbaca, gunakan input NIK manual",
+            ].map((tip, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                <p className="text-[12px] text-slate-500">{tip}</p>
               </div>
-              <span>Minta peserta menunjukkan QR Code dari HP mereka</span>
-            </div>
-            <div className="flex items-start gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[9px] font-extrabold text-emerald-600">2</span>
-              </div>
-              <span>Arahkan kamera ke QR Code, sistem langsung membaca secara otomatis</span>
-            </div>
-            <div className="flex items-start gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[9px] font-extrabold text-blue-600">3</span>
-              </div>
-              <span>Jika kamera tidak bisa membaca, tekan <strong>Manual</strong> dan masukkan NIK peserta</span>
-            </div>
+            ))}
           </div>
         </div>
-
-        <div className="h-4" />
       </div>
     </div>
   );
