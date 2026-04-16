@@ -150,6 +150,50 @@ router.get("/:id/participant-search", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/all-distributions", requireAuth, async (req, res) => {
+  try {
+    const { startDate, endDate, kabupaten, kecamatan } = req.query as Record<string, string>;
+    const conditions: ReturnType<typeof sql>[] = [];
+
+    if (startDate) conditions.push(sql`${prizeDistributionsTable.distributedAt} >= ${new Date(startDate).toISOString()}`);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      conditions.push(sql`${prizeDistributionsTable.distributedAt} <= ${end.toISOString()}`);
+    }
+    if (kabupaten) conditions.push(sql`${participantsTable.city} ilike ${"%" + kabupaten + "%"}`);
+    if (kecamatan) conditions.push(sql`${participantsTable.kecamatan} ilike ${"%" + kecamatan + "%"}`);
+
+    const rows = await db
+      .select({
+        id: prizeDistributionsTable.id,
+        distributedAt: prizeDistributionsTable.distributedAt,
+        distributedBy: prizeDistributionsTable.distributedBy,
+        notes: prizeDistributionsTable.notes,
+        participantName: participantsTable.fullName,
+        participantNik: participantsTable.nik,
+        kabupaten: participantsTable.city,
+        kecamatan: participantsTable.kecamatan,
+        kelurahan: participantsTable.kelurahan,
+        prizeName: prizesTable.name,
+        prizeId: prizesTable.id,
+        eventName: eventsTable.name,
+      })
+      .from(prizeDistributionsTable)
+      .innerJoin(participantsTable, eq(prizeDistributionsTable.participantId, participantsTable.id))
+      .innerJoin(prizesTable, eq(prizeDistributionsTable.prizeId, prizesTable.id))
+      .leftJoin(eventsTable, eq(prizesTable.eventId, eventsTable.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(sql`${prizeDistributionsTable.distributedAt} desc`)
+      .limit(500);
+
+    res.json(rows);
+  } catch (err) {
+    req.log.error({ err }, "Error listing all distributions");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:id/distributions", requireAuth, async (req, res) => {
   try {
     const prizeId = parseInt(req.params.id);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Layout from "@/components/layout";
-import { Gift, Plus, Trash2, Award, ChevronDown, ChevronUp, Package, Search, X, Users, Globe } from "lucide-react";
+import { Gift, Plus, Trash2, Award, ChevronDown, ChevronUp, Package, Search, X, Users, Globe, Calendar, MapPin } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -33,6 +33,23 @@ type ParticipantResult = {
   province: string | null;
 };
 
+type AllDistribution = {
+  id: number;
+  distributedAt: string;
+  distributedBy: string | null;
+  notes: string | null;
+  participantName: string;
+  participantNik: string;
+  kabupaten: string | null;
+  kecamatan: string | null;
+  kelurahan: string | null;
+  prizeName: string;
+  prizeId: number;
+  eventName: string | null;
+};
+
+const KABUPATEN_LIST = ["Pacitan", "Trenggalek", "Magetan", "Ponorogo", "Ngawi"];
+
 type DistributeState = {
   prizeId: number;
   prizeName: string;
@@ -59,6 +76,24 @@ export default function PrizesPage() {
 
   const [formData, setFormData] = useState({ eventId: "", name: "", description: "", quantity: "1" });
 
+  const [distStartDate, setDistStartDate] = useState("");
+  const [distEndDate, setDistEndDate] = useState("");
+  const [distKabupaten, setDistKabupaten] = useState("");
+  const [allDistributions, setAllDistributions] = useState<AllDistribution[]>([]);
+  const [allDistLoading, setAllDistLoading] = useState(false);
+
+  const fetchAllDistributions = useCallback(async () => {
+    setAllDistLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (distStartDate) params.set("startDate", distStartDate);
+      if (distEndDate) params.set("endDate", distEndDate);
+      if (distKabupaten) params.set("kabupaten", distKabupaten);
+      const res = await fetch(`${BASE}/api/prizes/all-distributions?${params}`, { credentials: "include" });
+      setAllDistributions(await res.json());
+    } catch { } finally { setAllDistLoading(false); }
+  }, [distStartDate, distEndDate, distKabupaten]);
+
   const fetchPrizes = useCallback(async () => {
     setLoading(true);
     try {
@@ -77,6 +112,7 @@ export default function PrizesPage() {
 
   useEffect(() => { fetchEvents(); }, []);
   useEffect(() => { fetchPrizes(); }, [fetchPrizes]);
+  useEffect(() => { fetchAllDistributions(); }, [fetchAllDistributions]);
 
   const createPrize = async () => {
     if (!formData.name.trim()) return;
@@ -357,6 +393,107 @@ export default function PrizesPage() {
               <span className="text-sm font-bold">Tambah Hadiah Baru</span>
             </button>
           )}
+        </div>
+
+        {/* ── Riwayat Distribusi ── */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h4 className="text-base font-bold text-slate-800">Riwayat Distribusi</h4>
+            <span className="text-xs text-slate-400">{allDistributions.length} data</span>
+          </div>
+
+          {/* Filter bar */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-wrap gap-3 items-end">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> Tanggal Dari
+              </label>
+              <input
+                type="date"
+                value={distStartDate}
+                onChange={(e) => setDistStartDate(e.target.value)}
+                className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sampai</label>
+              <input
+                type="date"
+                value={distEndDate}
+                onChange={(e) => setDistEndDate(e.target.value)}
+                className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> Daerah
+              </label>
+              <select
+                value={distKabupaten}
+                onChange={(e) => setDistKabupaten(e.target.value)}
+                className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
+              >
+                <option value="">Semua Kabupaten</option>
+                {KABUPATEN_LIST.map((k) => <option key={k} value={k}>{k}</option>)}
+              </select>
+            </div>
+            {(distStartDate || distEndDate || distKabupaten) && (
+              <button
+                onClick={() => { setDistStartDate(""); setDistEndDate(""); setDistKabupaten(""); }}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+              >
+                <X className="h-3 w-3" /> Reset
+              </button>
+            )}
+          </div>
+
+          {/* Distribution table */}
+          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+            {allDistLoading ? (
+              <div className="p-10 text-center text-slate-400 text-sm">Memuat data...</div>
+            ) : allDistributions.length === 0 ? (
+              <div className="p-12 text-center">
+                <Gift className="h-10 w-10 text-slate-200 mx-auto mb-2" />
+                <p className="text-slate-400 text-sm">Belum ada distribusi{distKabupaten || distStartDate ? " sesuai filter" : ""}</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                      <th className="px-4 py-3 text-left">Penerima</th>
+                      <th className="px-4 py-3 text-left">Hadiah</th>
+                      <th className="px-4 py-3 text-left hidden md:table-cell">Daerah</th>
+                      <th className="px-4 py-3 text-left hidden sm:table-cell">Petugas</th>
+                      <th className="px-4 py-3 text-right">Tanggal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {allDistributions.map((d) => (
+                      <tr key={d.id} className="hover:bg-slate-50/60 transition">
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-semibold text-slate-800">{d.participantName}</p>
+                          <p className="text-xs text-slate-400 font-mono">{d.participantNik}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-sm text-slate-700 font-medium">{d.prizeName}</p>
+                          {d.eventName && <p className="text-xs text-slate-400">{d.eventName}</p>}
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <p className="text-xs text-slate-600">{d.kabupaten ?? "-"}</p>
+                          {d.kecamatan && <p className="text-xs text-slate-400">{d.kecamatan}</p>}
+                        </td>
+                        <td className="px-4 py-3 hidden sm:table-cell text-xs text-slate-500">{d.distributedBy ?? "-"}</td>
+                        <td className="px-4 py-3 text-right text-xs text-slate-500">
+                          {new Date(d.distributedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
