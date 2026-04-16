@@ -209,16 +209,23 @@ export default function PublicRegisterPage() {
     if (!participantQr || !event) return;
 
     const SCALE = 2;
-    const W = 400, H = 680;
+    const W = 400;
+    const radius = 24;
+    const headerH = 160;  // name section height
+    const notchR = 12;
+    const qrSize = 190;
+    const qrPad = 28;     // space above QR after divider
+    const hintH = 44;     // space below QR for hint text
+    const footerH = 72;   // bottom info bar
+    const H = headerH + qrPad + qrSize + hintH + footerH;
+
     const canvas = document.createElement("canvas");
     canvas.width = W * SCALE;
     canvas.height = H * SCALE;
     const ctx = canvas.getContext("2d")!;
     ctx.scale(SCALE, SCALE);
 
-    const radius = 24;
-
-    /* ── Outer ticket shape ── */
+    /* ── Clip to rounded rect ── */
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(radius, 0);
@@ -233,112 +240,70 @@ export default function PublicRegisterPage() {
     ctx.closePath();
     ctx.clip();
 
-    /* ── Header gradient (top 44%) ── */
-    const headerH = H * 0.44;
-    const grad = ctx.createLinearGradient(0, 0, W, headerH);
-    grad.addColorStop(0, "#1e1b4b");   // indigo-950
-    grad.addColorStop(0.5, "#1d4ed8"); // blue-700
-    grad.addColorStop(1, "#0e7490");   // cyan-700
-    ctx.fillStyle = grad;
+    /* ── Full white background ── */
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, H);
+
+    /* ── Header tint (slate-50) ── */
+    ctx.fillStyle = "#f8fafc";
     ctx.fillRect(0, 0, W, headerH);
 
-    /* Decorative circles top-right */
-    ctx.save();
-    ctx.globalAlpha = 0.08;
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath(); ctx.arc(W - 20, 20, 90, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(W + 10, 80, 70, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-
-    /* ── Badge label ── */
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    const badgeW = 170, badgeH = 22, badgeX = (W - badgeW) / 2, badgeY = 26;
-    ctx.beginPath();
-    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 11);
-    ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,0.90)";
-    ctx.font = "bold 10px 'Plus Jakarta Sans', Arial, sans-serif";
+    /* ── "TIKET RESERVASI" label ── */
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "700 10px 'Plus Jakarta Sans', Arial, sans-serif";
     ctx.letterSpacing = "2px";
     ctx.textAlign = "center";
-    ctx.fillText("✦  TIKET RESERVASI  ✦", W / 2, badgeY + 14.5);
+    ctx.fillText("TIKET RESERVASI", W / 2, 38);
     ctx.letterSpacing = "0px";
 
-    /* ── Event name ── */
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 26px 'Plus Jakarta Sans', Arial, sans-serif";
+    /* ── Participant name (word-wrapped) ── */
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "800 22px 'Plus Jakarta Sans', Arial, sans-serif";
     ctx.textAlign = "center";
-    const name = event.name;
-    const maxW = W - 48;
-    // word-wrap the event name manually
-    const words = name.split(" ");
-    const lines: string[] = [];
-    let cur = "";
-    for (const w of words) {
-      const test = cur ? `${cur} ${w}` : w;
-      if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
-      else cur = test;
+    const nameWords = participantQr.fullName.split(" ");
+    const namelines: string[] = [];
+    let nameCur = "";
+    const nameMaxW = W - 56;
+    for (const w of nameWords) {
+      const test = nameCur ? `${nameCur} ${w}` : w;
+      if (ctx.measureText(test).width > nameMaxW && nameCur) { namelines.push(nameCur); nameCur = w; }
+      else nameCur = test;
     }
-    if (cur) lines.push(cur);
-    const lineH = 32;
-    const nameY = 68;
-    lines.forEach((line, i) => {
-      ctx.fillText(line, W / 2, nameY + i * lineH);
-    });
+    if (nameCur) namelines.push(nameCur);
+    const nameStartY = namelines.length === 1 ? 88 : 78;
+    namelines.slice(0, 2).forEach((line, i) => ctx.fillText(line, W / 2, nameStartY + i * 28));
 
-    /* ── Date & location ── */
-    const detailY = nameY + lines.length * lineH + 10;
-    ctx.fillStyle = "rgba(255,255,255,0.75)";
-    ctx.font = "500 12px 'Plus Jakarta Sans', Arial, sans-serif";
-    const dateStr = `${event.eventDate}${event.startTime ? " · " + event.startTime : ""}`;
-    ctx.fillText(dateStr, W / 2, detailY);
-    if (event.location) {
-      ctx.fillStyle = "rgba(255,255,255,0.55)";
-      ctx.font = "500 11px 'Plus Jakarta Sans', Arial, sans-serif";
-      ctx.fillText(event.location, W / 2, detailY + 17);
-    }
+    /* ── "PESERTA TERDAFTAR" sublabel ── */
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "600 10px 'Plus Jakarta Sans', Arial, sans-serif";
+    ctx.letterSpacing = "1.5px";
+    ctx.textAlign = "center";
+    const sublabelY = nameStartY + namelines.slice(0, 2).length * 28 + 16;
+    ctx.fillText("PESERTA TERDAFTAR", W / 2, sublabelY);
+    ctx.letterSpacing = "0px";
 
-    /* ── White body ── */
+    /* ── Dashed divider with notch cutouts ── */
+    // notch cutouts (use white to cut into the slate-50 header)
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, headerH, W, H - headerH);
-
-    /* ── Perforated divider ── */
-    const notchR = 14;
-    // left notch
-    ctx.fillStyle = "#f1f5f9"; // slate-100 (background colour)
     ctx.beginPath(); ctx.arc(-1, headerH, notchR, -Math.PI / 2, Math.PI / 2); ctx.fill();
-    // right notch
     ctx.beginPath(); ctx.arc(W + 1, headerH, notchR, Math.PI / 2, -Math.PI / 2); ctx.fill();
     // dashed line
     ctx.strokeStyle = "#e2e8f0";
     ctx.lineWidth = 1.5;
     ctx.setLineDash([6, 5]);
     ctx.beginPath();
-    ctx.moveTo(notchR + 4, headerH);
-    ctx.lineTo(W - notchR - 4, headerH);
+    ctx.moveTo(notchR + 6, headerH);
+    ctx.lineTo(W - notchR - 6, headerH);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    /* ── Participant name ── */
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "bold 20px 'Plus Jakarta Sans', Arial, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(participantQr.fullName, W / 2, headerH + 36);
-
-    /* ── "Peserta Terdaftar" label ── */
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "500 10px 'Plus Jakarta Sans', Arial, sans-serif";
-    ctx.letterSpacing = "1.5px";
-    ctx.fillText("PESERTA TERDAFTAR", W / 2, headerH + 52);
-    ctx.letterSpacing = "0px";
-
     /* ── QR code ── */
+    const qrX = (W - qrSize) / 2;
+    const qrY = headerH + qrPad;
     await new Promise<void>((resolve) => {
       const qrImg = new Image();
       qrImg.onload = () => {
-        const qrSize = 180;
-        const qrX = (W - qrSize) / 2;
-        const qrY = headerH + 66;
-        // white border around QR
+        // QR border box
         ctx.fillStyle = "#ffffff";
         ctx.strokeStyle = "#e2e8f0";
         ctx.lineWidth = 1;
@@ -353,35 +318,46 @@ export default function PublicRegisterPage() {
       qrImg.src = participantQr.qrDataUrl;
     });
 
-    /* ── "Scan QR untuk check-in" label ── */
-    ctx.fillStyle = "#64748b";
+    /* ── Hint text ── */
+    ctx.fillStyle = "#94a3b8";
     ctx.font = "500 11px 'Plus Jakarta Sans', Arial, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("Tunjukkan tiket ini kepada petugas saat check-in", W / 2, headerH + 66 + 180 + 30);
+    ctx.fillText("Tunjukkan kepada petugas saat check-in", W / 2, qrY + qrSize + 26);
 
-    /* ── Bottom gradient footer strip ── */
-    const footerH = 52;
+    /* ── Footer border ── */
     const footerY = H - footerH;
-    const footerGrad = ctx.createLinearGradient(0, footerY, W, footerY);
-    footerGrad.addColorStop(0, "#1e1b4b");
-    footerGrad.addColorStop(1, "#1d4ed8");
-    ctx.fillStyle = footerGrad;
-    ctx.fillRect(0, footerY, W, footerH);
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(24, footerY);
+    ctx.lineTo(W - 24, footerY);
+    ctx.stroke();
 
-    /* Footer text */
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.font = "bold 11px 'Plus Jakarta Sans', Arial, sans-serif";
-    ctx.letterSpacing = "1px";
+    /* ── Event name in footer (word-wrap, max 1 line) ── */
+    ctx.fillStyle = "#334155";
+    ctx.font = "700 13px 'Plus Jakarta Sans', Arial, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("KTP REGISTRASI SYSTEM", W / 2, footerY + 20);
-    ctx.letterSpacing = "0px";
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    const evWords = event.name.split(" ");
+    const evLines: string[] = [];
+    let evCur = "";
+    for (const w of evWords) {
+      const test = evCur ? `${evCur} ${w}` : w;
+      if (ctx.measureText(test).width > W - 48 && evCur) { evLines.push(evCur); evCur = w; }
+      else evCur = test;
+    }
+    if (evCur) evLines.push(evCur);
+    evLines.slice(0, 2).forEach((line, i) => ctx.fillText(line, W / 2, footerY + 22 + i * 18));
+
+    /* ── Date · Location ── */
+    ctx.fillStyle = "#94a3b8";
     ctx.font = "500 10px 'Plus Jakarta Sans', Arial, sans-serif";
-    ctx.fillText(event.eventDate + (event.location ? "  ·  " + event.location : ""), W / 2, footerY + 38);
+    ctx.textAlign = "center";
+    const dateStr = `${event.eventDate}${event.location ? "  ·  " + event.location : ""}`;
+    ctx.fillText(dateStr, W / 2, footerY + 22 + evLines.slice(0, 2).length * 18 + 14);
 
     ctx.restore();
 
-    /* ── Shadow wrapper: draw on a larger canvas ── */
+    /* ── Shadow wrapper ── */
     const padded = document.createElement("canvas");
     padded.width = (W + 40) * SCALE;
     padded.height = (H + 40) * SCALE;
@@ -389,10 +365,9 @@ export default function PublicRegisterPage() {
     pCtx.scale(SCALE, SCALE);
     pCtx.fillStyle = "#f1f5f9";
     pCtx.fillRect(0, 0, W + 40, H + 40);
-    // draw shadow
-    pCtx.shadowColor = "rgba(0,0,0,0.18)";
-    pCtx.shadowBlur = 24;
-    pCtx.shadowOffsetY = 8;
+    pCtx.shadowColor = "rgba(0,0,0,0.12)";
+    pCtx.shadowBlur = 20;
+    pCtx.shadowOffsetY = 6;
     pCtx.drawImage(canvas, 20, 16);
 
     /* ── Download ── */
