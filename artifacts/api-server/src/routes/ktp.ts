@@ -1285,7 +1285,7 @@ async function compressForGemini(base64: string): Promise<string> {
   }
 }
 
-async function scanWithGemini(imageBase64: string): Promise<Record<string, unknown>> {
+async function scanWithGemini(imageBase64: string, model = "gemini-2.5-flash"): Promise<Record<string, unknown>> {
   if (!_gemini) throw new Error("GEMINI_API_KEY not configured");
 
   let rawB64 = imageBase64;
@@ -1297,7 +1297,7 @@ async function scanWithGemini(imageBase64: string): Promise<Record<string, unkno
   const mimeType = "image/jpeg"; // selalu JPEG setelah kompresi
 
   const result = await _gemini.models.generateContent({
-    model: "gemini-2.5-flash",
+    model,
     contents: [{
       role: "user",
       parts: [
@@ -1421,29 +1421,43 @@ router.post("/scan", async (req, res) => {
     let qualityWarning: QualityWarning = null;
     let engine = "gemini-2.5-flash";
 
-    // 1. Try Gemini Vision (best accuracy) — retry up to 3x on 503/429
+    // 1. Try Gemini Vision — primary: gemini-2.5-flash, fallback: gemini-2.0-flash
     if (_gemini) {
-      let geminiErr: unknown;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        if (attempt > 0) await new Promise((r) => setTimeout(r, attempt * 2000));
-        try {
-          const geminiResult = await scanWithGemini(imageBase64);
-          data = applyRegionMatching(geminiResult);
-          const filledFields = Object.values(data).filter((v) => v !== null && v !== "").length;
-          score = Math.round((filledFields / 16) * 100);
-          req.log.info({ score, engine, attempt }, "KTP scan via Gemini");
-          return res.json({
-            ...data,
-            _meta: { tesseractScore: score, qualityWarning: null, lowConfidence: score < 50, engine },
-          });
-        } catch (err: unknown) {
-          geminiErr = err;
-          const status = (err as { status?: number }).status;
-          if (status !== 503 && status !== 429) break; // don't retry non-transient errors
-          req.log.warn({ attempt, status }, "Gemini transient error, retrying...");
+      const geminiModels = ["gemini-2.5-flash", "gemini-2.0-flash"];
+      let allGeminiFailed = true;
+      for (const geminiModel of geminiModels) {
+        let transientFail = false;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
+          try {
+            const geminiResult = await scanWithGemini(imageBase64, geminiModel);
+            data = applyRegionMatching(geminiResult);
+            const filledFields = Object.values(data).filter((v) => v !== null && v !== "").length;
+            score = Math.round((filledFields / 16) * 100);
+            engine = geminiModel;
+            req.log.info({ score, engine, attempt }, "KTP scan via Gemini");
+            return res.json({
+              ...data,
+              _meta: { tesseractScore: score, qualityWarning: null, lowConfidence: score < 50, engine },
+            });
+          } catch (err: unknown) {
+            const status = (err as { status?: number }).status;
+            if (status === 503 || status === 429) {
+              req.log.warn({ attempt, status, model: geminiModel }, "Gemini transient error, retrying...");
+              transientFail = true;
+            } else {
+              req.log.warn({ err, model: geminiModel }, "Gemini non-transient error, trying next model");
+              break;
+            }
+          }
         }
+        if (!transientFail) { allGeminiFailed = true; break; }
+        // transient fail → try next model
+        req.log.warn({ model: geminiModel }, `${geminiModel} overloaded, trying next Gemini model...`);
       }
-      req.log.warn({ err: geminiErr }, "Gemini scan failed after retries, falling back to Python OCR");
+      if (allGeminiFailed) {
+        req.log.warn("All Gemini models failed, falling back to Python OCR");
+      }
       engine = "python-opencv";
     }
 
