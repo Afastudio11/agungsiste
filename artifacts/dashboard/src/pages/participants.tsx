@@ -10,6 +10,8 @@ import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Eye, Users
 type SortKey = "nik" | "fullName" | "gender" | "city" | "province" | "firstRegisteredAt" | "eventCount";
 type SortDir = "asc" | "desc";
 
+const PAGE_SIZE = 25;
+
 const AVATAR_PALETTES = [
   "bg-blue-100 text-blue-700",
   "bg-purple-100 text-purple-700",
@@ -76,6 +78,7 @@ export default function ParticipantsPage() {
   const [endDate, setEndDate] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("firstRegisteredAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const params = {
     ...(search ? { search } : {}),
@@ -111,13 +114,22 @@ export default function ParticipantsPage() {
     };
   }, [rawParticipants]);
 
+  const totalPages = Math.max(1, Math.ceil((participants?.length ?? 0) / PAGE_SIZE));
+  const paginatedParticipants = useMemo(() => {
+    if (!participants) return [];
+    return participants.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  }, [participants, currentPage]);
+
   const handleSort = (key: SortKey) => {
+    setCurrentPage(1);
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortKey(key); setSortDir("asc"); }
   };
 
   const hasFilter = search || startDate || endDate;
-  const resetAll = () => { setSearch(""); setStartDate(""); setEndDate(""); };
+  const resetAll = () => { setSearch(""); setStartDate(""); setEndDate(""); setCurrentPage(1); };
+
+  const goToPage = (p: number) => setCurrentPage(Math.min(Math.max(1, p), totalPages));
 
   return (
     <Layout>
@@ -150,7 +162,7 @@ export default function ParticipantsPage() {
                 type="text"
                 placeholder="Cari nama atau NIK..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                 className="bg-transparent text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none w-44"
               />
               {search && (
@@ -162,10 +174,10 @@ export default function ParticipantsPage() {
 
             {/* Date range */}
             <div className="flex items-center gap-1.5 bg-slate-100 rounded-full px-4 py-2.5 text-xs text-slate-500">
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+              <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
                 className="border-0 bg-transparent text-[12px] text-slate-600 focus:outline-none w-[115px]" />
               <span className="text-slate-300">—</span>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+              <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
                 className="border-0 bg-transparent text-[12px] text-slate-600 focus:outline-none w-[115px]" />
             </div>
 
@@ -259,8 +271,8 @@ export default function ParticipantsPage() {
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-400">Memuat data...</td>
                   </tr>
-                ) : participants && participants.length > 0 ? (
-                  participants.map((p) => {
+                ) : paginatedParticipants.length > 0 ? (
+                  paginatedParticipants.map((p) => {
                     const initials = getInitials(p.fullName ?? "?");
                     const palette = getPalette(p.fullName ?? "");
                     const isMulti = p.eventCount > 1;
@@ -364,12 +376,62 @@ export default function ParticipantsPage() {
             </table>
           </div>
 
-          {/* Footer count */}
-          {participants && participants.length > 0 && (
-            <div className="px-6 py-3 border-t border-slate-50 bg-slate-50/30">
+          {/* Pagination */}
+          {!isLoading && (participants?.length ?? 0) > 0 && (
+            <div className="px-6 py-4 border-t border-slate-50 bg-slate-50/30 flex items-center justify-between">
               <p className="text-xs text-slate-400 font-medium">
-                Menampilkan {participants.length} dari {stats.total} peserta
+                Menampilkan {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, participants?.length ?? 0)} dari {participants?.length ?? 0} peserta
               </p>
+              <div className="flex items-center gap-1">
+                {/* Prev */}
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronDown className="h-4 w-4 rotate-90" />
+                </button>
+
+                {/* Page numbers */}
+                {(() => {
+                  const pages: (number | "...")[] = [];
+                  if (totalPages <= 7) {
+                    for (let i = 1; i <= totalPages; i++) pages.push(i);
+                  } else {
+                    pages.push(1);
+                    if (currentPage > 3) pages.push("...");
+                    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+                    if (currentPage < totalPages - 2) pages.push("...");
+                    pages.push(totalPages);
+                  }
+                  return pages.map((p, i) =>
+                    p === "..." ? (
+                      <span key={`dots-${i}`} className="w-8 h-8 flex items-center justify-center text-slate-400 text-xs">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => goToPage(p as number)}
+                        className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                          currentPage === p
+                            ? "bg-blue-600 text-white font-bold shadow-sm"
+                            : "text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  );
+                })()}
+
+                {/* Next */}
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronDown className="h-4 w-4 -rotate-90" />
+                </button>
+              </div>
             </div>
           )}
         </div>
