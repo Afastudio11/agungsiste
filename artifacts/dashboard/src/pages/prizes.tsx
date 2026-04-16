@@ -175,39 +175,33 @@ export default function PrizesPage() {
 
         {/* ── Summary Stats ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Jenis Hadiah</p>
-              <p className="text-3xl font-extrabold text-slate-900">{prizes.length}</p>
-            </div>
-            <div className="w-11 h-11 bg-blue-50 rounded-xl flex items-center justify-center">
+          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex flex-col items-center text-center">
+            <div className="w-11 h-11 bg-blue-50 rounded-xl flex items-center justify-center mb-3">
               <Package className="h-5 w-5 text-blue-600" />
             </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Jenis Hadiah</p>
+            <p className="text-3xl font-extrabold text-slate-900">{prizes.length}</p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Total Hadiah</p>
-              <div className="flex items-baseline gap-1">
-                <p className="text-3xl font-extrabold text-slate-900">{totalPrizes}</p>
-                <span className="text-sm text-slate-400 font-medium">unit</span>
-              </div>
-            </div>
-            <div className="w-11 h-11 bg-sky-50 rounded-xl flex items-center justify-center">
+          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex flex-col items-center text-center">
+            <div className="w-11 h-11 bg-sky-50 rounded-xl flex items-center justify-center mb-3">
               <Gift className="h-5 w-5 text-sky-500" />
             </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Total Hadiah</p>
+            <div className="flex items-baseline gap-1 justify-center">
+              <p className="text-3xl font-extrabold text-slate-900">{totalPrizes}</p>
+              <span className="text-sm text-slate-400 font-medium">unit</span>
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Didistribusikan</p>
-              <div className="flex items-baseline gap-1.5">
-                <p className="text-3xl font-extrabold text-slate-900">{totalDistributed}</p>
-                <span className="text-slate-300 font-medium text-base">/ {totalPrizes}</span>
-              </div>
-            </div>
-            <div className="w-11 h-11 bg-emerald-50 rounded-xl flex items-center justify-center">
+          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex flex-col items-center text-center">
+            <div className="w-11 h-11 bg-emerald-50 rounded-xl flex items-center justify-center mb-3">
               <Award className="h-5 w-5 text-emerald-500" />
+            </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Didistribusikan</p>
+            <div className="flex items-baseline gap-1.5 justify-center">
+              <p className="text-3xl font-extrabold text-slate-900">{totalDistributed}</p>
+              <span className="text-slate-300 font-medium text-base">/ {totalPrizes}</span>
             </div>
           </div>
         </div>
