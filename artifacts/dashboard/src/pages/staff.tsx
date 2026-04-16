@@ -115,20 +115,20 @@ export default function StaffPage() {
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: "Total Staf", value: totalStaff, icon: Users, color: "blue" },
-            { label: "Total Registrasi", value: totalRegistrations, icon: Trophy, color: "green" },
-            { label: "7 Hari Terakhir", value: totalRecent, icon: TrendingUp, color: "amber" },
-          ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="bg-white rounded-2xl border border-slate-100 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</div>
-                <div className={`h-7 w-7 rounded-lg bg-${color}-50 flex items-center justify-center`}>
-                  <Icon className={`h-3.5 w-3.5 text-${color}-500`} />
-                </div>
+            { label: "Total Staf", value: totalStaff, icon: Users, circleColor: "bg-blue-400", iconColor: "text-blue-500" },
+            { label: "Total Registrasi", value: totalRegistrations, icon: Trophy, circleColor: "bg-green-400", iconColor: "text-green-500" },
+            { label: "7 Hari Terakhir", value: totalRecent, icon: TrendingUp, circleColor: "bg-amber-400", iconColor: "text-amber-500" },
+          ].map(({ label, value, icon: Icon, circleColor, iconColor }) => (
+            <div key={label} className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-5 pt-5 pb-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
+              {/* Decorative circle */}
+              <div className={`absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 ${circleColor}`} />
+              <div className="flex items-start justify-between mb-3 relative">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">{label}</p>
+                <Icon className={`h-5 w-5 ${iconColor}`} />
               </div>
-              <div className="text-3xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>
+              <p className="text-[34px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>
                 {fmt(value)}
-              </div>
+              </p>
             </div>
           ))}
         </div>
