@@ -362,13 +362,14 @@ export default function PublicRegisterPage() {
     padded.width = (W + 40) * SCALE;
     padded.height = (H + 40) * SCALE;
     const pCtx = padded.getContext("2d")!;
-    pCtx.scale(SCALE, SCALE);
+    // Use physical pixel coordinates — do NOT scale pCtx, otherwise
+    // drawImage would scale the already-HiDPI canvas a second time causing crop
     pCtx.fillStyle = "#f1f5f9";
-    pCtx.fillRect(0, 0, W + 40, H + 40);
+    pCtx.fillRect(0, 0, padded.width, padded.height);
     pCtx.shadowColor = "rgba(0,0,0,0.12)";
-    pCtx.shadowBlur = 20;
-    pCtx.shadowOffsetY = 6;
-    pCtx.drawImage(canvas, 20, 16);
+    pCtx.shadowBlur = 20 * SCALE;
+    pCtx.shadowOffsetY = 6 * SCALE;
+    pCtx.drawImage(canvas, 20 * SCALE, 16 * SCALE);
 
     /* ── Download ── */
     const a = document.createElement("a");
