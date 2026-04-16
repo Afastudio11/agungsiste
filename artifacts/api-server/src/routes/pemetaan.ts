@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { participantsTable, eventRegistrationsTable, eventsTable } from "@workspace/db";
+import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable } from "@workspace/db";
 import { jatimWilayah, getKecamatanList, getDesaList } from "@workspace/db/jatimWilayah";
 import { sql, count, countDistinct } from "drizzle-orm";
 
@@ -236,6 +236,14 @@ router.get("/desa/:kelurahan", async (req, res) => {
       .groupBy(eventsTable.id, eventsTable.name, eventsTable.eventDate, eventsTable.location)
       .orderBy(sql`count(${participantsTable.id}) desc`);
 
+    const [hadiahRow] = await db
+      .select({ total: count(prizeDistributionsTable.id) })
+      .from(prizeDistributionsTable)
+      .innerJoin(participantsTable, sql`${participantsTable.id} = ${prizeDistributionsTable.participantId}`)
+      .where(sql`lower(${participantsTable.kelurahan}) = lower(${kelurahan})`);
+
+    const totalHadiah = hadiahRow?.total ?? 0;
+
     if (!info) {
       let foundKec = "";
       let foundKab = "";
@@ -254,11 +262,12 @@ router.get("/desa/:kelurahan", async (req, res) => {
         kabupaten: foundKab,
         totalInput: 0,
         totalEvent: 0,
+        totalHadiah: 0,
         events: [],
       });
     }
 
-    return res.json({ ...info, events });
+    return res.json({ ...info, totalHadiah, events });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: "Server error" });

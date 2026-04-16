@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
   MapPin, Globe, Building2, Home, ChevronRight, ChevronLeft, ArrowLeft,
-  Users, CalendarDays, TrendingUp, User, Phone, Tag, Clock,
+  Users, CalendarDays, TrendingUp, User, Phone, Tag, Clock, Gift,
 } from "lucide-react";
 import Layout from "@/components/layout";
 import PetaMapContent from "@/pages/peta";
@@ -15,7 +15,7 @@ interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: numbe
 interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalEvent: number; }
 interface DesaRow { kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; }
 interface DesaDetail {
-  kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number;
+  kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; totalHadiah: number;
   events: { eventId: number; eventName: string; eventDate: string; location: string; peserta: number }[];
 }
 interface Participant {
@@ -362,14 +362,18 @@ function DesaDetailView({
             <div className="text-sm opacity-70 mt-0.5">Kec. {data.kecamatan} · {data.kabupaten}</div>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="grid grid-cols-3 gap-3 mt-4">
           <div className="bg-white/10 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 mb-1 opacity-70"><Users className="h-3 w-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Total Peserta</span></div>
+            <div className="flex items-center gap-1.5 mb-1 opacity-70"><Users className="h-3 w-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Peserta</span></div>
             <div className="text-xl font-extrabold">{Number(data.totalInput).toLocaleString()}</div>
           </div>
           <div className="bg-white/10 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 mb-1 opacity-70"><CalendarDays className="h-3 w-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Total Event</span></div>
+            <div className="flex items-center gap-1.5 mb-1 opacity-70"><CalendarDays className="h-3 w-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Event</span></div>
             <div className="text-xl font-extrabold">{Number(data.totalEvent)}</div>
+          </div>
+          <div className="bg-white/10 rounded-xl p-3">
+            <div className="flex items-center gap-1.5 mb-1 opacity-70"><Gift className="h-3 w-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Hadiah</span></div>
+            <div className="text-xl font-extrabold">{Number(data.totalHadiah).toLocaleString()}</div>
           </div>
         </div>
       </div>
