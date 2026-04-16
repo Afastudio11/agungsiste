@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, GeoJSON, ZoomControl } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, ZoomControl, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
@@ -44,6 +44,19 @@ L.Icon.Default.mergeOptions({
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const MAP_CENTER: [number, number] = [-7.87, 111.45];
 
+function FitBounds({ geojson }: { geojson: any }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!geojson || !geojson.features?.length) return;
+    try {
+      const layer = L.geoJSON(geojson);
+      const bounds = layer.getBounds();
+      if (bounds.isValid()) map.fitBounds(bounds, { padding: [24, 24] });
+    } catch {}
+  }, [geojson, map]);
+  return null;
+}
+
 interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: number; totalKecamatan: number; totalEvent: number; }
 interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalEvent: number; }
 interface DesaRow { kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; }
@@ -62,6 +75,18 @@ export default function PetaMapContent() {
   const [view, setView] = useState<"kabupaten" | "kecamatan">("kabupaten");
   const [selectedKab, setSelectedKab] = useState<string | null>(null);
   const [selectedKec, setSelectedKec] = useState<string | null>(null);
+  const [allDesaGeo, setAllDesaGeo] = useState<any | null>(null);
+  const [desaGeoLoading, setDesaGeoLoading] = useState(false);
+
+  useEffect(() => {
+    if (allDesaGeo || desaGeoLoading) return;
+    setDesaGeoLoading(true);
+    fetch(`${BASE}/jatim-5kab-desa.geojson`)
+      .then(r => r.json())
+      .then(data => setAllDesaGeo(data))
+      .catch(() => {})
+      .finally(() => setDesaGeoLoading(false));
+  }, []);
 
   const { data: kabData = [] } = useQuery<KabupatenRow[]>({
     queryKey: ["pemetaan-kabupaten"],
@@ -93,6 +118,19 @@ export default function PetaMapContent() {
         f.properties?.kabupaten?.toLowerCase() === selectedKab.toLowerCase())
     : [];
   const kecGeoFiltered = { type: "FeatureCollection", features: kecFeatures };
+
+  // Filter desa GeoJSON for selected kabupaten + kecamatan
+  const desaFeatures = (allDesaGeo && selectedKab && selectedKec)
+    ? allDesaGeo.features.filter((f: any) =>
+        f.properties?.district?.toLowerCase() === selectedKab.toLowerCase() &&
+        f.properties?.sub_district?.toLowerCase() === selectedKec.toLowerCase())
+    : [];
+  const desaGeoFiltered = { type: "FeatureCollection", features: desaFeatures };
+
+  // Build participant count lookup by village name
+  const countByDesa = Object.fromEntries(desaData.map(d => [d.kelurahan.toLowerCase(), Number(d.totalInput)]));
+  const eventByDesa = Object.fromEntries(desaData.map(d => [d.kelurahan.toLowerCase(), d.totalEvent ?? 0]));
+  const maxDesa = Math.max(...desaData.map(d => Number(d.totalInput)), 1);
 
   function onEachKab(feature: any, layer: L.Layer) {
     const name = feature.properties?.name || "";
@@ -139,6 +177,28 @@ export default function PetaMapContent() {
     });
   }
 
+  function onEachDesa(feature: any, layer: L.Layer) {
+    const villageName = feature.properties?.village || "";
+    const count = countByDesa[villageName.toLowerCase()] || 0;
+    const events = eventByDesa[villageName.toLowerCase()] || 0;
+    (layer as L.Path).setStyle({
+      fillColor: getColor(count, maxDesa),
+      weight: 1, opacity: 1, color: "white", fillOpacity: 0.80,
+    });
+    layer.bindTooltip(
+      `<div style="font-family:sans-serif;font-size:13px;line-height:1.5">
+        <b style="font-size:14px">${villageName}</b><br/>
+        <span style="color:#10b981">👥 ${count.toLocaleString()} peserta</span><br/>
+        <span style="color:#64748b">📅 ${events} event</span>
+      </div>`,
+      { sticky: true, className: "ktp-tooltip" }
+    );
+    layer.on({
+      mouseover: (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.96, weight: 2 }),
+      mouseout:  (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.80, weight: 1 }),
+    });
+  }
+
   function goBack() { setView("kabupaten"); setSelectedKab(null); setSelectedKec(null); }
 
   const selectedInfo = kabData.find(k => k.kabupaten === selectedKab);
@@ -158,6 +218,12 @@ export default function PetaMapContent() {
             ? `Kab. ${selectedKab} — ${selectedInfo?.totalKecamatan ?? "..."} kecamatan · ${selectedInfo?.totalInput.toLocaleString() ?? "..."} peserta`
             : "5 Kabupaten Jawa Timur — klik kabupaten untuk detail kecamatan"}
         </p>
+        {desaGeoLoading && (
+          <span className="text-xs text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg">Memuat peta desa…</span>
+        )}
+        {view === "kecamatan" && selectedKec && !desaGeoLoading && allDesaGeo && desaFeatures.length > 0 && (
+          <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">{desaFeatures.length} desa ditampilkan</span>
+        )}
       </div>
 
       {/* Map */}
@@ -191,6 +257,18 @@ export default function PetaMapContent() {
               data={kecGeoFiltered as any}
               onEachFeature={onEachKec}
             />
+          )}
+
+          {/* Desa border layer — shown when a kecamatan is selected */}
+          {view === "kecamatan" && selectedKec && desaFeatures.length > 0 && (
+            <>
+              <GeoJSON
+                key={`desa-${selectedKab}-${selectedKec}-${JSON.stringify(countByDesa)}`}
+                data={desaGeoFiltered as any}
+                onEachFeature={onEachDesa}
+              />
+              <FitBounds geojson={desaGeoFiltered} />
+            </>
           )}
         </MapContainer>
       </div>
