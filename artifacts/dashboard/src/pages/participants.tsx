@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import Layout from "@/components/layout";
 import {
   useListParticipants,
@@ -73,6 +73,7 @@ function exportCSV(participants: any[]) {
 }
 
 export default function ParticipantsPage() {
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -287,17 +288,19 @@ export default function ParticipantsPage() {
 
                         {/* Nama + avatar */}
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${palette}`}>
-                              {initials}
+                          <Link href={`/participants/${p.nik}`}>
+                            <div className="flex items-center gap-3 cursor-pointer">
+                              <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${palette}`}>
+                                {initials}
+                              </div>
+                              <div>
+                                <p className="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors leading-tight">{p.fullName}</p>
+                                {(p as any).occupation && (
+                                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">{(p as any).occupation}</p>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-bold text-sm text-slate-900 leading-tight">{p.fullName}</p>
-                              {(p as any).occupation && (
-                                <p className="text-[10px] text-slate-400 font-medium mt-0.5">{(p as any).occupation}</p>
-                              )}
-                            </div>
-                          </div>
+                          </Link>
                         </td>
 
                         {/* Kelamin */}
@@ -346,11 +349,12 @@ export default function ParticipantsPage() {
 
                         {/* Aksi */}
                         <td className="px-6 py-4 text-right">
-                          <Link href={`/participants/${p.nik}`}>
-                            <button className="p-2 hover:bg-blue-50 hover:text-blue-600 text-slate-300 rounded-full transition-all opacity-0 group-hover:opacity-100">
-                              <Eye className="h-4 w-4" />
-                            </button>
-                          </Link>
+                          <button
+                            onClick={() => navigate(`/participants/${p.nik}`)}
+                            className="p-2 hover:bg-blue-50 hover:text-blue-600 text-slate-300 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
                         </td>
                       </tr>
                     );
