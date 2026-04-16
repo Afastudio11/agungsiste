@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-dim": "#005c3d",
+                    "tertiary-fixed-dim": "#58e7ab",
+                    "on-tertiary-fixed": "#00452d",
+                    "on-background": "#2c2f31",
+                    "on-secondary-fixed": "#40009b",
+                    "on-primary-fixed": "#000000",
+                    "secondary": "#4C84FF",
+                    "on-primary": "#f1f2ff",
+                    "tertiary": "#006947",
+                    "surface-variant": "#d9dde0",
+                    "surface-container": "#e5e9eb",
+                    "primary-container": "#4C84FF",
+                    "on-secondary-fixed-variant": "#5f28c8",
+                    "error": "#b31b25",
+                    "primary-dim": "#0049b2",
+                    "on-secondary": "#f8f0ff",
+                    "on-error": "#ffefee",
+                    "surface-dim": "#d0d5d8",
+                    "surface-tint": "#4C84FF",
+                    "surface-bright": "#f5f7f9",
+                    "on-surface": "#1A1C1E",
+                    "on-primary-container": "#001f56",
+                    "on-secondary-container": "#5517bf",
+                    "surface-container-highest": "#d9dde0",
+                    "outline": "#747779",
+                    "on-tertiary-container": "#005a3c",
+                    "inverse-primary": "#5a8cff",
+                    "tertiary-fixed": "#69f6b8",
+                    "on-primary-fixed-variant": "#002869",
+                    "on-tertiary-fixed-variant": "#006544",
+                    "primary-fixed": "#769dff",
+                    "on-surface-variant": "#44474E",
+                    "inverse-surface": "#0b0f10",
+                    "secondary-fixed-dim": "#ceb9ff",
+                    "error-container": "#fb5151",
+                    "surface-container-low": "#f1f3f5",
+                    "primary": "#4C84FF",
+                    "surface": "#f8fafc",
+                    "on-error-container": "#570008",
+                    "secondary-fixed": "#dac9ff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#c8ffe0",
+                    "background": "#f8fafc",
+                    "surface-container-high": "#e2e8f0",
+                    "primary-fixed-dim": "#5f8fff",
+                    "inverse-on-surface": "#9a9d9f",
+                    "secondary-container": "#dac9ff",
+                    "outline-variant": "#abadaf",
+                    "error-dim": "#9f0519",
+                    "tertiary-container": "#69f6b8",
+                    "secondary-dim": "#5e26c7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "1.5rem",
+                    "xl": "2.5rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Plus Jakarta Sans"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen">
+<!-- TopNavBar -->
+<nav class="w-full top-0 sticky z-50 bg-white/80 backdrop-blur-md border-b border-surface-container-high">
+<div class="flex justify-between items-center px-8 py-4 max-w-screen-2xl mx-auto">
+<div class="text-2xl font-extrabold text-primary tracking-tight">VillageHub</div>
+<div class="hidden md:flex items-center space-x-10 text-sm font-semibold">
+<a class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer" href="#">Overview</a>
+<a class="text-primary relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-full after:h-0.5 after:bg-primary" href="#">Participants</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer" href="#">Events</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer" href="#">Rewards</a>
+</div>
+<div class="flex items-center space-x-4">
+<div class="hidden lg:flex items-center bg-surface-container-low px-4 py-2 rounded-full border border-surface-container-high">
+<span class="material-symbols-outlined text-outline-variant mr-2 text-xl" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-44" placeholder="Cari aktivitas..." type="text"/>
+</div>
+<button class="material-symbols-outlined p-2 text-on-surface-variant hover:text-primary transition-colors" data-icon="notifications">notifications</button>
+<div class="h-10 w-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-surface-container-high">
+<img alt="User profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVmex1Nj7VfNSZFjgWDbQF-nfXEygbeU3Wa68PA3Mgo1ZQutG5B2NyiMbvOk-S6jyEvp2KlYOpWGw2PPsoXrHlSyIuY7oOAI61e2Ns0w3hnK8qAWiGlTQ8exRIXwbS6NDqxFQlKzEWo_YtEIPZgGIEj-JYnROqQJs0PvTdYYJBbKTb-MpY2VVMjVfjOriB6bVtXN59wu29XKKETzTVcNTHXhFMBleGVgxi3HmeGBJzyHXRfNqHZoohdoU-qTWaXdWydmZYrVE2R7o"/>
+</div>
+</div>
+</div>
+</nav>
+<div class="flex max-w-screen-2xl mx-auto">
+<!-- SideNavBar -->
+<aside class="h-screen w-72 fixed left-0 top-0 pt-24 hidden lg:block bg-white border-r border-surface-container-high z-40">
+<div class="flex flex-col p-8 space-y-10">
+<div class="flex items-center space-x-4">
+<div class="h-12 w-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl" data-icon="home_village">home</span>
+</div>
+<div>
+<div class="text-lg font-bold text-on-surface leading-tight">Greenwood</div>
+<div class="text-xs text-on-surface-variant font-medium">Komunitas Aktif</div>
+</div>
+</div>
+<nav class="space-y-2">
+<a class="flex items-center space-x-4 p-4 bg-primary/5 text-primary rounded-2xl font-bold transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-sm">Dashboard</span>
+</a>
+<a class="flex items-center space-x-4 p-4 text-on-surface-variant hover:bg-surface-container-low rounded-2xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="text-sm">Komunitas</span>
+</a>
+<a class="flex items-center space-x-4 p-4 text-on-surface-variant hover:bg-surface-container-low rounded-2xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="event_available">event_available</span>
+<span class="text-sm">Aktivitas</span>
+</a>
+<a class="flex items-center space-x-4 p-4 text-on-surface-variant hover:bg-surface-container-low rounded-2xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="text-sm">Keuangan</span>
+</a>
+</nav>
+<div class="pt-8 border-t border-surface-container">
+<button class="w-full bg-primary text-white py-4 rounded-full font-bold flex items-center justify-center space-x-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="add">add</span>
+<span class="text-sm">Undang Warga</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 lg:ml-72 p-6 md:p-10 lg:p-12">
+<!-- Header Section -->
+<div class="relative w-full mb-12 rounded-[2.5rem] overflow-hidden h-[380px] group">
+<img class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="aerial drone photography of a lush Indonesian mountain village" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0-zgjcyfzP0-suE3uvLK4Xqfx0qXb_CMitultjQJ1UPuObpCgn3CWyPVPvpOO0TlIG9er3hwScfCACvx7tR4dQyslvTIquxSc3ZzrnG6fe1uxLS7KgyNgqhHqdRh3rikGmcHpOgec-TPq6l4ItAv9hryh-tLMhRMpA5gkozcET1fSPD8iK8_YOQPG_1abEJ0VCi_fV5yB6_ynVtEX7IqiHhoBR5s8shcyAePFgV0DipHTkxVTr8FGVKcLyDs895pVlucr9UnLfbI"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+<div class="absolute bottom-10 left-10 right-10">
+<div class="glass-card p-10 rounded-[2rem] max-w-2xl">
+<div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
+<div class="flex-1">
+<span class="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-4 inline-block">Profil Desa</span>
+<h1 class="text-5xl font-extrabold text-on-surface tracking-tight mb-4">Ngadirejo</h1>
+<p class="text-on-surface-variant text-base leading-relaxed max-w-lg">Kecamatan Kepanjen Kidul, Kota Blitar. Desa mandiri dengan fokus pada pengembangan ekonomi kreatif dan pariwisata berbasis komunitas.</p>
+</div>
+<div class="flex flex-col items-center md:items-end">
+<div class="flex -space-x-4 mb-3">
+<img alt="Citizen 1" class="h-10 w-10 rounded-full border-2 border-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCekrfW3_1Uw4Ph37bJinwJ7U2zeG8SPXKlwBFE0aRR1BvFlibsScTHVBjiwh06bTl0_8Dajb89UOmtZo2JaxqdhJz18FZh47JXFYIwK36fm0V29BajhMIs4GRtB6NambsGBLGtXSqGMnsonE7qT2eMicYTg0c1adn4PAh0hgUpRE5G_0XYP7DRtLu7phVzThjQiJkmIH6-gHmrhM46cZl8eJg0JEUNliewdXJ-ResWk9DU-Gp5Dit-ksNMYgbFpOm2wN7UNDt_Ptw"/>
+<img alt="Citizen 2" class="h-10 w-10 rounded-full border-2 border-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuANa_SWTOziTmLGetTNj9sZMbjZwn6srh551k_S-rdNbrYphgCkGZHNgKgq0Yq2yxVaIbeBENDjaoAIBG4GVcXfIfR-72m2iZfaTWW16teW99Kj7pU4rEpM4oip3vEWfktlsdFnMJxr-n8BwuAR3Xj6rYazF8aE2GGA8PV2-iTf7dTQbKCpcgxnyhA7Dq_s0goFU3jzEmkMNhV6QwGthDWZmIrn6o5I_Ub-L7Z4SBJNq_jAo22kDiRlu62qrREw0IEZZwWxpnYc8d8"/>
+<div class="h-10 w-10 rounded-full bg-primary/20 border-2 border-white flex items-center justify-center text-xs font-bold text-primary">+6</div>
+</div>
+<span class="text-xs font-bold text-primary tracking-wide">Warga Aktif</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+<div class="glass-card p-8 rounded-3xl flex items-center space-x-6 hover:shadow-xl transition-all border-none">
+<div class="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl" data-icon="groups">groups</span>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Peserta</p>
+<h3 class="text-4xl font-extrabold text-on-surface">9</h3>
+</div>
+</div>
+<div class="glass-card p-8 rounded-3xl flex items-center space-x-6 hover:shadow-xl transition-all border-none">
+<div class="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl" data-icon="event">event</span>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Event</p>
+<h3 class="text-4xl font-extrabold text-on-surface">6</h3>
+</div>
+</div>
+<div class="glass-card p-8 rounded-3xl flex items-center space-x-6 hover:shadow-xl transition-all border-none">
+<div class="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl" data-icon="emoji_events">emoji_events</span>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Hadiah</p>
+<h3 class="text-4xl font-extrabold text-on-surface">0</h3>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+<!-- Daftar Event -->
+<div class="lg:col-span-8">
+<div class="flex items-center justify-between mb-8 px-2">
+<h2 class="text-2xl font-extrabold text-on-surface tracking-tight">Daftar Event</h2>
+<button class="text-primary font-bold text-sm flex items-center hover:translate-x-1 transition-transform">
+                            Lihat Semua <span class="material-symbols-outlined text-lg ml-2" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<div class="space-y-4">
+<!-- Event Item 1 -->
+<div class="bg-white p-6 rounded-3xl border border-surface-container-high flex items-center gap-8 hover:border-primary/30 transition-all cursor-pointer group">
+<div class="h-14 w-14 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="festival">festival</span>
+</div>
+<div class="flex-grow">
+<h4 class="font-bold text-lg text-on-surface group-hover:text-primary transition-colors">Festival Panen Raya 2024</h4>
+<div class="flex items-center text-sm text-on-surface-variant mt-1.5 space-x-6">
+<span class="flex items-center"><span class="material-symbols-outlined text-base mr-2" data-icon="calendar_month">calendar_month</span> 15 Agustus 2024</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-base mr-2" data-icon="location_on">location_on</span> Balai Desa</span>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-extrabold text-on-surface-variant/50 uppercase tracking-widest mb-1">Peserta</p>
+<p class="text-xl font-black text-on-surface">124</p>
+</div>
+</div>
+<!-- Event Item 2 -->
+<div class="bg-white p-6 rounded-3xl border border-surface-container-high flex items-center gap-8 hover:border-primary/30 transition-all cursor-pointer group">
+<div class="h-14 w-14 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="devices">devices</span>
+</div>
+<div class="flex-grow">
+<h4 class="font-bold text-lg text-on-surface group-hover:text-primary transition-colors">Workshop UMKM Digital</h4>
+<div class="flex items-center text-sm text-on-surface-variant mt-1.5 space-x-6">
+<span class="flex items-center"><span class="material-symbols-outlined text-base mr-2" data-icon="calendar_month">calendar_month</span> 20 Agustus 2024</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-base mr-2" data-icon="location_on">location_on</span> Pusat Pelatihan</span>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-extrabold text-on-surface-variant/50 uppercase tracking-widest mb-1">Peserta</p>
+<p class="text-xl font-black text-on-surface">42</p>
+</div>
+</div>
+<!-- Event Item 3 -->
+<div class="bg-white p-6 rounded-3xl border border-surface-container-high flex items-center gap-8 hover:border-primary/30 transition-all cursor-pointer group">
+<div class="h-14 w-14 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="palette">palette</span>
+</div>
+<div class="flex-grow">
+<h4 class="font-bold text-lg text-on-surface group-hover:text-primary transition-colors">Lomba Mewarnai Anak</h4>
+<div class="flex items-center text-sm text-on-surface-variant mt-1.5 space-x-6">
+<span class="flex items-center"><span class="material-symbols-outlined text-base mr-2" data-icon="calendar_month">calendar_month</span> 25 Agustus 2024</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-base mr-2" data-icon="location_on">location_on</span> Ruang Aula</span>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-extrabold text-on-surface-variant/50 uppercase tracking-widest mb-1">Peserta</p>
+<p class="text-xl font-black text-on-surface">85</p>
+</div>
+</div>
+<!-- Event Item 4 -->
+<div class="bg-white p-6 rounded-3xl border border-surface-container-high flex items-center gap-8 hover:border-primary/30 transition-all cursor-pointer group">
+<div class="h-14 w-14 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="school">school</span>
+</div>
+<div class="flex-grow">
+<h4 class="font-bold text-lg text-on-surface group-hover:text-primary transition-colors">Sosialisasi Beasiswa Desa</h4>
+<div class="flex items-center text-sm text-on-surface-variant mt-1.5 space-x-6">
+<span class="flex items-center"><span class="material-symbols-outlined text-base mr-2" data-icon="calendar_month">calendar_month</span> 01 September 2024</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-base mr-2" data-icon="location_on">location_on</span> Perpustakaan</span>
+</div>
+</div>
+<div class="text-right">
+<p class="text-[10px] font-extrabold text-on-surface-variant/50 uppercase tracking-widest mb-1">Peserta</p>
+<p class="text-xl font-black text-on-surface">30</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Secondary Column -->
+<div class="lg:col-span-4 space-y-10">
+<div class="bg-white rounded-[2rem] p-4 border border-surface-container-high shadow-sm hover:shadow-md transition-shadow">
+<div class="relative h-60 w-full rounded-[1.5rem] overflow-hidden mb-6 group">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="minimalist map view of Blitar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVzDyNcelXqAkGpPzayqJyR9riODbimzbEZoP7LgG2WZYXbGhsR87JeB3LKIJ4nm23rDlMi2TI552QpUK-iTv_uvPz3Lkuh1bxra86jR-L52bTNuuigmUmaLZz4UG9VWL1mr23iMIt93UOUpc5bhNQk0Kq4vna9sOPV493WtKzH6C_BF4ij2RPPjPYJdNe9j3hf_xGJi18ycXVNd3SuEqk6XeSqmPORENXEhLzN4EtGDegcQBW3a6luJRhuZhMkul4rrDWAM5EnR4"/>
+<div class="absolute inset-0 bg-primary/5"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+<div class="bg-white p-3 rounded-full shadow-xl">
+<span class="material-symbols-outlined text-primary text-3xl block" data-icon="location_on">location_on</span>
+</div>
+</div>
+</div>
+<div class="px-4 pb-4">
+<h3 class="font-extrabold text-xl mb-3">Lokasi Geografis</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">Ngadirejo terletak di dataran tinggi dengan akses strategis ke jalur provinsi Blitar - Malang, menjadikannya pusat distribusi ekonomi lokal.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Mobile Navigation -->
+<div class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-surface-container-high px-8 py-4 flex justify-between items-center z-50">
+<button class="flex flex-col items-center text-primary">
+<span class="material-symbols-outlined text-2xl" data-icon="home">home</span>
+<span class="text-[10px] mt-1 font-bold">Beranda</span>
+</button>
+<button class="flex flex-col items-center text-on-surface-variant/60">
+<span class="material-symbols-outlined text-2xl" data-icon="event">event</span>
+<span class="text-[10px] mt-1">Event</span>
+</button>
+<div class="bg-primary -mt-12 p-4 rounded-full shadow-xl shadow-primary/40 text-white ring-4 ring-white">
+<span class="material-symbols-outlined text-2xl" data-icon="add">add</span>
+</div>
+<button class="flex flex-col items-center text-on-surface-variant/60">
+<span class="material-symbols-outlined text-2xl" data-icon="group">group</span>
+<span class="text-[10px] mt-1">Warga</span>
+</button>
+<button class="flex flex-col items-center text-on-surface-variant/60">
+<span class="material-symbols-outlined text-2xl" data-icon="person">person</span>
+<span class="text-[10px] mt-1">Profil</span>
+</button>
+</div>
+</body></html>

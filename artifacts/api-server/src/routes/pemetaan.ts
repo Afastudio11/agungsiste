@@ -23,11 +23,21 @@ router.get("/summary", async (_req, res) => {
       .groupBy(participantsTable.kelurahan)
       .having(sql`count(distinct ${eventRegistrationsTable.eventId}) > 0`);
 
+    const [eventCount] = await db
+      .select({ totalEvent: count(eventsTable.id) })
+      .from(eventsTable);
+
+    const [hadiahCount] = await db
+      .select({ totalHadiah: count(prizeDistributionsTable.id) })
+      .from(prizeDistributionsTable);
+
     return res.json({
       totalDesa: totals.totalDesa || 0,
       totalKecamatan: totals.totalKecamatan || 0,
       totalKabupaten: totals.totalKabupaten || 0,
       desaWithEvents: desaWithEvents.length,
+      totalEvent: eventCount?.totalEvent || 0,
+      totalHadiah: hadiahCount?.totalHadiah || 0,
     });
   } catch (e) {
     console.error(e);

@@ -10,7 +10,7 @@ import PetaMapContent from "@/pages/peta";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-interface Summary { totalDesa: number; totalKecamatan: number; totalKabupaten: number; desaWithEvents: number; }
+interface Summary { totalDesa: number; totalKecamatan: number; totalKabupaten: number; desaWithEvents: number; totalEvent: number; totalHadiah: number; }
 interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: number; totalKecamatan: number; totalEvent: number; }
 interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalEvent: number; }
 interface DesaRow { kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; }
@@ -99,16 +99,15 @@ function backView(view: View): View {
 
 /* ─── VIEW 1: Kabupaten ────────────────────────────────────────────────── */
 function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabData: KabupatenRow[]; onSelect: (k: string) => void }) {
-  const coverage = summary ? Math.round((summary.desaWithEvents / Math.max(summary.totalDesa, 1)) * 100) : 0;
   const max = Math.max(...kabData.map((k) => Number(k.totalInput)), 1);
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Total Desa", value: summary?.totalDesa ?? 0, icon: Home },
-          { label: "Desa Ada Event", value: summary?.desaWithEvents ?? 0, icon: MapPin },
-          { label: "Kabupaten", value: summary?.totalKabupaten ?? 0, icon: Building2 },
-          { label: "Coverage", value: `${coverage}%`, icon: Globe },
+          { label: "Total Desa / Kelurahan", value: summary?.totalDesa ?? 0, icon: Home },
+          { label: "Total Event", value: summary?.totalEvent ?? 0, icon: CalendarDays },
+          { label: "Total Hadiah", value: summary?.totalHadiah ?? 0, icon: Gift },
+          { label: "Total Kecamatan", value: summary?.totalKecamatan ?? 0, icon: MapPin },
         ].map(({ label, value, icon: Icon }) => (
           <div key={label} className="bg-white rounded-2xl border border-slate-100 p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -116,49 +115,53 @@ function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabD
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</div>
             </div>
             <div className="text-2xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>
-              {typeof value === "number" ? value.toLocaleString() : value}
+              {Number(value).toLocaleString()}
             </div>
           </div>
         ))}
       </div>
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-slate-500" />
+          <Building2 className="h-4 w-4 text-blue-500" />
           <span className="font-bold text-slate-900">Sebaran per Kabupaten</span>
-          <span className="ml-auto text-xs text-slate-400">Klik untuk lihat desa</span>
+          <span className="ml-auto text-xs text-slate-400">Klik untuk lihat kecamatan</span>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                <th className="px-5 py-3 text-left">Kabupaten / Kota</th>
-                <th className="px-5 py-3 text-right">Total Peserta</th>
-                <th className="px-5 py-3 text-right hidden md:table-cell">Desa</th>
-                <th className="px-5 py-3 text-right hidden md:table-cell">Kecamatan</th>
-                <th className="px-5 py-3 text-right hidden md:table-cell">Event</th>
-                <th className="px-5 py-3 w-8" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {kabData.map((k) => (
-                <tr key={k.kabupaten} className="hover:bg-blue-50/60 cursor-pointer transition group" onClick={() => onSelect(k.kabupaten)}>
-                  <td className="px-5 py-3">
-                    <div className="font-semibold text-sm text-slate-900 group-hover:text-blue-700 transition mb-1">{k.kabupaten}</div>
-                    <div className="h-1 w-32 rounded-full bg-slate-100 overflow-hidden">
-                      <div className="h-full rounded-full bg-blue-400" style={{ width: `${Math.round((Number(k.totalInput) / max) * 100)}%` }} />
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-sm font-bold text-slate-900 text-right">{Number(k.totalInput).toLocaleString()}</td>
-                  <td className="px-5 py-3 text-sm text-slate-500 text-right hidden md:table-cell">{k.totalDesa}</td>
-                  <td className="px-5 py-3 text-sm text-slate-500 text-right hidden md:table-cell">{k.totalKecamatan}</td>
-                  <td className="px-5 py-3 text-right hidden md:table-cell">
-                    <span className="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg">{k.totalEvent}</span>
-                  </td>
-                  <td className="px-3 py-3"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition" /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="divide-y divide-slate-50">
+          {kabData.map((k, i) => {
+            const colors = ["bg-blue-500","bg-indigo-500","bg-violet-500","bg-sky-500","bg-teal-500"];
+            const barColors = ["bg-blue-400","bg-indigo-400","bg-violet-400","bg-sky-400","bg-teal-400"];
+            const pct = Math.round((Number(k.totalInput) / max) * 100);
+            return (
+              <button
+                key={k.kabupaten}
+                onClick={() => onSelect(k.kabupaten)}
+                className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50/80 transition-colors text-left group"
+              >
+                <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${colors[i % colors.length]}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between mb-1.5">
+                    <span className="font-bold text-sm text-slate-900 group-hover:text-blue-700 transition-colors uppercase tracking-wide">
+                      {k.kabupaten}
+                    </span>
+                    <span className="text-xl font-extrabold text-slate-900 ml-3" style={{ letterSpacing: "-0.04em" }}>
+                      {Number(k.totalInput).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden mb-2">
+                    <div className={`h-full rounded-full transition-all ${barColors[i % barColors.length]}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
+                    <span>{k.totalDesa} desa</span>
+                    <span className="text-slate-200">·</span>
+                    <span>{k.totalKecamatan} kec</span>
+                    <span className="text-slate-200">·</span>
+                    <span className="bg-blue-50 text-blue-600 font-bold px-1.5 py-0.5 rounded-md">{k.totalEvent} event</span>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -181,32 +184,50 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
   const kabInfo = kabData?.find((k) => k.kabupaten === kabupaten);
 
   return (
-    <div className="space-y-5">
-      {/* Kabupaten header */}
-      <div className="bg-gradient-to-br from-blue-700 to-blue-900 rounded-2xl p-5 text-white">
-        <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl shrink-0">🏙️</div>
-          <div className="flex-1">
-            <div className="text-xs font-bold opacity-60 tracking-widest mb-1 uppercase">Kabupaten</div>
-            <div className="text-xl font-extrabold">{kabupaten}</div>
-            <div className="text-sm opacity-70 mt-0.5">Klik kecamatan untuk lihat desa</div>
-          </div>
+    <div className="space-y-4">
+      {/* Kabupaten banner */}
+      <div className="overflow-hidden rounded-[2rem] shadow-md bg-white">
+        <div className="relative h-40">
+          <img
+            src={
+              kabupaten === "Pacitan" ? `${BASE}/banner-pacitan.jpeg`
+              : kabupaten === "Ngawi" ? `${BASE}/banner-ngawi.jpeg`
+              : kabupaten === "Magetan" ? `${BASE}/banner-magetan.jpeg`
+              : kabupaten === "Ponorogo" ? `${BASE}/banner-ponorogo.jpeg`
+              : kabupaten === "Trenggalek" ? `${BASE}/banner-trenggalek.jpeg`
+              : `${BASE}/banner-kecamatan.jpeg`
+            }
+            alt="Banner kabupaten"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent from-[55%] to-white" />
         </div>
-        {kabInfo && (
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            {[
-              { label: "Total Peserta", value: Number(kabInfo.totalInput).toLocaleString(), icon: TrendingUp },
-              { label: "Kecamatan", value: kabInfo.totalKecamatan, icon: MapPin },
-              { label: "Event", value: kabInfo.totalEvent, icon: CalendarDays },
-            ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="bg-white/10 rounded-xl p-3">
-                <div className="flex items-center gap-1.5 mb-1 opacity-70"><Icon className="h-3 w-3" /><span className="text-[10px] font-bold uppercase tracking-wider">{label}</span></div>
-                <div className="text-lg font-extrabold">{value}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="px-5 pb-5 bg-white">
+          <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-2.5 inline-block">
+            Kabupaten
+          </span>
+          <div className="text-[1.6rem] font-extrabold text-slate-900 leading-tight tracking-tight">{kabupaten}</div>
+          <div className="text-slate-500 text-xs mt-1">Klik kecamatan untuk lihat desa</div>
+        </div>
       </div>
+
+      {kabInfo && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { icon: <TrendingUp className="h-6 w-6 text-blue-500" />, label: "Total Peserta", value: Number(kabInfo.totalInput).toLocaleString() },
+            { icon: <MapPin className="h-6 w-6 text-blue-500" />, label: "Kecamatan", value: kabInfo.totalKecamatan },
+            { icon: <CalendarDays className="h-6 w-6 text-blue-500" />, label: "Event", value: kabInfo.totalEvent },
+          ].map(({ icon, label, value }) => (
+            <div key={label} className="rounded-2xl p-4 flex items-center gap-3 bg-white border border-slate-100 shadow-sm">
+              <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">{icon}</div>
+              <div>
+                <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{label}</div>
+                <div className="text-2xl font-extrabold text-slate-900 leading-none">{value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Kecamatan table */}
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
@@ -268,32 +289,43 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
   const kecInfo = kecAll.find((k) => k.kecamatan.toLowerCase() === kecamatan.toLowerCase());
 
   return (
-    <div className="space-y-5">
-      {/* Kecamatan header */}
-      <div className="bg-gradient-to-br from-indigo-700 to-indigo-900 rounded-2xl p-5 text-white">
-        <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl shrink-0">📍</div>
-          <div className="flex-1">
-            <div className="text-xs font-bold opacity-60 tracking-widest mb-1 uppercase">Kecamatan</div>
-            <div className="text-xl font-extrabold">{kecamatan}</div>
-            <div className="text-sm opacity-70 mt-0.5">{kabupaten}</div>
-          </div>
+    <div className="space-y-4">
+      {/* Kecamatan banner */}
+      <div className="overflow-hidden rounded-[2rem] shadow-md bg-white">
+        <div className="relative h-40">
+          <img
+            src={`${BASE}/banner-kecamatan.jpeg`}
+            alt="Banner kecamatan"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent from-[55%] to-white" />
         </div>
-        {kecInfo && (
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            {[
-              { label: "Total Peserta", value: Number(kecInfo.totalInput).toLocaleString(), icon: TrendingUp },
-              { label: "Desa", value: kecInfo.totalDesa, icon: Home },
-              { label: "Event", value: kecInfo.totalEvent, icon: CalendarDays },
-            ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="bg-white/10 rounded-xl p-3">
-                <div className="flex items-center gap-1.5 mb-1 opacity-70"><Icon className="h-3 w-3" /><span className="text-[10px] font-bold uppercase tracking-wider">{label}</span></div>
-                <div className="text-lg font-extrabold">{value}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="px-5 pb-5 bg-white">
+          <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-2.5 inline-block">
+            Kecamatan
+          </span>
+          <div className="text-[1.6rem] font-extrabold text-slate-900 leading-tight tracking-tight">{kecamatan}</div>
+          <div className="text-slate-500 text-xs mt-1">{kabupaten}</div>
+        </div>
       </div>
+
+      {kecInfo && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { icon: <TrendingUp className="h-6 w-6 text-indigo-500" />, label: "Total Peserta", value: Number(kecInfo.totalInput).toLocaleString() },
+            { icon: <Home className="h-6 w-6 text-indigo-500" />, label: "Desa", value: kecInfo.totalDesa },
+            { icon: <CalendarDays className="h-6 w-6 text-indigo-500" />, label: "Event", value: kecInfo.totalEvent },
+          ].map(({ icon, label, value }) => (
+            <div key={label} className="rounded-2xl p-4 flex items-center gap-3 bg-white border border-slate-100 shadow-sm">
+              <div className="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">{icon}</div>
+              <div>
+                <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{label}</div>
+                <div className="text-2xl font-extrabold text-slate-900 leading-none">{value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Desa table */}
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
@@ -352,36 +384,61 @@ function DesaDetailView({
   if (isLoading) return <div className="py-16 text-center text-slate-400 text-sm">Memuat data desa...</div>;
   if (!data) return null;
   return (
-    <div className="space-y-5">
-      <div className="bg-gradient-to-br from-green-700 to-green-900 rounded-2xl p-5 text-white">
-        <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl shrink-0">🏘️</div>
-          <div>
-            <div className="text-xs font-bold opacity-60 tracking-widest mb-1 uppercase">Desa / Kelurahan</div>
-            <div className="text-xl font-extrabold">{data.kelurahan}</div>
-            <div className="text-sm opacity-70 mt-0.5">Kec. {data.kecamatan} · {data.kabupaten}</div>
-          </div>
+    <div className="space-y-4">
+      {/* Hero banner card */}
+      <div className="overflow-hidden rounded-[2rem] shadow-md bg-white">
+        <div className="relative h-40">
+          <img
+            src={`${BASE}/banner-desa.jpeg`}
+            alt="Banner desa"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent from-[55%] to-white" />
         </div>
-        <div className="grid grid-cols-3 gap-3 mt-4">
-          <div className="bg-white/10 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 mb-1 opacity-70"><Users className="h-3 w-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Peserta</span></div>
-            <div className="text-xl font-extrabold">{Number(data.totalInput).toLocaleString()}</div>
-          </div>
-          <div className="bg-white/10 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 mb-1 opacity-70"><CalendarDays className="h-3 w-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Event</span></div>
-            <div className="text-xl font-extrabold">{Number(data.totalEvent)}</div>
-          </div>
-          <div className="bg-white/10 rounded-xl p-3">
-            <div className="flex items-center gap-1.5 mb-1 opacity-70"><Gift className="h-3 w-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Hadiah</span></div>
-            <div className="text-xl font-extrabold">{Number(data.totalHadiah).toLocaleString()}</div>
-          </div>
+        <div className="px-5 pb-5 bg-white">
+          <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-2.5 inline-block">
+            Profil Desa
+          </span>
+          <div className="text-[1.6rem] font-extrabold text-slate-900 leading-tight tracking-tight">{data.kelurahan}</div>
+          <div className="text-slate-500 text-xs mt-1">Kec. {data.kecamatan} · {data.kabupaten}</div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      {/* Stats grid — horizontal layout */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { icon: <Users className="h-6 w-6 text-blue-500" />, label: "Peserta", value: Number(data.totalInput).toLocaleString() },
+          { icon: <CalendarDays className="h-6 w-6 text-blue-500" />, label: "Event", value: Number(data.totalEvent) },
+          { icon: <Gift className="h-6 w-6 text-blue-500" />, label: "Hadiah", value: Number(data.totalHadiah).toLocaleString() },
+        ].map(({ icon, label, value }) => (
+          <div
+            key={label}
+            className="rounded-2xl p-4 flex items-center gap-3"
+            style={{
+              background: "rgba(255,255,255,0.7)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              border: "1px solid rgba(226,232,240,0.8)",
+              boxShadow: "0 4px 16px 0 rgba(31,38,135,0.04)",
+            }}
+          >
+            <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              {icon}
+            </div>
+            <div>
+              <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">{label}</div>
+              <div className="text-2xl font-extrabold text-slate-900 leading-none">{value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Event list */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-blue-500" />
           <span className="font-bold text-slate-900">Daftar Event</span>
-          <span className="ml-auto text-xs text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-lg">{data.events.length} event</span>
+          <span className="ml-auto text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-0.5 rounded-full">{data.events.length} event</span>
         </div>
         {data.events.length === 0 ? (
           <div className="p-10 text-center text-slate-400 text-sm">Tidak ada event</div>
@@ -389,7 +446,7 @@ function DesaDetailView({
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                   <th className="px-4 py-3 text-center w-12">No.</th>
                   <th className="px-4 py-3 text-left">Nama Event</th>
                   <th className="px-4 py-3 text-right">Total Peserta</th>
@@ -398,11 +455,11 @@ function DesaDetailView({
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {data.events.map((ev, i) => (
-                  <tr key={ev.eventId} onClick={() => onSelectEvent(ev.eventId, ev.eventName)} className="hover:bg-green-50/60 cursor-pointer transition group">
-                    <td className="px-4 py-3 text-center text-xs text-slate-400 font-medium">{i + 1}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-slate-900 group-hover:text-green-700 transition">{ev.eventName}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-slate-900 text-right">{Number(ev.peserta).toLocaleString()}</td>
-                    <td className="px-3 py-3"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-green-500 transition" /></td>
+                  <tr key={ev.eventId} onClick={() => onSelectEvent(ev.eventId, ev.eventName)} className="hover:bg-blue-50/50 cursor-pointer transition-colors group">
+                    <td className="px-4 py-3.5 text-center text-xs text-slate-400 font-medium">{i + 1}</td>
+                    <td className="px-4 py-3.5 text-sm font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">{ev.eventName}</td>
+                    <td className="px-4 py-3.5 text-sm font-bold text-slate-900 text-right">{Number(ev.peserta).toLocaleString()}</td>
+                    <td className="px-3 py-3.5"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-400 transition-colors" /></td>
                   </tr>
                 ))}
               </tbody>
@@ -442,25 +499,36 @@ function PesertaView({
   const startNo = page * PAGE_SIZE;
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-violet-700 to-violet-900 rounded-2xl p-5 text-white">
-        <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-xl bg-white/15 flex items-center justify-center text-2xl shrink-0">👥</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-bold opacity-60 tracking-widest mb-1 uppercase">Daftar Peserta</div>
-            <div className="text-lg font-extrabold leading-tight truncate">{eventName}</div>
-            <div className="text-sm opacity-70 mt-0.5 flex items-center gap-1.5">
-              <Home className="h-3 w-3" /> {kelurahan}
-            </div>
+    <div className="space-y-4">
+      {/* Event banner */}
+      <div className="overflow-hidden rounded-[2rem] shadow-md bg-white">
+        <div className="relative h-40">
+          <img
+            src={`${BASE}/banner-desa.jpeg`}
+            alt="Banner event"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent from-[55%] to-white" />
+        </div>
+        <div className="px-5 pb-5 bg-white">
+          <span className="bg-violet-100 text-violet-600 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-2.5 inline-block">
+            Daftar Peserta
+          </span>
+          <div className="text-[1.6rem] font-extrabold text-slate-900 leading-tight tracking-tight">{eventName}</div>
+          <div className="flex items-center gap-1.5 text-slate-500 text-xs mt-1">
+            <Home className="h-3 w-3 shrink-0" /> {kelurahan}
           </div>
         </div>
-        <div className="bg-white/10 rounded-xl p-3 mt-4 flex items-center gap-3">
-          <Users className="h-5 w-5 opacity-70" />
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider opacity-70">Total Peserta dari Desa Ini</div>
-            <div className="text-2xl font-extrabold" style={{ letterSpacing: "-0.04em" }}>{isLoading ? "..." : peserta.length}</div>
-          </div>
+      </div>
+
+      {/* Total peserta stat */}
+      <div className="rounded-2xl p-4 flex items-center gap-3 bg-white border border-slate-100 shadow-sm">
+        <div className="h-12 w-12 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
+          <Users className="h-6 w-6 text-violet-500" />
+        </div>
+        <div>
+          <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Total Peserta dari Desa Ini</div>
+          <div className="text-2xl font-extrabold text-slate-900 leading-none">{isLoading ? "..." : peserta.length}</div>
         </div>
       </div>
 
