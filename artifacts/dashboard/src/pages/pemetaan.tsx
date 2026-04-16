@@ -309,7 +309,7 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
               <thead>
                 <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                   <th className="px-4 py-3 text-center w-12">No.</th>
-                  <th className="px-4 py-3 text-left">Nama Desa</th>
+                  <th className="px-4 py-3 text-left">Nama Desa / Kelurahan</th>
                   <th className="px-4 py-3 text-right">Jumlah Event</th>
                   <th className="px-4 py-3 text-right">Total Peserta</th>
                   <th className="px-3 py-3 w-8" />
