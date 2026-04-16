@@ -52,27 +52,31 @@ function GlassCard({ children, className = "" }: { children: React.ReactNode; cl
   );
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 px-0.5">
-      {children}
-    </label>
-  );
-}
-
-function FieldInput({ value, onChange, placeholder, large, blue }: {
-  value: string; onChange: (v: string) => void; placeholder?: string; large?: boolean; blue?: boolean;
+function FieldRow({ label, value, onChange, placeholder, textarea }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; textarea?: boolean;
 }) {
+  const inputClass = "flex-1 min-w-0 px-3 py-1.5 bg-slate-50 rounded-lg text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition font-medium border-0 shadow-sm";
   return (
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder ?? "Tidak terdeteksi"}
-      className={`w-full px-4 py-2.5 bg-slate-50 border-0 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition font-medium text-slate-800 placeholder:text-slate-300 ${
-        large ? "text-lg font-bold tracking-wider" : "text-sm"
-      } ${blue ? "text-blue-700 font-bold tracking-widest" : ""}`}
-    />
+    <div className="flex items-start gap-3 py-2 border-b border-slate-100 last:border-0">
+      <span className="text-xs text-slate-400 w-28 sm:w-32 shrink-0 pt-2 leading-tight">{label}</span>
+      {textarea ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder ?? "—"}
+          rows={2}
+          className={`${inputClass} resize-none`}
+        />
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder ?? "—"}
+          className={inputClass}
+        />
+      )}
+    </div>
   );
 }
 
@@ -439,120 +443,24 @@ export default function ScanPage() {
                     <p className="text-slate-300 text-xs mt-1">Data akan terisi otomatis setelah scan</p>
                   </div>
                 ) : (
-                  <div className="space-y-5">
-                    {/* NIK — full width, prominent */}
-                    <div>
-                      <FieldLabel>NIK (Nomor Induk Kependudukan)</FieldLabel>
-                      <FieldInput
-                        value={(editedData.nik as string) ?? ""}
-                        onChange={(v) => handleField("nik", v)}
-                        large
-                        blue
-                        placeholder="16 digit NIK"
-                      />
-                    </div>
-
-                    {/* Full Name — full width */}
-                    <div>
-                      <FieldLabel>Nama Lengkap</FieldLabel>
-                      <FieldInput
-                        value={(editedData.fullName as string) ?? ""}
-                        onChange={(v) => handleField("fullName", v)}
-                        large
-                        placeholder="Sesuai KTP"
-                      />
-                    </div>
-
-                    {/* 2-col grid: birth info */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <FieldLabel>Tempat Lahir</FieldLabel>
-                        <FieldInput value={(editedData.birthPlace as string) ?? ""} onChange={(v) => handleField("birthPlace", v)} />
-                      </div>
-                      <div>
-                        <FieldLabel>Tanggal Lahir</FieldLabel>
-                        <FieldInput value={(editedData.birthDate as string) ?? ""} onChange={(v) => handleField("birthDate", v)} />
-                      </div>
-                    </div>
-
-                    {/* 3-col: gender, religion, marital status */}
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <FieldLabel>Jenis Kelamin</FieldLabel>
-                        <FieldInput value={(editedData.gender as string) ?? ""} onChange={(v) => handleField("gender", v)} />
-                      </div>
-                      <div>
-                        <FieldLabel>Agama</FieldLabel>
-                        <FieldInput value={(editedData.religion as string) ?? ""} onChange={(v) => handleField("religion", v)} />
-                      </div>
-                      <div>
-                        <FieldLabel>Gol. Darah</FieldLabel>
-                        <FieldInput value={(editedData.bloodType as string) ?? ""} onChange={(v) => handleField("bloodType", v)} />
-                      </div>
-                    </div>
-
-                    {/* 2-col: occupation, marital, nationality */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <FieldLabel>Status Perkawinan</FieldLabel>
-                        <FieldInput value={(editedData.maritalStatus as string) ?? ""} onChange={(v) => handleField("maritalStatus", v)} />
-                      </div>
-                      <div>
-                        <FieldLabel>Kewarganegaraan</FieldLabel>
-                        <FieldInput value={(editedData.nationality as string) ?? ""} onChange={(v) => handleField("nationality", v)} />
-                      </div>
-                    </div>
-
-                    {/* Address — full width, textarea */}
-                    <div>
-                      <FieldLabel>Alamat</FieldLabel>
-                      <textarea
-                        value={(editedData.address as string) ?? ""}
-                        onChange={(e) => handleField("address", e.target.value)}
-                        rows={2}
-                        placeholder="Alamat sesuai KTP"
-                        className="w-full px-4 py-2.5 bg-slate-50 border-0 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition font-medium text-sm text-slate-800 placeholder:text-slate-300 resize-none"
-                      />
-                    </div>
-
-                    {/* RT/RW, Kelurahan, Kecamatan */}
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <FieldLabel>RT/RW</FieldLabel>
-                        <FieldInput value={(editedData.rtRw as string) ?? ""} onChange={(v) => handleField("rtRw", v)} />
-                      </div>
-                      <div>
-                        <FieldLabel>Kelurahan/Desa</FieldLabel>
-                        <FieldInput value={(editedData.kelurahan as string) ?? ""} onChange={(v) => handleField("kelurahan", v)} />
-                      </div>
-                      <div>
-                        <FieldLabel>Kecamatan</FieldLabel>
-                        <FieldInput value={(editedData.kecamatan as string) ?? ""} onChange={(v) => handleField("kecamatan", v)} />
-                      </div>
-                    </div>
-
-                    {/* City & Province */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <FieldLabel>Kabupaten/Kota</FieldLabel>
-                        <FieldInput value={(editedData.city as string) ?? ""} onChange={(v) => handleField("city", v)} />
-                      </div>
-                      <div>
-                        <FieldLabel>Provinsi</FieldLabel>
-                        <FieldInput value={(editedData.province as string) ?? ""} onChange={(v) => handleField("province", v)} />
-                      </div>
-                    </div>
-
-                    {/* Occupation — full width */}
-                    <div>
-                      <FieldLabel>Pekerjaan</FieldLabel>
-                      <FieldInput value={(editedData.occupation as string) ?? ""} onChange={(v) => handleField("occupation", v)} />
-                    </div>
-
-                    {/* Timestamp */}
-                    <div className="pt-4 border-t border-white/50 text-[10px] text-slate-400 italic text-right">
-                      Data akan disimpan saat klik "Konfirmasi & Daftarkan"
-                    </div>
+                  <div>
+                    <FieldRow label="NIK" value={(editedData.nik as string) ?? ""} onChange={(v) => handleField("nik", v)} placeholder="16 digit NIK" />
+                    <FieldRow label="Nama Lengkap" value={(editedData.fullName as string) ?? ""} onChange={(v) => handleField("fullName", v)} placeholder="Sesuai KTP" />
+                    <FieldRow label="Tempat Lahir" value={(editedData.birthPlace as string) ?? ""} onChange={(v) => handleField("birthPlace", v)} />
+                    <FieldRow label="Tanggal Lahir" value={(editedData.birthDate as string) ?? ""} onChange={(v) => handleField("birthDate", v)} />
+                    <FieldRow label="Jenis Kelamin" value={(editedData.gender as string) ?? ""} onChange={(v) => handleField("gender", v)} />
+                    <FieldRow label="Agama" value={(editedData.religion as string) ?? ""} onChange={(v) => handleField("religion", v)} />
+                    <FieldRow label="Gol. Darah" value={(editedData.bloodType as string) ?? ""} onChange={(v) => handleField("bloodType", v)} />
+                    <FieldRow label="Status Kawin" value={(editedData.maritalStatus as string) ?? ""} onChange={(v) => handleField("maritalStatus", v)} />
+                    <FieldRow label="Kewarganegaraan" value={(editedData.nationality as string) ?? ""} onChange={(v) => handleField("nationality", v)} />
+                    <FieldRow label="Pekerjaan" value={(editedData.occupation as string) ?? ""} onChange={(v) => handleField("occupation", v)} />
+                    <FieldRow label="Alamat" value={(editedData.address as string) ?? ""} onChange={(v) => handleField("address", v)} placeholder="Alamat sesuai KTP" textarea />
+                    <FieldRow label="RT/RW" value={(editedData.rtRw as string) ?? ""} onChange={(v) => handleField("rtRw", v)} />
+                    <FieldRow label="Kelurahan/Desa" value={(editedData.kelurahan as string) ?? ""} onChange={(v) => handleField("kelurahan", v)} />
+                    <FieldRow label="Kecamatan" value={(editedData.kecamatan as string) ?? ""} onChange={(v) => handleField("kecamatan", v)} />
+                    <FieldRow label="Kabupaten/Kota" value={(editedData.city as string) ?? ""} onChange={(v) => handleField("city", v)} />
+                    <FieldRow label="Provinsi" value={(editedData.province as string) ?? ""} onChange={(v) => handleField("province", v)} />
+                    <p className="text-[10px] text-slate-400 italic text-right pt-3">Data disimpan saat klik "Konfirmasi & Daftarkan"</p>
                   </div>
                 )}
               </GlassCard>
