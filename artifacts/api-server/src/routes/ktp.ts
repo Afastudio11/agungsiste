@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { Readable } from "stream";
 import { db } from "@workspace/db";
 import { participantsTable, eventRegistrationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -1629,17 +1628,9 @@ router.get("/image/:nik", requireAuth, async (req, res) => {
 
     if (ktpPath.startsWith("/objects/")) {
       try {
-        const file = await _objectStorage.getObjectEntityFile(ktpPath);
-        const response = await _objectStorage.downloadObject(file);
-        res.status(response.status);
-        response.headers.forEach((value, key) => res.setHeader(key, value));
-        if (response.body) {
-          const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
-          nodeStream.pipe(res);
-        } else {
-          res.end();
-        }
-        return;
+        const signedUrl = await _objectStorage.getSignedReadUrl(ktpPath, 3600);
+        res.setHeader("Cache-Control", "private, max-age=3540");
+        return res.redirect(302, signedUrl);
       } catch (e) {
         if (e instanceof ObjectNotFoundError) return res.status(404).send();
         throw e;

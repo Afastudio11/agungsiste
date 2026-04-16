@@ -206,6 +206,22 @@ export class ObjectStorageService {
   }
 
   /**
+   * Generate a short-lived signed GET URL for an object path.
+   * Much faster than proxying — browser downloads directly from GCS.
+   */
+  async getSignedReadUrl(objectPath: string, ttlSec: number = 3600): Promise<string> {
+    if (!objectPath.startsWith("/objects/")) throw new ObjectNotFoundError();
+    const parts = objectPath.slice(1).split("/");
+    if (parts.length < 2) throw new ObjectNotFoundError();
+    const entityId = parts.slice(1).join("/");
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) entityDir = `${entityDir}/`;
+    const objectEntityPath = `${entityDir}${entityId}`;
+    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+    return signObjectURL({ bucketName, objectName, method: "GET", ttlSec });
+  }
+
+  /**
    * Upload a Buffer directly to private object storage server-side.
    * Returns the normalized object path (e.g. `/objects/uploads/<uuid>.jpg`).
    */

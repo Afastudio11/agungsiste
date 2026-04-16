@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useParams } from "wouter";
 import Layout from "@/components/layout";
 import {
@@ -19,17 +19,12 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function KtpImageViewer({ nik }: { nik: string }) {
-  const [hasImage, setHasImage] = useState<boolean | null>(null);
+  const [status, setStatus] = useState<"loading" | "ok" | "missing">("loading");
   const imageUrl = `${BASE_URL}/api/ktp/image/${encodeURIComponent(nik)}`;
-
-  useEffect(() => {
-    fetch(imageUrl, { method: "HEAD", credentials: "include" })
-      .then((r) => setHasImage(r.ok))
-      .catch(() => setHasImage(false));
-  }, [imageUrl]);
 
   const handleDownload = async () => {
     const r = await fetch(imageUrl, { credentials: "include" });
+    if (!r.ok) return;
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -39,30 +34,33 @@ function KtpImageViewer({ nik }: { nik: string }) {
     URL.revokeObjectURL(url);
   };
 
-  if (hasImage === null) return <div className="h-6" />;
-  if (!hasImage) return (
-    <div className="bg-slate-50 rounded-xl p-8 text-center text-sm text-slate-400">
-      <ImageIcon className="h-10 w-10 mx-auto mb-2 text-slate-300" />
-      Foto KTP belum tersimpan
-    </div>
-  );
-
   return (
     <div className="space-y-3">
+      {status === "loading" && (
+        <div className="rounded-xl w-full bg-slate-100 animate-pulse" style={{ aspectRatio: "85/54" }} />
+      )}
+      {status === "missing" && (
+        <div className="bg-slate-50 rounded-xl p-8 text-center text-sm text-slate-400">
+          <ImageIcon className="h-10 w-10 mx-auto mb-2 text-slate-300" />
+          Foto KTP belum tersimpan
+        </div>
+      )}
       <img
         src={imageUrl}
         alt="Foto KTP"
-        className="rounded-xl w-full object-cover border border-slate-100"
-        crossOrigin="use-credentials"
-        onError={() => setHasImage(false)}
+        className={`rounded-xl w-full object-cover border border-slate-100 ${status === "ok" ? "" : "hidden"}`}
+        onLoad={() => setStatus("ok")}
+        onError={() => setStatus("missing")}
       />
-      <button
-        onClick={handleDownload}
-        className="w-full flex items-center justify-center gap-2 text-sm text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-300 py-2 rounded-xl transition"
-      >
-        <Download className="h-4 w-4" />
-        Unduh Foto KTP
-      </button>
+      {status === "ok" && (
+        <button
+          onClick={handleDownload}
+          className="w-full flex items-center justify-center gap-2 text-sm text-slate-600 hover:text-blue-600 border border-slate-200 hover:border-blue-300 py-2 rounded-xl transition"
+        >
+          <Download className="h-4 w-4" />
+          Unduh Foto KTP
+        </button>
+      )}
     </div>
   );
 }
