@@ -830,45 +830,32 @@ export default function PublicRegisterPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              {/* Nama Lengkap — editable */}
+            <div className="space-y-3">
+              {/* Nama Lengkap — read-only */}
               <div>
-                <label className="block text-[11px] font-extrabold text-slate-500 tracking-widest mb-1.5">
-                  NAMA LENGKAP
-                </label>
-                <input
-                  type="text"
-                  value={ktpData.fullName || ""}
-                  onChange={(e) => setKtpData({ ...ktpData, fullName: e.target.value })}
-                  placeholder="Sesuai KTP"
-                  className="w-full px-4 py-3.5 bg-white border-2 border-slate-200 focus:border-blue-400 rounded-2xl text-[14px] font-semibold text-slate-900 focus:outline-none transition placeholder:text-slate-300 placeholder:font-normal"
-                />
+                <p className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-2">NAMA LENGKAP</p>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5">
+                  <span className="text-[14px] font-bold text-slate-800">{ktpData.fullName || "—"}</span>
+                </div>
               </div>
 
-              {/* TTL — Tempat & Tanggal Lahir */}
+              {/* TTL — read-only */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-extrabold text-slate-500 tracking-widest mb-1.5">
-                    TEMPAT LAHIR
-                  </label>
-                  <input
-                    type="text"
-                    value={ktpData.birthPlace || ""}
-                    onChange={(e) => setKtpData({ ...ktpData, birthPlace: e.target.value })}
-                    placeholder="Kota lahir"
-                    className="w-full px-4 py-3.5 bg-white border-2 border-slate-200 focus:border-blue-400 rounded-2xl text-[14px] font-semibold text-slate-900 focus:outline-none transition placeholder:text-slate-300 placeholder:font-normal"
-                  />
+                  <p className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-2">TEMPAT LAHIR</p>
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5">
+                    <span className="text-[14px] font-bold text-slate-800">{ktpData.birthPlace || "—"}</span>
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-extrabold text-slate-500 tracking-widest mb-1.5">
-                    TANGGAL LAHIR
-                  </label>
-                  <input
-                    type="date"
-                    value={ktpData.birthDate || ""}
-                    onChange={(e) => setKtpData({ ...ktpData, birthDate: e.target.value })}
-                    className="w-full px-4 py-3.5 bg-white border-2 border-slate-200 focus:border-blue-400 rounded-2xl text-[14px] font-semibold text-slate-900 focus:outline-none transition"
-                  />
+                  <p className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-2">TANGGAL LAHIR</p>
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5">
+                    <span className="text-[14px] font-bold text-slate-800">
+                      {ktpData.birthDate
+                        ? new Date(ktpData.birthDate).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+                        : "—"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
