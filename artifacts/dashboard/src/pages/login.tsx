@@ -94,25 +94,6 @@ export default function LoginPage() {
           className="p-8 md:p-10"
         >
 
-          {/* ── Branding ─────────────────────────────────────── */}
-          <div className="mb-8 text-center">
-            <div
-              className="inline-flex items-center justify-center rounded-2xl mb-4 shadow-lg"
-              style={{
-                width: 56,
-                height: 56,
-                background: "linear-gradient(135deg, #0054ca 0%, #3d7ef5 100%)",
-                boxShadow: "0 8px 24px rgba(0,84,202,0.25)",
-              }}
-            >
-              <MsIcon name="document_scanner" className="text-white text-[28px]" />
-            </div>
-            <h1 className="text-[22px] font-extrabold text-slate-900 tracking-tight" style={{ letterSpacing: "-0.03em" }}>
-              KTP Registrasi
-            </h1>
-            <p className="text-[13px] text-slate-500 mt-1">Sistem Manajemen Peserta Event</p>
-          </div>
-
           {/* ── Form ─────────────────────────────────────────── */}
           <form onSubmit={handleSubmit} className="space-y-5">
 
