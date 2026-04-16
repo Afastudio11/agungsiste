@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KTP Scan - Participant Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#570008",
+                        "surface-container-low": "#eef1f3",
+                        "surface-container": "#e5e9eb",
+                        "surface-dim": "#d0d5d8",
+                        "inverse-surface": "#0b0f10",
+                        "secondary": "#6a37d4",
+                        "inverse-on-surface": "#9a9d9f",
+                        "primary-container": "#769dff",
+                        "on-background": "#2c2f31",
+                        "secondary-container": "#dac9ff",
+                        "primary-fixed": "#769dff",
+                        "surface-container-highest": "#d9dde0",
+                        "primary": "#0054ca",
+                        "on-secondary-fixed-variant": "#5f28c8",
+                        "inverse-primary": "#5a8cff",
+                        "error-dim": "#9f0519",
+                        "error": "#b31b25",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#002869",
+                        "outline-variant": "#abadaf",
+                        "on-tertiary-container": "#005a3c",
+                        "on-primary-container": "#001f56",
+                        "surface-bright": "#f5f7f9",
+                        "on-tertiary": "#c8ffe0",
+                        "tertiary": "#006947",
+                        "secondary-dim": "#5e26c7",
+                        "on-secondary": "#f8f0ff",
+                        "outline": "#747779",
+                        "surface-container-high": "#dfe3e6",
+                        "on-surface": "#2c2f31",
+                        "surface": "#f5f7f9",
+                        "surface-tint": "#0054ca",
+                        "on-primary": "#f1f2ff",
+                        "tertiary-dim": "#005c3d",
+                        "on-primary-fixed": "#000000",
+                        "tertiary-fixed": "#69f6b8",
+                        "on-secondary-container": "#5517bf",
+                        "secondary-fixed": "#dac9ff",
+                        "tertiary-container": "#69f6b8",
+                        "on-tertiary-fixed-variant": "#006544",
+                        "surface-variant": "#d9dde0",
+                        "background": "#f5f7f9",
+                        "on-secondary-fixed": "#40009b",
+                        "on-error": "#ffefee",
+                        "on-tertiary-fixed": "#00452d",
+                        "primary-dim": "#0049b2",
+                        "tertiary-fixed-dim": "#58e7ab",
+                        "primary-fixed-dim": "#5f8fff",
+                        "error-container": "#fb5151",
+                        "secondary-fixed-dim": "#ceb9ff",
+                        "on-surface-variant": "#595c5e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f5f7f9;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .shadow-ambient {
+            box-shadow: 0px 20px 40px rgba(44, 47, 49, 0.06);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #0054ca 0%, #769dff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="text-on-surface antialiased">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-slate-50 dark:bg-slate-900 flex flex-col p-6 z-50">
+<div class="mb-10 px-4">
+<h1 class="text-2xl font-bold tracking-tight text-blue-700 dark:text-blue-400">KTP Scan</h1>
+<p class="text-xs font-medium text-slate-500 uppercase tracking-widest mt-1">Admin Portal</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-medium text-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="font-medium text-sm">Event</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-medium text-sm">Peserta</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined">badge</span>
+<span class="font-medium text-sm">Petugas</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full transition-all" href="#">
+<span class="material-symbols-outlined">qr_code_scanner</span>
+<span class="font-medium text-sm">Scan KTP</span>
+</a>
+</nav>
+<div class="mt-auto pt-6">
+<button class="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-primary to-primary-container text-white rounded-full font-semibold shadow-lg hover:opacity-90 transition-all scale-95 active:opacity-80">
+<span class="material-symbols-outlined">add</span>
+<span>New Scan</span>
+</button>
+</div>
+</aside>
+<!-- Top Navigation Bar -->
+<header class="fixed left-64 right-0 top-0 h-20 px-8 flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl z-40">
+<div class="flex items-center w-1/3">
+<div class="relative w-full max-w-md group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-12 pr-4 py-3 bg-surface-container-low border-none rounded-full text-sm focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Search participant data..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<button class="p-2 text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="h-10 w-[1px] bg-outline-variant/30"></div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-sm font-bold text-on-surface leading-none">Admin Astra</p>
+<p class="text-[10px] text-outline font-medium uppercase tracking-tighter">System Manager</p>
+</div>
+<img alt="Admin Avatar" class="h-10 w-10 rounded-full object-cover border-2 border-white shadow-sm" data-alt="professional headshot of a middle-aged male administrator with a confident smile in a bright office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkkguw6GH7qFEzJdJMQrnTfaMuqyWmdk7sU3bJK9TMUQp50Vj_fuTJiywZQHNbt2Jx77J1YE-F_ksagR7LFIm-_CkGIVKOrSylfIn0ZRS0VpbyabCU5tT3otAa6KahTKia3Elr2CI0dX9ZlzuU_sTHYQRV5rfTP0HSdNuSOVkv-vmDowfGziNQsTt77IR4g1kpFw1QXak4J9szSNNphXpP3LsvFgdkBDjtRlIUPhwXS5vHx0bytnvTt8ECzU9hKN4ZRZsnIExEELE"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 mt-20 p-8 min-h-[calc(100vh-5rem)]">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+<div>
+<div class="flex items-center gap-3 mb-2">
+<div class="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-extrabold uppercase tracking-widest">Live Database</div>
+</div>
+<h2 class="text-[3.5rem] font-bold text-on-surface leading-tight tracking-tight">Daftar Peserta</h2>
+<div class="flex items-center gap-4 mt-2">
+<span class="text-lg font-medium text-outline">Total Entry: <span class="text-on-surface font-bold">1001 Participants</span></span>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<div class="flex items-center gap-2 bg-surface-container-low p-2 rounded-full">
+<div class="flex items-center gap-2 px-4 py-2 bg-surface-container-lowest rounded-full shadow-sm text-sm font-medium">
+<span class="material-symbols-outlined text-xs text-outline">calendar_month</span>
+<input class="bg-transparent border-none p-0 focus:ring-0 w-24 text-xs font-semibold" type="text" value="01/01/2024"/>
+</div>
+<span class="text-outline text-xs">to</span>
+<div class="flex items-center gap-2 px-4 py-2 bg-surface-container-lowest rounded-full shadow-sm text-sm font-medium">
+<span class="material-symbols-outlined text-xs text-outline">calendar_month</span>
+<input class="bg-transparent border-none p-0 focus:ring-0 w-24 text-xs font-semibold" type="text" value="12/31/2024"/>
+</div>
+</div>
+<button class="flex items-center gap-2 px-6 py-3.5 bg-secondary text-white rounded-full font-bold shadow-ambient hover:opacity-90 transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]">file_download</span>
+<span>Export CSV</span>
+</button>
+</div>
+</div>
+<!-- Bento Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="md:col-span-1 bg-surface-container-lowest p-8 rounded-lg shadow-ambient relative overflow-hidden group">
+<div class="relative z-10">
+<p class="text-outline text-sm font-semibold mb-1">Registrasi Hari Ini</p>
+<h3 class="text-4xl font-extrabold text-on-surface">128</h3>
+<p class="text-tertiary text-xs font-bold mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+                        +12% vs Kemarin
+                    </p>
+</div>
+<div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
+<span class="material-symbols-outlined text-[120px]">person_add</span>
+</div>
+</div>
+<div class="md:col-span-1 bg-surface-container-lowest p-8 rounded-lg shadow-ambient relative overflow-hidden group">
+<div class="relative z-10">
+<p class="text-outline text-sm font-semibold mb-1">Kehadiran Scan</p>
+<h3 class="text-4xl font-extrabold text-on-surface">84.2%</h3>
+<p class="text-secondary text-xs font-bold mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                        Verified Records
+                    </p>
+</div>
+<div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
+<span class="material-symbols-outlined text-[120px]">fact_check</span>
+</div>
+</div>
+<div class="md:col-span-1 bg-primary text-white p-8 rounded-lg shadow-ambient relative overflow-hidden group">
+<div class="relative z-10">
+<p class="text-white/80 text-sm font-semibold mb-1">Status Sistem</p>
+<h3 class="text-4xl font-extrabold">Aktif</h3>
+<div class="mt-4 flex -space-x-2">
+<img class="w-8 h-8 rounded-full border-2 border-primary object-cover" data-alt="portrait of a software engineer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4HRya0p3RfGcyn2f4bIi0-_-9E8fHSDKYB9J8wSFRWr42LlTokZwVJboP_-rgFFzqWIak1uJY8LB6hj4bBXfahXY6K21ZfHHGeYS8I852xUy4qzUBF-eF5j_9NLdlqroofroNMtDVy_cJm1KYvD0Tx_hjovSm6CRjeZuCJqifJUuaL9foUKnFVDlRI5V_qHAhPOSXti3cz6Xzno855h88Y3M4ThH0VnqgL04qMs26d-_67hkCqeJ2jkgMektKabh9sNPGzWHY094"/>
+<img class="w-8 h-8 rounded-full border-2 border-primary object-cover" data-alt="portrait of a system administrator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZSklOJtY7EEsZkLNzGu2fx_o9cRzs3OvNAYlcCB_617PRxwkJvSvr3MFtj1cCqm75FGwO98xTyW70PkjFVuCcKj0YjkzVrFZXyOA-MesJAq42PLzQok39uohIeHGnyMUMGRo5RrUC2iEd8Z6fxhKFMT9VrS5HVjL7OjGMKlxNMMdfi48KK6b9UEP8TSub-hQsGbzjEzcfsGH64Y3UoSidt0qoTJJQuBfgrBO2UDrUMMw8QkBUTxBdgHpqEI7jwrnBnLoSrqF9dCY"/>
+<div class="w-8 h-8 rounded-full border-2 border-primary bg-primary-container flex items-center justify-center text-[10px] font-bold">4+</div>
+</div>
+</div>
+<div class="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
+<span class="material-symbols-outlined text-[120px]">hub</span>
+</div>
+</div>
+</div>
+<!-- Participant Table Section -->
+<div class="bg-surface-container-lowest rounded-lg shadow-ambient overflow-hidden border border-white/40">
+<div class="p-6 border-b border-surface-container-low flex items-center justify-between">
+<h4 class="text-lg font-bold">Data Real-time</h4>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined text-outline">filter_list</span>
+</button>
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/50">
+<th class="px-6 py-4 text-xs font-bold text-outline uppercase tracking-widest">NIK Participant</th>
+<th class="px-6 py-4 text-xs font-bold text-outline uppercase tracking-widest">Nama Lengkap</th>
+<th class="px-6 py-4 text-xs font-bold text-outline uppercase tracking-widest">Kelamin</th>
+<th class="px-6 py-4 text-xs font-bold text-outline uppercase tracking-widest">Domisili</th>
+<th class="px-6 py-4 text-xs font-bold text-outline uppercase tracking-widest">Terdaftar</th>
+<th class="px-6 py-4 text-xs font-bold text-outline uppercase tracking-widest">Total Event</th>
+<th class="px-6 py-4 text-xs font-bold text-outline uppercase tracking-widest text-right">Aksi</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-low">
+<tr class="group hover:bg-surface-container-low/30 transition-colors">
+<td class="px-6 py-5">
+<span class="font-mono text-xs font-semibold text-primary tracking-tighter">3273102903910002</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary">AS</div>
+<div>
+<p class="font-bold text-sm text-on-surface">Adit Setyawan</p>
+<p class="text-[10px] text-outline font-medium">Software Engineer</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-surface-container-high text-on-surface-variant rounded-full text-[10px] font-extrabold">L</span>
+</td>
+<td class="px-6 py-5">
+<p class="text-sm font-semibold">Bandung</p>
+<p class="text-[10px] text-outline">Jawa Barat</p>
+</td>
+<td class="px-6 py-5">
+<p class="text-xs font-medium">12 Oct 2024</p>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<span class="text-sm font-bold">12</span>
+<span class="px-2 py-0.5 bg-tertiary/10 text-tertiary rounded-md text-[9px] font-bold uppercase">Active</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="p-2 hover:bg-primary/10 hover:text-primary rounded-full transition-all opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="group hover:bg-surface-container-low/30 transition-colors">
+<td class="px-6 py-5">
+<span class="font-mono text-xs font-semibold text-primary tracking-tighter">3211045201940003</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-secondary-container flex items-center justify-center font-bold text-secondary">NP</div>
+<div>
+<p class="font-bold text-sm text-on-surface">Nina Putriani</p>
+<p class="text-[10px] text-outline font-medium">Marketing Lead</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-surface-container-high text-on-surface-variant rounded-full text-[10px] font-extrabold">P</span>
+</td>
+<td class="px-6 py-5">
+<p class="text-sm font-semibold">Jakarta Selatan</p>
+<p class="text-[10px] text-outline">DKI Jakarta</p>
+</td>
+<td class="px-6 py-5">
+<p class="text-xs font-medium">14 Oct 2024</p>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<span class="text-sm font-bold">04</span>
+<span class="px-2 py-0.5 bg-outline-variant/10 text-outline rounded-md text-[9px] font-bold uppercase">Idle</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="p-2 hover:bg-primary/10 hover:text-primary rounded-full transition-all opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="group hover:bg-surface-container-low/30 transition-colors">
+<td class="px-6 py-5">
+<span class="font-mono text-xs font-semibold text-primary tracking-tighter">3507021203880001</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-tertiary-container flex items-center justify-center font-bold text-tertiary">RM</div>
+<div>
+<p class="font-bold text-sm text-on-surface">Rizky Maulana</p>
+<p class="text-[10px] text-outline font-medium">Freelancer</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-surface-container-high text-on-surface-variant rounded-full text-[10px] font-extrabold">L</span>
+</td>
+<td class="px-6 py-5">
+<p class="text-sm font-semibold">Surabaya</p>
+<p class="text-[10px] text-outline">Jawa Timur</p>
+</td>
+<td class="px-6 py-5">
+<p class="text-xs font-medium">15 Oct 2024</p>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<span class="text-sm font-bold">28</span>
+<span class="px-2 py-0.5 bg-primary/10 text-primary rounded-md text-[9px] font-bold uppercase">Pro</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="p-2 hover:bg-primary/10 hover:text-primary rounded-full transition-all opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="group hover:bg-surface-container-low/30 transition-colors">
+<td class="px-6 py-5">
+<span class="font-mono text-xs font-semibold text-primary tracking-tighter">3202154407920005</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-primary-container flex items-center justify-center font-bold text-on-primary-container">DD</div>
+<div>
+<p class="font-bold text-sm text-on-surface">Dian Daniswara</p>
+<p class="text-[10px] text-outline font-medium">Senior Architect</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-surface-container-high text-on-surface-variant rounded-full text-[10px] font-extrabold">L</span>
+</td>
+<td class="px-6 py-5">
+<p class="text-sm font-semibold">Yogyakarta</p>
+<p class="text-[10px] text-outline">DI Yogyakarta</p>
+</td>
+<td class="px-6 py-5">
+<p class="text-xs font-medium">16 Oct 2024</p>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center gap-2">
+<span class="text-sm font-bold">07</span>
+<span class="px-2 py-0.5 bg-tertiary/10 text-tertiary rounded-md text-[9px] font-bold uppercase">Active</span>
+</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="p-2 hover:bg-primary/10 hover:text-primary rounded-full transition-all opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-6 py-4 flex items-center justify-between bg-surface-container-low/20">
+<p class="text-xs text-outline font-medium">Showing 1 to 4 of 1001 entries</p>
+<div class="flex items-center gap-1">
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-outline">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-primary text-white font-bold text-xs">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-on-surface font-semibold text-xs">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-on-surface font-semibold text-xs">3</button>
+<span class="px-2 text-outline">...</span>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-on-surface font-semibold text-xs">250</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low text-outline">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</body></html>
