@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { HeaderProvider } from "@/lib/header-context";
+import { SettingsProvider } from "@/lib/settings-context";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import DashboardPage from "@/pages/dashboard";
@@ -119,10 +120,12 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
-            <HeaderProvider>
-              <AppRoutes />
-              <Toaster />
-            </HeaderProvider>
+            <SettingsProvider>
+              <HeaderProvider>
+                <AppRoutes />
+                <Toaster />
+              </HeaderProvider>
+            </SettingsProvider>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>

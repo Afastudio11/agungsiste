@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Layout from "@/components/layout";
 import {
   Settings,
@@ -8,46 +8,11 @@ import {
   Bell,
   CheckCircle2,
   Palette,
+  LayoutDashboard,
 } from "lucide-react";
+import { useSettings, defaultSettings, defaultMenuLabels, type MenuLabels } from "@/lib/settings-context";
 
-const STORAGE_KEY = "ktp_dashboard_settings";
-
-type AppSettings = {
-  orgName: string;
-  defaultEventId: string;
-  autoResetForm: boolean;
-  showTotalOnSuccess: boolean;
-  primaryColor: string;
-};
-
-const defaults: AppSettings = {
-  orgName: "Panitia Nasional",
-  defaultEventId: "",
-  autoResetForm: false,
-  showTotalOnSuccess: true,
-  primaryColor: "blue",
-};
-
-function loadSettings(): AppSettings {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? { ...defaults, ...JSON.parse(raw) } : defaults;
-  } catch {
-    return defaults;
-  }
-}
-
-function saveSettings(s: AppSettings) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-}
-
-function Toggle({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       onClick={() => onChange(!checked)}
@@ -64,15 +29,7 @@ function Toggle({
   );
 }
 
-function SectionHeader({
-  icon: Icon,
-  title,
-  desc,
-}: {
-  icon: any;
-  title: string;
-  desc: string;
-}) {
+function SectionHeader({ icon: Icon, title, desc }: { icon: any; title: string; desc: string }) {
   return (
     <div className="flex items-start gap-3 mb-4">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100">
@@ -86,24 +43,39 @@ function SectionHeader({
   );
 }
 
+const menuItems: { key: keyof MenuLabels; icon: string; defaultLabel: string }[] = [
+  { key: "dashboard",    icon: "dashboard",         defaultLabel: defaultMenuLabels.dashboard },
+  { key: "events",       icon: "event",             defaultLabel: defaultMenuLabels.events },
+  { key: "participants", icon: "group",             defaultLabel: defaultMenuLabels.participants },
+  { key: "officers",     icon: "badge",             defaultLabel: defaultMenuLabels.officers },
+  { key: "scan",         icon: "document_scanner",  defaultLabel: defaultMenuLabels.scan },
+  { key: "prizes",       icon: "card_giftcard",     defaultLabel: defaultMenuLabels.prizes },
+  { key: "pemetaan",     icon: "map",               defaultLabel: defaultMenuLabels.pemetaan },
+  { key: "settings",     icon: "settings",          defaultLabel: defaultMenuLabels.settings },
+];
+
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<AppSettings>(loadSettings);
+  const { settings, updateSettings, saveSettings, resetSettings } = useSettings();
   const [saved, setSaved] = useState(false);
 
-  const update = (key: keyof AppSettings, value: any) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+  const update = (key: string, value: any) => {
+    updateSettings({ [key]: value } as any);
+    setSaved(false);
+  };
+
+  const updateLabel = (key: keyof MenuLabels, value: string) => {
+    updateSettings({ menuLabels: { ...settings.menuLabels, [key]: value } });
     setSaved(false);
   };
 
   const handleSave = () => {
-    saveSettings(settings);
+    saveSettings();
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
 
   const handleReset = () => {
-    setSettings(defaults);
-    saveSettings(defaults);
+    resetSettings();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -142,6 +114,37 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
+        {/* Nama Menu */}
+        <div className="col-span-2 rounded-2xl bg-white border border-slate-100 px-6 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+          <SectionHeader
+            icon={LayoutDashboard}
+            title="Nama Menu Navigasi"
+            desc="Ubah label yang tampil di sidebar untuk setiap menu"
+          />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {menuItems.map(({ key, icon, defaultLabel }) => (
+              <div key={key}>
+                <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
+                  <span className="material-symbols-outlined text-[13px] text-slate-300" style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20" }}>
+                    {icon}
+                  </span>
+                  {defaultLabel}
+                </label>
+                <input
+                  type="text"
+                  value={settings.menuLabels[key]}
+                  onChange={(e) => updateLabel(key, e.target.value)}
+                  placeholder={defaultLabel}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+                />
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-[11px] text-slate-300 italic">
+            * Perubahan label langsung tampil di sidebar setelah disimpan
+          </p>
+        </div>
+
         {/* Organisasi */}
         <div className="rounded-2xl bg-white border border-slate-100 px-6 py-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <SectionHeader
@@ -149,19 +152,17 @@ export default function SettingsPage() {
             title="Informasi Organisasi"
             desc="Nama dan identitas penyelenggara"
           />
-          <div className="space-y-3">
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
-                Nama Organisasi
-              </label>
-              <input
-                type="text"
-                value={settings.orgName}
-                onChange={(e) => update("orgName", e.target.value)}
-                placeholder="cth: Panitia Festival Nasional"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
-              />
-            </div>
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1.5">
+              Nama Organisasi
+            </label>
+            <input
+              type="text"
+              value={settings.orgName}
+              onChange={(e) => update("orgName", e.target.value)}
+              placeholder="cth: Panitia Festival Nasional"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-blue-400 focus:bg-white transition-colors"
+            />
           </div>
         </div>
 
@@ -185,9 +186,7 @@ export default function SettingsPage() {
                 onChange={(v) => update("autoResetForm", v)}
               />
             </div>
-
             <div className="border-t border-slate-100" />
-
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[13px] font-semibold text-slate-700">Tampilkan Total Event</p>
@@ -239,11 +238,11 @@ export default function SettingsPage() {
             </label>
             <div className="flex gap-2">
               {[
-                { key: "blue", bg: "bg-blue-500", ring: "ring-blue-400" },
-                { key: "violet", bg: "bg-violet-500", ring: "ring-violet-400" },
+                { key: "blue",    bg: "bg-blue-500",    ring: "ring-blue-400" },
+                { key: "violet",  bg: "bg-violet-500",  ring: "ring-violet-400" },
                 { key: "emerald", bg: "bg-emerald-500", ring: "ring-emerald-400" },
-                { key: "rose", bg: "bg-rose-500", ring: "ring-rose-400" },
-                { key: "amber", bg: "bg-amber-400", ring: "ring-amber-400" },
+                { key: "rose",    bg: "bg-rose-500",    ring: "ring-rose-400" },
+                { key: "amber",   bg: "bg-amber-400",   ring: "ring-amber-400" },
               ].map((c) => (
                 <button
                   key={c.key}
@@ -285,7 +284,7 @@ export default function SettingsPage() {
 
           <div className="flex items-center justify-between border-t border-slate-100 pt-4">
             <p className="text-[12px] text-slate-400">
-              Reset semua pengaturan ke nilai default
+              Reset semua pengaturan ke nilai default (termasuk nama menu)
             </p>
             <button
               onClick={handleReset}

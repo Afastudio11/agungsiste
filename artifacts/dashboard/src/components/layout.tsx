@@ -2,19 +2,21 @@ import { Link, useLocation } from "wouter";
 import { ReactNode, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useHeaderContext } from "@/lib/header-context";
+import { useSettings } from "@/lib/settings-context";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const adminNav = [
-  { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
-  { href: "/events", label: "Event", icon: "event" },
-  { href: "/participants", label: "Peserta", icon: "group" },
-  { href: "/officers", label: "Petugas", icon: "badge" },
-  { href: "/scan", label: "Scan KTP", icon: "document_scanner" },
-  { href: "/prizes", label: "Hadiah", icon: "card_giftcard" },
-  { href: "/pemetaan", label: "Pemetaan", icon: "map" },
+const adminNavBase = [
+  { href: "/dashboard", key: "dashboard" as const, icon: "dashboard" },
+  { href: "/events",   key: "events"    as const, icon: "event" },
+  { href: "/participants", key: "participants" as const, icon: "group" },
+  { href: "/officers", key: "officers"  as const, icon: "badge" },
+  { href: "/scan",     key: "scan"      as const, icon: "document_scanner" },
+  { href: "/prizes",   key: "prizes"    as const, icon: "card_giftcard" },
+  { href: "/pemetaan", key: "pemetaan"  as const, icon: "map" },
+  { href: "/settings", key: "settings"  as const, icon: "settings" },
 ];
 
 function MsIcon({ name, className, style }: { name: string; className?: string; style?: React.CSSProperties }) {
@@ -66,8 +68,14 @@ export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { startDate, endDate, setStartDate, setEndDate } = useHeaderContext();
+  const { settings } = useSettings();
 
   const isDashboard = location === "/dashboard";
+
+  const adminNav = adminNavBase.map((n) => ({
+    ...n,
+    label: settings.menuLabels[n.key] || n.key,
+  }));
 
   const handleLogout = async () => {
     await logout();
@@ -213,10 +221,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="flex items-center justify-around px-2 py-1.5">
           {adminNav.slice(0, 5).map(({ href, label, icon }) => {
             const active = location === href || location.startsWith(href + "/");
-            const shortLabel =
-              label === "Dashboard" ? "Home"
-              : label === "Statistik Staf" ? "Staf"
-              : label;
+            const shortLabel = label.length > 8 ? label.slice(0, 7) + "…" : label;
             return (
               <Link key={href} href={href}>
                 <div className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl min-w-[44px] transition-all cursor-pointer ${active ? "text-blue-600" : "text-slate-400"}`}>
