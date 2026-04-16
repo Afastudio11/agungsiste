@@ -42,54 +42,99 @@ const staffNames = [
   "Ayu Rahayu","Bagus Hidayat","Lestari Sari","Gilang Ramadhan","Tika Susanti",
 ];
 
-const provinces = [
-  "DKI Jakarta","Jawa Barat","Jawa Tengah","Jawa Timur","DI Yogyakarta",
-  "Banten","Bali","Sumatera Utara","Sumatera Selatan","Sumatera Barat",
-  "Riau","Lampung","Kalimantan Timur","Kalimantan Selatan","Sulawesi Selatan",
-  "Sulawesi Tengah","Nusa Tenggara Barat","Nusa Tenggara Timur","Maluku","Papua",
-];
-
-const cities: Record<string, string[]> = {
-  "DKI Jakarta": ["Jakarta Pusat","Jakarta Utara","Jakarta Selatan","Jakarta Timur","Jakarta Barat"],
-  "Jawa Barat": ["Bandung","Bogor","Bekasi","Depok","Cirebon","Sukabumi","Tasikmalaya","Karawang"],
-  "Jawa Tengah": ["Semarang","Solo","Magelang","Purwokerto","Kudus","Pekalongan","Tegal","Salatiga"],
-  "Jawa Timur": ["Surabaya","Malang","Kediri","Blitar","Madiun","Mojokerto","Jember","Probolinggo"],
-  "DI Yogyakarta": ["Yogyakarta","Sleman","Bantul","Gunungkidul","Kulon Progo"],
-  "Banten": ["Tangerang","Serang","Cilegon","Tangerang Selatan","Lebak"],
-  "Bali": ["Denpasar","Badung","Gianyar","Tabanan","Buleleng","Klungkung"],
-  "Sumatera Utara": ["Medan","Deli Serdang","Binjai","Pematangsiantar","Tebing Tinggi"],
-  "Sumatera Selatan": ["Palembang","Lubuklinggau","Prabumulih","Baturaja","Lahat"],
-  "Sumatera Barat": ["Padang","Bukittinggi","Payakumbuh","Sawahlunto","Solok"],
-  "Riau": ["Pekanbaru","Dumai","Bengkalis","Siak","Kampar"],
-  "Lampung": ["Bandar Lampung","Metro","Pringsewu","Kotabumi","Liwa"],
-  "Kalimantan Timur": ["Samarinda","Balikpapan","Bontang","Tenggarong","Sangatta"],
-  "Kalimantan Selatan": ["Banjarmasin","Banjarbaru","Martapura","Amuntai","Pelaihari"],
-  "Sulawesi Selatan": ["Makassar","Parepare","Palopo","Watampone","Maros"],
-  "Sulawesi Tengah": ["Palu","Poso","Toli-Toli","Luwuk","Donggala"],
-  "Nusa Tenggara Barat": ["Mataram","Bima","Praya","Selong","Taliwang"],
-  "Nusa Tenggara Timur": ["Kupang","Ende","Maumere","Waingapu","Ruteng"],
-  "Maluku": ["Ambon","Tual","Masohi","Namlea","Saumlaki"],
-  "Papua": ["Jayapura","Merauke","Timika","Biak","Sorong"],
+const jatimWilayah: Record<string, Record<string, string[]>> = {
+  Pacitan: {
+    Pacitan:    ["Sidoharjo","Pacitan","Bangunsari","Ploso","Menadi","Sirnoboyo","Nanggungan","Arjowinangun","Sambong","Pucangsewu"],
+    Arjosari:   ["Arjosari","Gembong","Tremas","Borang","Karangrejo","Pagutan","Temon","Somopuro","Jetis","Mlati"],
+    Nawangan:   ["Nawangan","Mujing","Jetis Lor","Gondang","Candi","Pakisbaru","Tokawi","Penggung","Sempu","Wiyoro"],
+    Bandar:     ["Bandar","Ngunut","Kepyar","Tumpak Kepuh","Watugede","Salam","Ngagel","Kelitik"],
+    Tegalombo:  ["Tegalombo","Karang Anyar","Tumpak Rinjing","Karang Tengah","Jeruk","Bleberan","Wonosobo","Ngile"],
+    Tulakan:    ["Tulakan","Jetak","Klepu","Losari","Sukodono","Sidomulyo","Kembang","Wonodadi"],
+    Sudimoro:   ["Sudimoro","Sukorejo","Glonggong","Nampu","Bekiring","Gendaran","Sembulungan"],
+    Ngadirojo:  ["Ngadirojo","Wonokarto","Wonosobo","Hadiwarno","Katipugal","Sidomukti"],
+    Kebonagung: ["Kebonagung","Gonggang","Sukorejo","Kentro","Plumbungan","Ngunut"],
+    Donorojo:   ["Donorojo","Kalak","Klepu","Gendaran","Sukodono","Wayang","Pagerejo"],
+    Pringkuku:  ["Pringkuku","Sendang","Tamanasri","Cepoko","Sugihwaras","Jlubang","Sooka"],
+    Punung:     ["Punung","Tinatar","Wareng","Katipugal","Mendolo","Somopuro","Piton"],
+  },
+  Trenggalek: {
+    Trenggalek: ["Surodakan","Kelutan","Ngantru","Karangsoko","Rejowinangun","Sukolilo","Srikaton","Parakan","Sengon","Tamanan"],
+    Pogalan:    ["Pogalan","Kedunglurah","Ngulankulon","Ngulanwetan","Bendorejo","Baruharjo","Timahan"],
+    Gandusari:  ["Gandusari","Sumurup","Melis","Jajar","Ngadimulyo","Wonocoyo","Kerjo","Rejosari"],
+    Durenan:    ["Durenan","Gador","Kamulan","Sumberejo","Pandean","Ngadisuko"],
+    Suruh:      ["Suruh","Gamping","Geger","Gesikan","Tlampir"],
+    Pule:       ["Pule","Jombok","Tanggaran","Ngrencak","Ngrambingan","Kedungsigit"],
+    Karangan:   ["Karangan","Salamwates","Ngentrong","Sumber","Karangsari","Bogoran"],
+    Watulimo:   ["Watulimo","Watuagung","Prigi","Tasikmadu","Margomulyo","Karanggandu","Dukuh"],
+    Munjungan:  ["Munjungan","Besuki","Masaran","Tawing","Craken","Karangturi"],
+    Panggul:    ["Panggul","Besuki","Ngrencak","Bangun","Wonocoyo"],
+    Dongko:     ["Dongko","Petung","Siki","Prambon","Ngrayung","Ngadirenggo"],
+    Tugu:       ["Tugu","Kerjo","Puru","Cengkrong","Nglinggis"],
+    Bendungan:  ["Bendungan","Sengon","Depok","Dompyong","Sengon Agung"],
+    Kampak:     ["Kampak","Bogoran","Wotansari","Karangrejo","Ngrejo","Sugihwaras"],
+  },
+  Magetan: {
+    Magetan:      ["Magetan","Sukowinangun","Tambran","Selosari","Ringinagung","Klandungan"],
+    Barat:        ["Barat","Tanjungsekar","Soco","Sumberejo","Campurejo","Bendo","Giripurno","Purworejo"],
+    Kartoharjo:   ["Kartoharjo","Dempel","Ginanjar","Nitikan","Banjarsari"],
+    Karangrejo:   ["Karangrejo","Tanjungsari","Tambakrejo","Cepoko","Bulugunung","Sumberdodol"],
+    Karas:        ["Karas","Dempelan","Sambirejo","Sidomulyo","Manjung","Randugede"],
+    Ngariboyo:    ["Ngariboyo","Sumberejo","Omben","Banjarejo","Goranggareng","Kaliabu"],
+    Maospati:     ["Maospati","Gulun","Kraton","Kuwon","Sukomoro","Purwosari","Rejosari"],
+    Bendo:        ["Bendo","Genengan","Gunungrejo","Karangmojo","Rejomulyo","Soco"],
+    Sukomoro:     ["Sukomoro","Takeran","Setren","Banaran","Pencol"],
+    Takeran:      ["Takeran","Kedungpanji","Kuwonharjo","Purwodadi","Sumberejo"],
+    Nguntoronadi: ["Nguntoronadi","Banjarejo","Blimbing","Kalipang","Pencol"],
+    Plaosan:      ["Plaosan","Ngancar","Pacalan","Jogorogo","Sarangan","Tawangagung"],
+    Panekan:      ["Panekan","Banjar","Tamanarum","Pelem","Sugihrejo","Ngetrep"],
+    Parang:       ["Parang","Pragak","Ngendut","Pucang","Sumberejo","Sidorejo"],
+    Lembeyan:     ["Lembeyan","Bedagung","Gunungan","Sumberejo","Krajan"],
+    Kawedanan:    ["Kawedanan","Bangsri","Genengan","Rejosari","Sempu","Sobontoro"],
+    Sidorejo:     ["Sidorejo","Sumberdodol","Tawangrejo","Ngelang","Sogo"],
+    Poncol:       ["Poncol","Cabean","Janggan","Pupus","Sumberbening"],
+  },
+  Ponorogo: {
+    Ponorogo:   ["Ponorogo","Brotonegaran","Kadipaten","Nologaten","Kepatihan","Ronowijayan","Bangunsari","Paju"],
+    Babadan:    ["Babadan","Ngunut","Bareng","Trisono","Purwosari","Lembah","Kertosari","Sukosari"],
+    Jenangan:   ["Jenangan","Setono","Jimbe","Kemiri","Singosaren","Sriti","Wringinanom","Sempu"],
+    Ngebel:     ["Ngebel","Gondowido","Sahang","Wagir Kidul","Pupus"],
+    Sambit:     ["Sambit","Ngadirejo","Ngrejeng","Tulung","Campurejo","Pandak"],
+    Sooko:      ["Sooko","Turi","Ngadirejo","Bedoho","Wringinpitu","Suru"],
+    Pulung:     ["Pulung","Pulung Merdiko","Bedoho","Ngindeng","Pomahan","Wagirkidul"],
+    Mlarak:     ["Mlarak","Bajang","Banaran","Gandu","Gontor","Serangan","Ngrupit"],
+    Siman:      ["Siman","Demangan","Brahu","Mangunsuman","Sekaran","Golan","Pijeran"],
+    Bungkal:    ["Bungkal","Plunturan","Munggu","Kepuh","Bedikulon","Ketonggo"],
+    Ngrayun:    ["Ngrayun","Carat","Gedangan","Mrican","Janti","Senepo","Wonodadi"],
+    Slahung:    ["Slahung","Bedrug","Caluk","Duri","Galak","Janti","Kunti"],
+    Badegan:    ["Badegan","Bancar","Kalisat","Karangwaluh","Siwalan"],
+    Sawoo:      ["Sawoo","Grogol","Ketro","Tugurejo","Tegalrejo","Pangkal"],
+    Sampung:    ["Sampung","Bareng","Krebet","Lembah","Belang","Sragi"],
+    Sukorejo:   ["Sukorejo","Gelang","Karangpatihan","Mojopitu","Tanjungrejo"],
+    Balong:     ["Balong","Bulu","Jalen","Karangan","Ngumpul","Tatung"],
+    Kauman:     ["Kauman","Coper","Golan","Paju","Pengkol","Tosanan"],
+    Jambon:     ["Jambon","Blembem","Krebet","Pagerejo","Somoroto","Wringinanom"],
+  },
+  Ngawi: {
+    Ngawi:       ["Ngawi","Pelem","Sumengko","Kandangan","Karangtengah","Grudo"],
+    Geneng:      ["Geneng","Bungkus","Kenongorejo","Kersoharjo","Sidolaju","Banyubiru"],
+    Gerih:       ["Gerih","Gerih Agung","Kendal","Gerih Kidul","Jatipuro"],
+    Kwadungan:   ["Kwadungan","Waruk","Banget","Mojomanis","Mojorejo","Tirak"],
+    Pangkur:     ["Pangkur","Omben","Pohkonyal","Sumber","Wonokerto"],
+    Karangjati:  ["Karangjati","Banjarejo","Dawung","Katerban","Tempuran"],
+    Bringin:     ["Bringin","Ngablak","Pengkol","Pucangan","Simo","Tanjung"],
+    Paron:       ["Paron","Babadan","Gemarang","Krangkan","Ngumpul","Sidorejo","Teguhan"],
+    Kedunggalar: ["Kedunggalar","Klitik","Megeri","Wonokerto","Karangrejo","Baderan"],
+    Pitu:        ["Pitu","Gempol","Lebak","Sarangan","Simo"],
+    Ngrambe:     ["Ngrambe","Cluring","Kasihan","Manisharjo","Semen","Wakah"],
+    Jogorogo:    ["Jogorogo","Brubuh","Gembol","Ngrayudan","Sambirejo"],
+    Kendal:      ["Kendal","Gading","Gendol","Kasreman","Majasem"],
+    Sine:        ["Sine","Girikerto","Kedunggudel","Ketanggi","Kletekan","Sumber Agung"],
+    Widodaren:   ["Widodaren","Babadan Margo","Kauman","Kertoharjo","Sidolaju"],
+    Mantingan:   ["Mantingan","Gandong","Karangsono","Kedungharjo"],
+    Padas:       ["Padas","Banjarejo","Gendol","Sumengko"],
+    Karanganyar: ["Karanganyar","Bubulan","Jatigembol","Pendem","Sumber Bening"],
+  },
 };
-
-const kecamatans = [
-  "Cempaka Putih","Gambir","Sawah Besar","Senen","Johar Baru",
-  "Tanah Abang","Menteng","Setia Budi","Tebet","Mampang Prapatan",
-  "Pancoran","Kebayoran Lama","Kebayoran Baru","Pesanggrahan","Cilandak",
-  "Jagakarsa","Pasar Minggu","Ciracas","Cipayung","Makasar",
-  "Kramat Jati","Jatinegara","Duren Sawit","Cakung","Pulo Gadung",
-  "Penjaringan","Pademangan","Tanjung Priok","Koja","Kelapa Gading",
-  "Cilincing","Cengkareng","Grogol Petamburan","Tambora","Taman Sari",
-  "Kalideres","Pal Merah","Kebon Jeruk","Kembangan","Pesing",
-];
-
-const kelurahan = [
-  "Kebon Jeruk","Palmerah","Petamburan","Tanjung Duren","Duri Kepa",
-  "Wijaya Kusuma","Tomang","Jelambar","Srengseng","Joglo","Meruya",
-  "Cengkareng","Duri Selatan","Pegadungan","Rawa Buaya","Kalideres",
-  "Batu Ampar","Balimester","Cipinang","Klender","Malaka","Pondok Kelapa",
-  "Ciracas","Ceger","Bambu Apus","Setu","Cipayung","Lubang Buaya",
-];
 
 const religions = ["Islam","Kristen","Katolik","Hindu","Buddha","Konghucu"];
 const occupations = [
@@ -189,9 +234,12 @@ async function main() {
       const firstName = gender === "LAKI-LAKI" ? rand(maleNames) : rand(femaleNames);
       const fullName = `${firstName} ${rand(surnames)}`;
       const birthDate = generateBirthDate();
-      const province = rand(provinces);
-      const cityList = cities[province] ?? ["Jakarta"];
-      const city = rand(cityList);
+      const province = "Jawa Timur";
+      const kabupaten = rand(Object.keys(jatimWilayah));
+      const city = kabupaten;
+      const kecamatanKeys = Object.keys(jatimWilayah[kabupaten]);
+      const kecamatanName = rand(kecamatanKeys);
+      const kelurahanName = rand(jatimWilayah[kabupaten][kecamatanName]);
 
       let nik: string;
       let attempts = 0;
@@ -206,11 +254,11 @@ async function main() {
         fullName,
         gender,
         birthDate,
-        birthPlace: rand(birthPlaces),
-        address: `Jl. ${rand(["Merdeka","Sudirman","Thamrin","Gatot Subroto","Ahmad Yani","Diponegoro","Gajah Mada","Hayam Wuruk"])} No. ${randInt(1, 200)}`,
+        birthPlace: rand(["Pacitan","Trenggalek","Magetan","Ponorogo","Ngawi","Madiun","Surabaya","Malang"]),
+        address: `Jl. ${rand(["Diponegoro","Ahmad Yani","Sudirman","Merdeka","Gajah Mada","Hayam Wuruk","Pahlawan","Soekarno"])} No. ${randInt(1, 200)}`,
         rtRw: `${pad(randInt(1, 15))}/${pad(randInt(1, 10))}`,
-        kelurahan: rand(kelurahan),
-        kecamatan: rand(kecamatans),
+        kelurahan: kelurahanName,
+        kecamatan: kecamatanName,
         city,
         province,
         religion: rand(religions),
