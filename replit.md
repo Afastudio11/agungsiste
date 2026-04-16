@@ -136,12 +136,15 @@ If the app ever shows "not running", restart these two artifact workflows — do
 
 **`lib/db/src/jatimWilayah.ts`** — canonical mapping: kabupaten → kecamatan → desa for all 5 kabupaten.
 - Both `autoSeed.ts` and `seed-4000.ts` import from this file; NEVER edit the wilayah data in those files directly.
-- 5 kabupaten: Pacitan (12 kec), Trenggalek (14 kec), Magetan (18 kec), Ponorogo (21 kec), Ngawi (19 kec) = 84 kecamatan total, ~992 desa.
+- 5 kabupaten: Pacitan (12 kec, 168 desa), Trenggalek (14 kec, 157 desa), Magetan (18 kec, 235 desa), Ponorogo (21 kec, 306 desa), Ngawi (19 kec, 217 desa) = 84 kecamatan, 1083 desa total.
+- **Data source**: Synchronized with BIG (Badan Informasi Geospasial) via `jatim-5kab-desa.geojson` (reference: github.com/ardian28/GeoJson-Indonesia-38-Provinsi). GeoJSON is authoritative for desa names; 8 fallback kecamatan (no GeoJSON polygon) use historical TS data.
+- **Kelurahan urban areas** use "Kelurahan X" prefix (e.g., "Kelurahan Magetan") to match GeoJSON `kelurahan` property — important for map matching.
+- **8 fallback kecamatan** (no GeoJSON polygon): Pacitan/Bandar, Pacitan/Ngadirojo, Magetan/Karangrejo, Magetan/Nguntoronadi, Magetan/Sukomoro, Ponorogo/Kauman, Ngawi/Bringin, Ngawi/Karanganyar.
 
 ## Map / GeoJSON Data
 
-- **`artifacts/dashboard/src/data/jatim-kecamatan-geo.ts`** — 84 kecamatan border polygons (76 from Nusantaracode, 8 fallback from old data for: Pacitan/Bandar, Pacitan/Ngadirojo, Magetan/Karangrejo, Magetan/Nguntoronadi, Magetan/Sukomoro, Ponorogo/Kauman, Ngawi/Bringin, Ngawi/Karanganyar).
-- **`artifacts/dashboard/public/jatim-5kab-desa.geojson`** — 992 desa features from Nusantaracode. Properties: `district`/`sub_district`/`village` (UPPERCASE), `kabupaten`/`kecamatan`/`kelurahan` (title case).
-- Kabupaten ID_DAGRI codes: Pacitan=35.01, Ponorogo=35.02, Trenggalek=35.03, Magetan=35.20, Ngawi=35.21
+- **`artifacts/dashboard/src/data/jatim-kecamatan-geo.ts`** — 84 kecamatan border polygons (76 from Nusantaracode, 8 fallback for the kecamatan listed above).
+- **`artifacts/dashboard/public/jatim-5kab-desa.geojson`** — 992 desa features from Nusantaracode. Properties: `district`/`sub_district`/`village` (UPPERCASE), `kabupaten`/`kecamatan`/`kelurahan` (title case). This is the **authoritative source** for desa names — jatimWilayah.ts must match `kelurahan` values exactly.
+- Kabupaten BPS codes: Pacitan=35.01, Ponorogo=35.02, Trenggalek=35.03, Magetan=35.20, Ngawi=35.21
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
