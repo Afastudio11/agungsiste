@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Layout from "@/components/layout";
 import { Gift, Plus, Trash2, Award, ChevronDown, ChevronUp, Package, Search, X, Users, Globe, Calendar, MapPin } from "lucide-react";
+import { jatimWilayah } from "@workspace/db/jatimWilayah";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -79,8 +80,23 @@ export default function PrizesPage() {
   const [distStartDate, setDistStartDate] = useState("");
   const [distEndDate, setDistEndDate] = useState("");
   const [distKabupaten, setDistKabupaten] = useState("");
+  const [distKecamatan, setDistKecamatan] = useState("");
+  const [distKelurahan, setDistKelurahan] = useState("");
   const [allDistributions, setAllDistributions] = useState<AllDistribution[]>([]);
   const [allDistLoading, setAllDistLoading] = useState(false);
+
+  const kecamatanList = distKabupaten ? Object.keys(jatimWilayah[distKabupaten] ?? {}).sort() : [];
+  const kelurahanList = distKabupaten && distKecamatan ? (jatimWilayah[distKabupaten]?.[distKecamatan] ?? []).slice().sort() : [];
+
+  const handleKabupatenChange = (val: string) => {
+    setDistKabupaten(val);
+    setDistKecamatan("");
+    setDistKelurahan("");
+  };
+  const handleKecamatanChange = (val: string) => {
+    setDistKecamatan(val);
+    setDistKelurahan("");
+  };
 
   const fetchAllDistributions = useCallback(async () => {
     setAllDistLoading(true);
@@ -89,10 +105,12 @@ export default function PrizesPage() {
       if (distStartDate) params.set("startDate", distStartDate);
       if (distEndDate) params.set("endDate", distEndDate);
       if (distKabupaten) params.set("kabupaten", distKabupaten);
+      if (distKecamatan) params.set("kecamatan", distKecamatan);
+      if (distKelurahan) params.set("kelurahan", distKelurahan);
       const res = await fetch(`${BASE}/api/prizes/all-distributions?${params}`, { credentials: "include" });
       setAllDistributions(await res.json());
     } catch { } finally { setAllDistLoading(false); }
-  }, [distStartDate, distEndDate, distKabupaten]);
+  }, [distStartDate, distEndDate, distKabupaten, distKecamatan, distKelurahan]);
 
   const fetchPrizes = useCallback(async () => {
     setLoading(true);
@@ -426,20 +444,44 @@ export default function PrizesPage() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> Daerah
+                <MapPin className="h-3 w-3" /> Kabupaten
               </label>
               <select
                 value={distKabupaten}
-                onChange={(e) => setDistKabupaten(e.target.value)}
+                onChange={(e) => handleKabupatenChange(e.target.value)}
                 className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
               >
                 <option value="">Semua Kabupaten</option>
                 {KABUPATEN_LIST.map((k) => <option key={k} value={k}>{k}</option>)}
               </select>
             </div>
-            {(distStartDate || distEndDate || distKabupaten) && (
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Kecamatan</label>
+              <select
+                value={distKecamatan}
+                onChange={(e) => handleKecamatanChange(e.target.value)}
+                disabled={!distKabupaten}
+                className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <option value="">Semua Kecamatan</option>
+                {kecamatanList.map((k) => <option key={k} value={k}>{k}</option>)}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Desa / Kelurahan</label>
+              <select
+                value={distKelurahan}
+                onChange={(e) => setDistKelurahan(e.target.value)}
+                disabled={!distKecamatan}
+                className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <option value="">Semua Desa</option>
+                {kelurahanList.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            {(distStartDate || distEndDate || distKabupaten || distKecamatan || distKelurahan) && (
               <button
-                onClick={() => { setDistStartDate(""); setDistEndDate(""); setDistKabupaten(""); }}
+                onClick={() => { setDistStartDate(""); setDistEndDate(""); setDistKabupaten(""); setDistKecamatan(""); setDistKelurahan(""); }}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
               >
                 <X className="h-3 w-3" /> Reset

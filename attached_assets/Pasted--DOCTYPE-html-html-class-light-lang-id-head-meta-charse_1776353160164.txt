@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ethereal Staff - Kelola Petugas</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#005a3c",
+                        "tertiary-fixed": "#69f6b8",
+                        "inverse-surface": "#0b0f10",
+                        "surface-container-low": "#eef1f3",
+                        "outline": "#747779",
+                        "on-tertiary-fixed": "#00452d",
+                        "background": "#f5f7f9",
+                        "on-primary-fixed-variant": "#002869",
+                        "on-secondary": "#f8f0ff",
+                        "on-error-container": "#570008",
+                        "on-secondary-fixed-variant": "#5f28c8",
+                        "surface-container-highest": "#d9dde0",
+                        "secondary-fixed-dim": "#ceb9ff",
+                        "on-error": "#ffefee",
+                        "inverse-primary": "#5a8cff",
+                        "tertiary-container": "#69f6b8",
+                        "surface-variant": "#d9dde0",
+                        "primary": "#0054ca",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#2c2f31",
+                        "primary-dim": "#0049b2",
+                        "outline-variant": "#abadaf",
+                        "surface-container-high": "#dfe3e6",
+                        "surface": "#f5f7f9",
+                        "on-primary": "#f1f2ff",
+                        "surface-bright": "#f5f7f9",
+                        "primary-fixed-dim": "#5f8fff",
+                        "on-primary-fixed": "#000000",
+                        "error": "#b31b25",
+                        "error-dim": "#9f0519",
+                        "tertiary": "#006947",
+                        "secondary-dim": "#5e26c7",
+                        "on-surface-variant": "#595c5e",
+                        "secondary-container": "#dac9ff",
+                        "on-secondary-container": "#5517bf",
+                        "on-primary-container": "#001f56",
+                        "surface-dim": "#d0d5d8",
+                        "on-tertiary": "#c8ffe0",
+                        "surface-tint": "#0054ca",
+                        "on-tertiary-fixed-variant": "#006544",
+                        "on-surface": "#2c2f31",
+                        "secondary": "#6a37d4",
+                        "inverse-on-surface": "#9a9d9f",
+                        "tertiary-dim": "#005c3d",
+                        "tertiary-fixed-dim": "#58e7ab",
+                        "on-secondary-fixed": "#40009b",
+                        "primary-fixed": "#769dff",
+                        "surface-container": "#e5e9eb",
+                        "error-container": "#fb5151",
+                        "primary-container": "#769dff",
+                        "secondary-fixed": "#dac9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- SideNavBar -->
+<aside class="flex flex-col h-full fixed left-0 top-0 py-6 border-r-0 bg-slate-50 dark:bg-slate-950 h-screen w-72 border-r-0 font-['Plus_Jakarta_Sans'] font-medium z-40 hidden md:flex">
+<div class="px-8 mb-10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<div>
+<h1 class="text-xl font-bold text-slate-900 dark:text-slate-50 leading-none">Ethereal Corp</h1>
+<p class="text-xs text-slate-500 mt-1">Admin Console</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-2 px-4">
+<div class="flex items-center gap-4 px-6 py-3 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 mx-2 hover:translate-x-1 duration-300 transition-all ease-in-out cursor-pointer">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</div>
+<div class="flex items-center gap-4 px-6 py-3 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 shadow-sm rounded-full mx-2 transition-all ease-in-out cursor-pointer">
+<span class="material-symbols-outlined">group</span>
+<span>Staff Directory</span>
+</div>
+<div class="flex items-center gap-4 px-6 py-3 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 mx-2 hover:translate-x-1 duration-300 transition-all ease-in-out cursor-pointer">
+<span class="material-symbols-outlined">calendar_today</span>
+<span>Schedules</span>
+</div>
+<div class="flex items-center gap-4 px-6 py-3 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 mx-2 hover:translate-x-1 duration-300 transition-all ease-in-out cursor-pointer">
+<span class="material-symbols-outlined">payments</span>
+<span>Payroll</span>
+</div>
+<div class="flex items-center gap-4 px-6 py-3 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 mx-2 hover:translate-x-1 duration-300 transition-all ease-in-out cursor-pointer">
+<span class="material-symbols-outlined">trending_up</span>
+<span>Performance</span>
+</div>
+</nav>
+<div class="px-6 mt-auto">
+<button class="w-full py-4 bg-primary text-white rounded-full font-semibold shadow-xl shadow-primary/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all">
+<span class="material-symbols-outlined text-lg">person_add</span>
+                Invite Member
+            </button>
+<div class="mt-8 space-y-2 border-t border-slate-200 dark:border-slate-800 pt-6">
+<div class="flex items-center gap-4 px-6 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 cursor-pointer transition-all">
+<span class="material-symbols-outlined">help</span>
+<span class="text-sm">Help Center</span>
+</div>
+<div class="flex items-center gap-4 px-6 py-2 text-error-dim hover:text-error cursor-pointer transition-all">
+<span class="material-symbols-outlined">logout</span>
+<span class="text-sm">Logout</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-8 py-4 sticky top-0 z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-[0px_20px_40px_rgba(44,47,49,0.06)] md:ml-72 md:w-[calc(100%-18rem)]">
+<div class="flex items-center gap-8">
+<h2 class="text-2xl font-bold tracking-tighter text-blue-700 dark:text-blue-400 font-['Plus_Jakarta_Sans']">Ethereal Staff</h2>
+<div class="hidden lg:flex relative items-center">
+<span class="material-symbols-outlined absolute left-4 text-slate-400">search</span>
+<input class="pl-12 pr-6 py-2.5 bg-surface-container-low rounded-full border-none focus:ring-2 focus:ring-primary/20 w-80 text-sm font-['Plus_Jakarta_Sans']" placeholder="Cari data petugas..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2.5 rounded-full hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all active:scale-95 text-slate-500">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2.5 rounded-full hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all active:scale-95 text-slate-500">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-white shadow-sm ml-2">
+<img alt="Manager profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAI7RnYTQcgrkRuyxYzH_hk1-LzVo_XV6zO1Xba57JZvFO5w_p_hF3f1cL3ldMsqGQa1RxeqMIMbr2qXDXBG2w3xCie8W9l73KPHUmslls54kfgoMvkUAeg22bTPUnS0mr60lMoBZwad4cV--z030IO9BXFzhJ982Qq3jnOjv91F5FoE3ov4jFEok-ED510pK2nGFwpNObQoJ7JRMvc04DJQmyL-KnAPqJ_eZz0oS_FIxHSQUrm6VdojIddpzK1WWPn4D6wdO2xKaU"/>
+</div>
+</div>
+</header>
+<main class="md:ml-72 p-8 pt-6">
+<!-- Title & Action Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+<div>
+<p class="text-primary font-semibold tracking-wider text-xs uppercase mb-2">Manajemen Sumber Daya</p>
+<h3 class="text-4xl font-bold text-on-background tracking-tight">Kelola Petugas</h3>
+</div>
+<button class="flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-full font-bold shadow-xl shadow-primary/20 hover:scale-[1.03] active:scale-95 transition-all">
+<span class="material-symbols-outlined">add</span>
+                Tambah Petugas Baru
+            </button>
+</div>
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+<div class="glass-card p-8 rounded-lg shadow-[0px_20px_40px_rgba(44,47,49,0.06)] group hover:-translate-y-1 transition-transform duration-500">
+<div class="flex justify-between items-start mb-6">
+<div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-500">
+<span class="material-symbols-outlined text-3xl">badge</span>
+</div>
+<span class="text-tertiary font-bold text-sm bg-tertiary-container/30 px-3 py-1 rounded-full">+12%</span>
+</div>
+<h4 class="text-slate-500 font-medium mb-1">Total Petugas</h4>
+<div class="text-5xl font-extrabold text-on-background tracking-tighter">1,284</div>
+</div>
+<div class="glass-card p-8 rounded-lg shadow-[0px_20px_40px_rgba(44,47,49,0.06)] group hover:-translate-y-1 transition-transform duration-500">
+<div class="flex justify-between items-start mb-6">
+<div class="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-colors duration-500">
+<span class="material-symbols-outlined text-3xl">app_registration</span>
+</div>
+<span class="text-tertiary font-bold text-sm bg-tertiary-container/30 px-3 py-1 rounded-full">+5.4%</span>
+</div>
+<h4 class="text-slate-500 font-medium mb-1">Total Registrasi</h4>
+<div class="text-5xl font-extrabold text-on-background tracking-tighter">856</div>
+</div>
+<div class="glass-card p-8 rounded-lg shadow-[0px_20px_40px_rgba(44,47,49,0.06)] group hover:-translate-y-1 transition-transform duration-500">
+<div class="flex justify-between items-start mb-6">
+<div class="w-14 h-14 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary group-hover:bg-tertiary group-hover:text-white transition-colors duration-500">
+<span class="material-symbols-outlined text-3xl">person_check</span>
+</div>
+</div>
+<h4 class="text-slate-500 font-medium mb-1">Petugas Aktif</h4>
+<div class="text-5xl font-extrabold text-on-background tracking-tighter">1,102</div>
+</div>
+</div>
+<!-- Middle Section -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+<!-- Left Column: Leaderboard -->
+<div class="lg:col-span-4 flex flex-col">
+<div class="bg-surface-container-low rounded-lg p-8 h-full">
+<div class="flex items-center justify-between mb-8">
+<h4 class="text-xl font-bold tracking-tight">Leaderboard Petugas</h4>
+<button class="text-primary text-sm font-semibold">Lihat Semua</button>
+</div>
+<div class="space-y-6">
+<!-- Leader Item 1 -->
+<div class="flex items-center gap-4 group cursor-pointer">
+<div class="w-6 h-6 bg-yellow-400 text-[10px] font-bold text-white flex items-center justify-center rounded-full shrink-0">1</div>
+<div class="flex-1">
+<h5 class="font-bold text-on-background group-hover:text-primary transition-colors">Ahmad Subarjo</h5>
+<p class="text-xs text-slate-500">Supervisor Lapangan</p>
+</div>
+<div class="text-right">
+<div class="font-extrabold text-primary">98.5</div>
+<p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Skor</p>
+</div>
+</div>
+<!-- Leader Item 2 -->
+<div class="flex items-center gap-4 group cursor-pointer">
+<div class="w-6 h-6 bg-slate-300 text-[10px] font-bold text-white flex items-center justify-center rounded-full shrink-0">2</div>
+<div class="flex-1">
+<h5 class="font-bold text-on-background group-hover:text-primary transition-colors">Siti Aminah</h5>
+<p class="text-xs text-slate-500">Admin Verifikasi</p>
+</div>
+<div class="text-right">
+<div class="font-extrabold text-on-background">94.2</div>
+<p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Skor</p>
+</div>
+</div>
+<!-- Leader Item 3 -->
+<div class="flex items-center gap-4 group cursor-pointer">
+<div class="w-6 h-6 bg-orange-400 text-[10px] font-bold text-white flex items-center justify-center rounded-full shrink-0">3</div>
+<div class="flex-1">
+<h5 class="font-bold text-on-background group-hover:text-primary transition-colors">Budi Setiawan</h5>
+<p class="text-xs text-slate-500">Petugas Khusus</p>
+</div>
+<div class="text-right">
+<div class="font-extrabold text-on-background">91.8</div>
+<p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Skor</p>
+</div>
+</div>
+</div>
+<div class="mt-auto pt-8">
+<div class="bg-primary/5 rounded-2xl p-4 border border-primary/10">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-primary">emoji_events</span>
+<span class="text-xs font-bold text-primary uppercase">Reward Bulan Ini</span>
+</div>
+<p class="text-xs text-slate-600 leading-relaxed">Top 3 petugas akan mendapatkan insentif tambahan 15% dari total input bulanan.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Daftar Petugas -->
+<div class="lg:col-span-8">
+<div class="bg-surface-container-lowest rounded-lg p-8 shadow-[0px_20px_40px_rgba(44,47,49,0.06)]">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
+<h4 class="text-xl font-bold tracking-tight">Daftar Petugas</h4>
+<div class="flex items-center gap-3">
+<div class="relative flex-1 sm:w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">filter_list</span>
+<select class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full text-xs font-semibold focus:ring-primary/20 appearance-none">
+<option>Semua Jabatan</option>
+<option>Supervisor</option>
+<option>Admin</option>
+<option>Lapangan</option>
+</select>
+</div>
+<button class="w-10 h-10 flex items-center justify-center bg-surface-container-low rounded-full hover:bg-slate-200 transition-colors">
+<span class="material-symbols-outlined text-slate-600">tune</span>
+</button>
+</div>
+</div>
+<div class="space-y-4">
+<!-- Staff List Item -->
+<div class="flex items-center justify-between p-5 hover:bg-surface-container-low rounded-2xl transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div>
+<h5 class="font-bold text-on-background">Rina Kusuma</h5>
+<p class="text-xs text-slate-500">rina.k@ethereal.id</p>
+</div>
+</div>
+<div class="hidden md:block">
+<span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Role</span>
+<span class="text-sm font-semibold">Verifikasi Pusat</span>
+</div>
+<div class="text-right">
+<span class="bg-tertiary/10 text-tertiary px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-tight">Aktif</span>
+</div>
+</div>
+<!-- Staff List Item -->
+<div class="flex items-center justify-between p-5 hover:bg-surface-container-low rounded-2xl transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div>
+<h5 class="font-bold text-on-background">Dani Pratama</h5>
+<p class="text-xs text-slate-500">dani.p@ethereal.id</p>
+</div>
+</div>
+<div class="hidden md:block">
+<span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Role</span>
+<span class="text-sm font-semibold">Koordinator Wilayah</span>
+</div>
+<div class="text-right">
+<span class="bg-tertiary/10 text-tertiary px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-tight">Aktif</span>
+</div>
+</div>
+<!-- Staff List Item -->
+<div class="flex items-center justify-between p-5 hover:bg-surface-container-low rounded-2xl transition-all cursor-pointer group">
+<div class="flex items-center gap-4">
+<div>
+<h5 class="font-bold text-on-background">Maya Lestari</h5>
+<p class="text-xs text-slate-500">maya.l@ethereal.id</p>
+</div>
+</div>
+<div class="hidden md:block">
+<span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Role</span>
+<span class="text-sm font-semibold">Analyst Senior</span>
+</div>
+<div class="text-right">
+<span class="bg-slate-200 text-slate-500 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-tight">Cuti</span>
+</div>
+</div>
+</div>
+<div class="mt-10 pt-6 border-t border-slate-100 flex items-center justify-center">
+<button class="text-sm font-bold text-primary flex items-center gap-2 hover:underline transition-all">
+                            Muat Lebih Banyak
+                            <span class="material-symbols-outlined text-sm">keyboard_arrow_down</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Section: Detailed Table -->
+<div class="bg-surface-container-lowest rounded-lg p-8 shadow-[0px_20px_40px_rgba(44,47,49,0.06)] overflow-hidden">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h4 class="text-xl font-bold tracking-tight">Statistik Input per Petugas</h4>
+<p class="text-sm text-slate-500 mt-1">Laporan performa periode April 2024</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 bg-surface-container-low text-slate-700 text-xs font-bold rounded-full hover:bg-slate-200 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">download</span>
+                        Export CSV
+                    </button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-separate border-spacing-y-3">
+<thead>
+<tr class="text-[10px] uppercase tracking-[0.15em] font-extrabold text-slate-400">
+<th class="pb-4 pl-4">Nama Petugas</th>
+<th class="pb-4">Total Input</th>
+<th class="pb-4">7 Hari Terakhir</th>
+<th class="pb-4">Event</th>
+<th class="pb-4">Terakhir Aktif</th>
+<th class="pb-4 text-right pr-4">Aksi</th>
+</tr>
+</thead>
+<tbody class="space-y-4">
+<tr class="group hover:bg-slate-50 transition-colors">
+<td class="py-4 pl-4 rounded-l-2xl">
+<div class="flex items-center gap-3">
+<span class="font-bold text-sm">Ahmad Subarjo</span>
+</div>
+</td>
+<td class="py-4">
+<span class="font-bold text-slate-900">1,240</span>
+</td>
+<td class="py-4">
+<div class="flex items-center gap-2">
+<span class="text-xs font-semibold">+84</span>
+<div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="w-3/4 h-full bg-primary rounded-full"></div>
+</div>
+</div>
+</td>
+<td class="py-4">
+<span class="text-xs font-medium text-slate-600 bg-surface-container-low px-3 py-1 rounded-full">Ramadhan Berkah</span>
+</td>
+<td class="py-4">
+<span class="text-xs text-slate-500">2 menit yang lalu</span>
+</td>
+<td class="py-4 pr-4 rounded-r-2xl text-right">
+<button class="p-2 hover:bg-white rounded-full shadow-sm">
+<span class="material-symbols-outlined text-slate-400 text-lg">more_horiz</span>
+</button>
+</td>
+</tr>
+<tr class="group hover:bg-slate-50 transition-colors">
+<td class="py-4 pl-4 rounded-l-2xl">
+<div class="flex items-center gap-3">
+<span class="font-bold text-sm">Siti Aminah</span>
+</div>
+</td>
+<td class="py-4">
+<span class="font-bold text-slate-900">982</span>
+</td>
+<td class="py-4">
+<div class="flex items-center gap-2">
+<span class="text-xs font-semibold">+112</span>
+<div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="w-full h-full bg-secondary rounded-full"></div>
+</div>
+</div>
+</td>
+<td class="py-4">
+<span class="text-xs font-medium text-slate-600 bg-surface-container-low px-3 py-1 rounded-full">Donasi Umum</span>
+</td>
+<td class="py-4">
+<span class="text-xs text-slate-500">1 jam yang lalu</span>
+</td>
+<td class="py-4 pr-4 rounded-r-2xl text-right">
+<button class="p-2 hover:bg-white rounded-full shadow-sm">
+<span class="material-symbols-outlined text-slate-400 text-lg">more_horiz</span>
+</button>
+</td>
+</tr>
+<tr class="group hover:bg-slate-50 transition-colors">
+<td class="py-4 pl-4 rounded-l-2xl">
+<div class="flex items-center gap-3">
+<span class="font-bold text-sm">Budi Setiawan</span>
+</div>
+</td>
+<td class="py-4">
+<span class="font-bold text-slate-900">756</span>
+</td>
+<td class="py-4">
+<div class="flex items-center gap-2">
+<span class="text-xs font-semibold">+45</span>
+<div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="w-1/2 h-full bg-tertiary rounded-full"></div>
+</div>
+</div>
+</td>
+<td class="py-4">
+<span class="text-xs font-medium text-slate-600 bg-surface-container-low px-3 py-1 rounded-full">Qurban 2024</span>
+</td>
+<td class="py-4">
+<span class="text-xs text-slate-500">Baru saja</span>
+</td>
+<td class="py-4 pr-4 rounded-r-2xl text-right">
+<button class="p-2 hover:bg-white rounded-full shadow-sm">
+<span class="material-symbols-outlined text-slate-400 text-lg">more_horiz</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 flex justify-around items-center py-4 px-6 z-50">
+<div class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-bold">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-blue-700">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="text-[10px] font-bold">Staff</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="text-[10px] font-bold">Schedule</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-[10px] font-bold">Payroll</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-bold">Settings</span>
+</div>
+</nav>
+</body></html>

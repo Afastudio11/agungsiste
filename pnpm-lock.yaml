@@ -281,6 +281,9 @@ importers:
       '@types/leaflet':
         specifier: ^1.9.21
         version: 1.9.21
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
       jsqr:
         specifier: ^1.4.0
         version: 1.4.0

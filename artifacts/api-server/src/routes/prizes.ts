@@ -152,7 +152,7 @@ router.get("/:id/participant-search", requireAuth, async (req, res) => {
 
 router.get("/all-distributions", requireAuth, async (req, res) => {
   try {
-    const { startDate, endDate, kabupaten, kecamatan } = req.query as Record<string, string>;
+    const { startDate, endDate, kabupaten, kecamatan, kelurahan } = req.query as Record<string, string>;
     const conditions: ReturnType<typeof sql>[] = [];
 
     if (startDate) conditions.push(sql`${prizeDistributionsTable.distributedAt} >= ${new Date(startDate).toISOString()}`);
@@ -163,6 +163,7 @@ router.get("/all-distributions", requireAuth, async (req, res) => {
     }
     if (kabupaten) conditions.push(sql`${participantsTable.city} ilike ${"%" + kabupaten + "%"}`);
     if (kecamatan) conditions.push(sql`${participantsTable.kecamatan} ilike ${"%" + kecamatan + "%"}`);
+    if (kelurahan) conditions.push(sql`${participantsTable.kelurahan} ilike ${"%" + kelurahan + "%"}`);
 
     const rows = await db
       .select({
