@@ -179,7 +179,6 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
     queryFn: () => fetch(`${BASE}/api/pemetaan/kabupaten`, { credentials: "include" }).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
   });
   const kabInfo = kabData?.find((k) => k.kabupaten === kabupaten);
-  const max = Math.max(...kecData.map((k) => Number(k.totalInput)), 1);
 
   return (
     <div className="space-y-5">
@@ -212,7 +211,6 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
       {/* Kecamatan table */}
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-slate-500" />
           <span className="font-bold text-slate-900">Daftar Kecamatan</span>
           <span className="ml-auto text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-lg">{kecData.length} kecamatan</span>
         </div>
@@ -222,28 +220,21 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  <th className="px-5 py-3 text-left">Kecamatan</th>
-                  <th className="px-5 py-3 text-right">Peserta</th>
-                  <th className="px-5 py-3 text-right hidden md:table-cell">Desa</th>
-                  <th className="px-5 py-3 text-right hidden md:table-cell">Event</th>
-                  <th className="px-5 py-3 w-8" />
+                <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                  <th className="px-4 py-3 text-center w-12">No.</th>
+                  <th className="px-4 py-3 text-left">Nama Kecamatan</th>
+                  <th className="px-4 py-3 text-right">Jumlah Event</th>
+                  <th className="px-4 py-3 text-right">Total Peserta</th>
+                  <th className="px-3 py-3 w-8" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {kecData.map((k) => (
+                {kecData.map((k, i) => (
                   <tr key={k.kecamatan} onClick={() => onSelect(k.kecamatan)} className="hover:bg-blue-50/60 cursor-pointer transition group">
-                    <td className="px-5 py-3">
-                      <div className="font-semibold text-sm text-slate-900 group-hover:text-blue-700 transition mb-1">{k.kecamatan}</div>
-                      <div className="h-1 w-32 rounded-full bg-slate-100 overflow-hidden">
-                        <div className="h-full rounded-full bg-blue-400 transition-all" style={{ width: `${Math.round((Number(k.totalInput) / max) * 100)}%` }} />
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-sm font-bold text-slate-900 text-right">{Number(k.totalInput).toLocaleString()}</td>
-                    <td className="px-5 py-3 text-sm text-slate-500 text-right hidden md:table-cell">{k.totalDesa}</td>
-                    <td className="px-5 py-3 text-right hidden md:table-cell">
-                      <span className="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg">{k.totalEvent}</span>
-                    </td>
+                    <td className="px-4 py-3 text-center text-xs text-slate-400 font-medium">{i + 1}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-900 group-hover:text-blue-700 transition">{k.kecamatan}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700 text-right">{k.totalEvent}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-slate-900 text-right">{Number(k.totalInput).toLocaleString()}</td>
                     <td className="px-3 py-3"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition" /></td>
                   </tr>
                 ))}
@@ -273,7 +264,6 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
     queryFn: () => fetch(`${BASE}/api/pemetaan/kecamatan?kabupaten=${encodeURIComponent(kabupaten)}`, { credentials: "include" }).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
   });
   const kecInfo = kecAll.find((k) => k.kecamatan.toLowerCase() === kecamatan.toLowerCase());
-  const maxInput = Math.max(...desaData.map((d) => Number(d.totalInput)), 1);
 
   return (
     <div className="space-y-5">
@@ -303,39 +293,41 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
         )}
       </div>
 
-      {/* Desa list */}
+      {/* Desa table */}
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <Home className="h-4 w-4 text-slate-500" />
           <span className="font-bold text-slate-900">Daftar Desa / Kelurahan</span>
           <span className="ml-auto text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-lg">{desaData.length} desa</span>
         </div>
         {isLoading ? (
           <div className="p-10 text-center text-slate-400 text-sm">Memuat data desa...</div>
         ) : (
-          <div className="divide-y divide-slate-50">
-            {desaData.map((d, idx) => (
-              <button key={`${d.kelurahan}-${idx}`} onClick={() => onSelect(d.kelurahan)} className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-indigo-50/60 transition text-left group">
-                <div className="h-8 w-8 rounded-lg bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center shrink-0 transition">
-                  <Home className="h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-500 transition" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm text-slate-900 group-hover:text-indigo-700 transition truncate">{d.kelurahan}</div>
-                  <div className="mt-1.5 h-1 rounded-full bg-slate-100 overflow-hidden w-40">
-                    <div className="h-full rounded-full bg-indigo-400 transition-all" style={{ width: `${Math.round((Number(d.totalInput) / maxInput) * 100)}%` }} />
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="font-bold text-sm text-slate-800">{Number(d.totalInput).toLocaleString()}</div>
-                  <div className="text-xs text-slate-400">peserta</div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg">{d.totalEvent} event</span>
-                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-500 transition" />
-                </div>
-              </button>
-            ))}
-            {desaData.length === 0 && <div className="p-10 text-center text-slate-400 text-sm">Tidak ada data desa</div>}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                  <th className="px-4 py-3 text-center w-12">No.</th>
+                  <th className="px-4 py-3 text-left">Nama Desa</th>
+                  <th className="px-4 py-3 text-right">Jumlah Event</th>
+                  <th className="px-4 py-3 text-right">Total Peserta</th>
+                  <th className="px-3 py-3 w-8" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {desaData.map((d, idx) => (
+                  <tr key={`${d.kelurahan}-${idx}`} onClick={() => onSelect(d.kelurahan)} className="hover:bg-indigo-50/60 cursor-pointer transition group">
+                    <td className="px-4 py-3 text-center text-xs text-slate-400 font-medium">{idx + 1}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition">{d.kelurahan}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700 text-right">{d.totalEvent}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-slate-900 text-right">{Number(d.totalInput).toLocaleString()}</td>
+                    <td className="px-3 py-3"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-500 transition" /></td>
+                  </tr>
+                ))}
+                {desaData.length === 0 && (
+                  <tr><td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-sm">Tidak ada data desa</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -382,40 +374,33 @@ function DesaDetailView({
 
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-slate-500" />
           <span className="font-bold text-slate-900">Daftar Event</span>
           <span className="ml-auto text-xs text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-lg">{data.events.length} event</span>
         </div>
         {data.events.length === 0 ? (
           <div className="p-10 text-center text-slate-400 text-sm">Tidak ada event</div>
         ) : (
-          <div className="divide-y divide-slate-50">
-            {data.events.map((ev) => (
-              <button
-                key={ev.eventId}
-                onClick={() => onSelectEvent(ev.eventId, ev.eventName)}
-                className="w-full flex items-center gap-4 px-5 py-4 hover:bg-green-50/60 transition text-left group"
-              >
-                <div className="h-10 w-10 rounded-xl bg-green-50 group-hover:bg-green-100 flex items-center justify-center shrink-0 transition">
-                  <CalendarDays className="h-4 w-4 text-green-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm text-slate-900 group-hover:text-green-700 transition truncate">{ev.eventName}</div>
-                  <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-400">
-                    <span>{ev.eventDate}</span>
-                    {ev.location && <><span>·</span><MapPin className="h-3 w-3" /><span className="truncate">{ev.location}</span></>}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="font-bold text-sm text-slate-800">{Number(ev.peserta).toLocaleString()}</div>
-                  <div className="text-xs text-slate-400">peserta</div>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-xs text-green-600 font-semibold hidden md:block">Lihat peserta</span>
-                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-green-500 transition" />
-                </div>
-              </button>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                  <th className="px-4 py-3 text-center w-12">No.</th>
+                  <th className="px-4 py-3 text-left">Nama Event</th>
+                  <th className="px-4 py-3 text-right">Total Peserta</th>
+                  <th className="px-3 py-3 w-8" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {data.events.map((ev, i) => (
+                  <tr key={ev.eventId} onClick={() => onSelectEvent(ev.eventId, ev.eventName)} className="hover:bg-green-50/60 cursor-pointer transition group">
+                    <td className="px-4 py-3 text-center text-xs text-slate-400 font-medium">{i + 1}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-900 group-hover:text-green-700 transition">{ev.eventName}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-slate-900 text-right">{Number(ev.peserta).toLocaleString()}</td>
+                    <td className="px-3 py-3"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-green-500 transition" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
