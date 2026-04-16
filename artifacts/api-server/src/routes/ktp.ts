@@ -1272,13 +1272,29 @@ Aturan penting:
 - Nama jangan diisi dengan jabatan/pekerjaan
 - Kembalikan HANYA JSON, tidak ada teks lain`;
 
+async function compressForGemini(base64: string): Promise<string> {
+  try {
+    const buf = Buffer.from(base64, "base64");
+    const compressed = await sharp(buf)
+      .resize({ width: 1024, height: 1024, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 80, progressive: false })
+      .toBuffer();
+    return compressed.toString("base64");
+  } catch {
+    return base64; // fallback: return original if compression fails
+  }
+}
+
 async function scanWithGemini(imageBase64: string): Promise<Record<string, unknown>> {
   if (!_gemini) throw new Error("GEMINI_API_KEY not configured");
 
   let rawB64 = imageBase64;
   const durlMatch = rawB64.match(/^data:([^;]+);base64,(.+)$/);
-  const mimeType = durlMatch ? durlMatch[1] : "image/jpeg";
   if (durlMatch) rawB64 = durlMatch[2];
+
+  // Kompres gambar sebelum dikirim ke Gemini untuk hemat token
+  rawB64 = await compressForGemini(rawB64);
+  const mimeType = "image/jpeg"; // selalu JPEG setelah kompresi
 
   const result = await _gemini.models.generateContent({
     model: "gemini-2.5-flash",
