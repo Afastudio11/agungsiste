@@ -250,103 +250,93 @@ export default function EventsPage() {
           </div>
         </section>
 
-        {/* ── Filters + Stat Card ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* Search + date filter card */}
-          <div className="lg:col-span-8 bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-2 rounded-2xl flex flex-col md:flex-row gap-1">
-            {/* Search */}
+        {/* ── Toolbar ── */}
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Search bar */}
             <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Cari nama event..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-3.5 bg-transparent border-none rounded-xl focus:outline-none text-sm font-medium placeholder:text-slate-400 text-slate-700"
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400 text-sm text-slate-700 placeholder:text-slate-400 transition-colors"
               />
             </div>
-            <div className="hidden md:block h-8 w-px bg-slate-100 self-center" />
-            {/* Date + filter actions */}
-            <div className="flex items-center gap-2 p-1">
+
+            {/* Right-side actions */}
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setShowDateFilter((v) => !v)}
-                className={`flex items-center gap-2 pl-4 pr-3 py-3 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
                   startDate || endDate
-                    ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                    : "bg-slate-50 text-slate-500 hover:text-indigo-600"
+                    ? "bg-indigo-50 text-indigo-600 border-indigo-200"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
                 }`}
               >
                 <CalendarDays className="h-4 w-4" />
-                {startDate || endDate
-                  ? `${startDate || "—"}  ${endDate ? `→ ${endDate}` : ""}`
-                  : "Filter Tanggal"}
+                <span className="hidden sm:inline">{startDate || endDate ? "Filter aktif" : "Tanggal"}</span>
               </button>
-              {/* Sort toggle */}
+
               <button
                 onClick={() => handleSort("eventDate")}
-                className="p-3 bg-slate-50 rounded-xl text-slate-500 hover:text-indigo-600 transition-all"
-                title="Urutkan"
+                className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                  sortKey === "eventDate"
+                    ? "bg-slate-100 text-slate-700 border-slate-200"
+                    : "bg-white text-slate-500 border-slate-200 hover:text-slate-700"
+                }`}
+                title="Urutkan tanggal"
               >
-                {sortKey === "eventDate" ? (
-                  sortDir === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ArrowUpDown className="h-4 w-4" />
-                )}
+                {sortKey === "eventDate" && sortDir === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                <span className="hidden sm:inline">Tanggal</span>
               </button>
+
               {hasFilter && (
                 <button
                   onClick={() => { setSearch(""); setStartDate(""); setEndDate(""); }}
-                  className="p-3 bg-red-50 rounded-xl text-red-400 hover:text-red-600 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm border bg-white text-red-400 border-red-100 hover:bg-red-50 transition-all"
                   title="Reset filter"
                 >
                   <X className="h-4 w-4" />
                 </button>
               )}
+
+              {/* Inline stat */}
+              <div className="hidden md:flex items-center gap-2 ml-1 pl-3 border-l border-slate-200">
+                <Users className="h-4 w-4 text-slate-400" />
+                <span className="text-sm font-semibold text-slate-700">{isLoading ? "—" : avgParticipants}</span>
+                <span className="text-xs text-slate-400">avg · {events?.length ?? 0} event</span>
+              </div>
             </div>
           </div>
 
-          {/* Avg Participants stat card */}
-          <div className="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-              <Users className="h-7 w-7" />
-            </div>
-            <div>
-              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Avg. Peserta</p>
-              <h3 className="text-3xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>
-                {isLoading ? "—" : avgParticipants}
-              </h3>
-            </div>
-            <div className="ml-auto text-right">
-              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                {events?.length ?? 0} event
-              </span>
-            </div>
-          </div>
-
-          {/* Date range inputs (collapsed) */}
+          {/* Date range row */}
           {showDateFilter && (
-            <div className="lg:col-span-12 bg-white border border-slate-100 rounded-2xl p-4 flex flex-wrap items-center gap-3 shadow-sm">
+            <div className="flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3">
+              <CalendarDays className="h-4 w-4 text-slate-400 shrink-0" />
               <div className="flex items-center gap-2">
-                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Dari</label>
+                <span className="text-xs text-slate-400 font-medium">Dari</span>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 transition-colors"
                 />
               </div>
+              <span className="text-slate-300">→</span>
               <div className="flex items-center gap-2">
-                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Sampai</label>
+                <span className="text-xs text-slate-400 font-medium">Sampai</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 transition-colors"
                 />
               </div>
               <button
                 onClick={() => setShowDateFilter(false)}
-                className="ml-auto text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                className="ml-auto text-xs text-slate-400 hover:text-slate-600 transition-colors"
               >
                 Tutup
               </button>
