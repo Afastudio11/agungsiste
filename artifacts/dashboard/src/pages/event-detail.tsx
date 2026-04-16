@@ -240,26 +240,18 @@ function StatCard({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-white/60 ${gradient} backdrop-blur-sm shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-5`}
+      className={`relative overflow-hidden rounded-2xl border border-white/60 ${gradient} backdrop-blur-sm shadow-[0_4px_16px_rgba(0,0,0,0.08)] px-4 py-3.5`}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-xl bg-white/40 backdrop-blur-sm flex items-center justify-center shadow-sm">
+      <div className="flex items-start justify-between mb-2">
+        <div className="w-8 h-8 rounded-lg bg-white/40 backdrop-blur-sm flex items-center justify-center shadow-sm">
           {icon}
         </div>
       </div>
-      <p className="text-[28px] font-extrabold leading-none text-slate-900 mb-1" style={{ letterSpacing: "-0.03em" }}>
+      <p className="text-[26px] font-extrabold leading-none text-slate-900 mb-0.5" style={{ letterSpacing: "-0.03em" }}>
         {value}
       </p>
-      <p className="text-[12px] font-bold text-slate-600 uppercase tracking-wider">{label}</p>
+      <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{label}</p>
       {sub && <p className="text-[11px] text-slate-500 mt-0.5">{sub}</p>}
-      {barPct !== undefined && (
-        <div className="mt-3">
-          <div className="h-1.5 w-full bg-white/50 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full ${barColor} transition-all`} style={{ width: `${barPct}%` }} />
-          </div>
-          <p className="text-[10px] text-slate-500 mt-1">{barPct}% dari target</p>
-        </div>
-      )}
     </div>
   );
 }
