@@ -1,15 +1,21 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { prizesTable, prizeDistributionsTable, participantsTable, eventsTable } from "@workspace/db";
-import { eq, sql, and } from "drizzle-orm";
+import { prizesTable, prizeDistributionsTable, participantsTable, eventsTable, eventRegistrationsTable } from "@workspace/db";
+import { eq, sql, and, or, ilike } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 
 router.get("/", requireAuth, async (req, res) => {
   try {
-    const eventId = req.query.eventId ? parseInt(req.query.eventId as string) : undefined;
-    const conditions = eventId ? [eq(prizesTable.eventId, eventId)] : [];
+    const rawEventId = req.query.eventId as string | undefined;
+    const standalone = rawEventId === "_standalone";
+    const eventId = rawEventId && !standalone ? parseInt(rawEventId) : undefined;
+    const conditions = standalone
+      ? [sql`${prizesTable.eventId} is null`]
+      : eventId
+      ? [eq(prizesTable.eventId, eventId)]
+      : [];
 
     const prizes = await db
       .select({
@@ -37,10 +43,10 @@ router.get("/", requireAuth, async (req, res) => {
 router.post("/", requireAuth, async (req, res) => {
   try {
     const { eventId, name, description, quantity } = req.body;
-    if (!eventId || !name) return res.status(400).json({ error: "eventId and name are required" });
+    if (!name) return res.status(400).json({ error: "name is required" });
 
     const [prize] = await db.insert(prizesTable).values({
-      eventId: parseInt(eventId),
+      eventId: eventId ? parseInt(eventId) : null,
       name,
       description: description || null,
       quantity: parseInt(quantity) || 1,
@@ -82,6 +88,64 @@ router.delete("/:id", requireAuth, async (req, res) => {
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Error deleting prize");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Search participants for a given prize — from event if prize has eventId, else all
+router.get("/:id/participant-search", requireAuth, async (req, res) => {
+  try {
+    const prizeId = parseInt(req.params.id);
+    const q = (req.query.q as string) ?? "";
+    const sourceOverride = req.query.source as string | undefined; // "event" or "all"
+
+    const [prize] = await db.select().from(prizesTable).where(eq(prizesTable.id, prizeId));
+    if (!prize) return res.status(404).json({ error: "Prize not found" });
+
+    const searchConditions = q
+      ? [or(ilike(participantsTable.fullName, `%${q}%`), ilike(participantsTable.nik, `%${q}%`))]
+      : [];
+
+    const useEventScope = prize.eventId && sourceOverride !== "all";
+
+    if (useEventScope) {
+      const rows = await db
+        .select({
+          id: participantsTable.id,
+          nik: participantsTable.nik,
+          fullName: participantsTable.fullName,
+          city: participantsTable.city,
+          province: participantsTable.province,
+        })
+        .from(participantsTable)
+        .innerJoin(eventRegistrationsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+        .where(
+          and(
+            eq(eventRegistrationsTable.eventId, prize.eventId!),
+            searchConditions.length > 0 ? searchConditions[0] : undefined,
+          )
+        )
+        .orderBy(participantsTable.fullName)
+        .limit(30);
+      return res.json({ source: "event", results: rows });
+    }
+
+    const rows = await db
+      .select({
+        id: participantsTable.id,
+        nik: participantsTable.nik,
+        fullName: participantsTable.fullName,
+        city: participantsTable.city,
+        province: participantsTable.province,
+      })
+      .from(participantsTable)
+      .where(searchConditions.length > 0 ? searchConditions[0] : undefined)
+      .orderBy(participantsTable.fullName)
+      .limit(30);
+
+    res.json({ source: "all", results: rows });
+  } catch (err) {
+    req.log.error({ err }, "Error searching participants for prize");
     res.status(500).json({ error: "Internal server error" });
   }
 });

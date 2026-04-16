@@ -79,7 +79,7 @@ export const eventRegistrationsTable = pgTable(
 
 export const prizesTable = pgTable("prizes", {
   id: serial("id").primaryKey(),
-  eventId: integer("event_id").notNull().references(() => eventsTable.id, { onDelete: "cascade" }),
+  eventId: integer("event_id").references(() => eventsTable.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   description: text("description"),
   quantity: integer("quantity").notNull().default(1),
