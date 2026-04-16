@@ -611,6 +611,7 @@ export default function PemetaanPage() {
               onDesaClick={(desa, _kec, kab) =>
                 setView({ type: "detail", kelurahan: desa, kabupaten: kab })
               }
+              onKabupatenClick={(kab) => setView({ type: "kecamatan", kabupaten: kab })}
             />
             <KabupatenView summary={summary} kabData={kabData} onSelect={(kab) => setView({ type: "kecamatan", kabupaten: kab })} />
           </>

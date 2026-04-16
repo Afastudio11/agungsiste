@@ -104,9 +104,10 @@ function getColor(count: number, max: number): string {
 
 interface PetaMapProps {
   onDesaClick?: (desa: string, kecamatan: string, kabupaten: string) => void;
+  onKabupatenClick?: (kabupaten: string) => void;
 }
 
-export default function PetaMapContent({ onDesaClick }: PetaMapProps = {}) {
+export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMapProps = {}) {
   const [view, setView] = useState<"kabupaten" | "kecamatan">("kabupaten");
   const [selectedKab, setSelectedKab] = useState<string | null>(null);
   const [selectedKec, setSelectedKec] = useState<string | null>(null);
@@ -133,7 +134,7 @@ export default function PetaMapContent({ onDesaClick }: PetaMapProps = {}) {
     queryFn: () => fetch(`${BASE}/api/pemetaan/kecamatan`, { credentials: "include" }).then(r => r.json()).then(d => Array.isArray(d) ? d : []),
   });
 
-  const { data: desaData = [], isLoading: desaLoading } = useQuery<DesaRow[]>({
+  const { data: desaData = [] } = useQuery<DesaRow[]>({
     queryKey: ["peta-desa", selectedKab, selectedKec],
     queryFn: () => fetch(`${BASE}/api/pemetaan/desa?kabupaten=${encodeURIComponent(selectedKab || "")}&kecamatan=${encodeURIComponent(selectedKec || "")}`, { credentials: "include" }).then(r => r.json()).then(d => Array.isArray(d) ? d : []),
     enabled: !!selectedKec,
@@ -183,7 +184,11 @@ export default function PetaMapContent({ onDesaClick }: PetaMapProps = {}) {
       { sticky: true, className: "ktp-tooltip" }
     );
     layer.on({
-      click: () => { setSelectedKab(name); setView("kecamatan"); },
+      click: () => {
+        setSelectedKab(name);
+        setView("kecamatan");
+        onKabupatenClick?.(name);
+      },
       mouseover: (e) => view === "kabupaten" && (e.target as L.Path).setStyle({ weight: 3, fillOpacity: 0.94 }),
       mouseout: (e) => view === "kabupaten" && (e.target as L.Path).setStyle({ weight: 2, fillOpacity: 0.82 }),
     });
@@ -375,7 +380,7 @@ export default function PetaMapContent({ onDesaClick }: PetaMapProps = {}) {
           {kabData.map(k => (
             <button
               key={k.kabupaten}
-              onClick={() => { setSelectedKab(k.kabupaten); setView("kecamatan"); }}
+              onClick={() => { setSelectedKab(k.kabupaten); setView("kecamatan"); onKabupatenClick?.(k.kabupaten); }}
               className="bg-white rounded-xl border border-slate-100 p-3 text-left hover:border-blue-300 hover:shadow-sm transition"
             >
               <div className="flex items-center gap-1.5 mb-1">
@@ -389,146 +394,6 @@ export default function PetaMapContent({ onDesaClick }: PetaMapProps = {}) {
         </div>
       )}
 
-      {/* Kecamatan table when drilling down */}
-      {view === "kecamatan" && (
-        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-            <span className="text-sm font-bold text-slate-900">Kecamatan di Kab. {selectedKab}</span>
-            <span className="text-xs font-semibold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg">{kecInSelectedKab.length} kecamatan</span>
-          </div>
-          <div className="overflow-x-auto max-h-72 overflow-y-auto">
-            <table className="w-full">
-              <thead className="sticky top-0 bg-slate-50 z-10">
-                <tr className="border-b border-slate-100">
-                  <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Kecamatan</th>
-                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Peserta</th>
-                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Event</th>
-                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Desa</th>
-                  <th className="px-5 py-2.5 w-28 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Sebaran</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {kecInSelectedKab.map((k, i) => {
-                  const pct = Math.round((Number(k.totalInput) / maxKec) * 100);
-                  const isActive = selectedKec === k.kecamatan;
-                  return (
-                    <tr
-                      key={k.kecamatan}
-                      onClick={() => setSelectedKec(isActive ? null : k.kecamatan)}
-                      className={`cursor-pointer transition-colors ${isActive ? "bg-blue-50 border-l-2 border-blue-500" : "hover:bg-blue-50/30"}`}
-                    >
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${isActive ? "bg-blue-500" : "bg-blue-50"}`}>
-                            <span className={`text-[9px] font-bold ${isActive ? "text-white" : "text-blue-500"}`}>{i + 1}</span>
-                          </div>
-                          <span className={`text-sm font-semibold ${isActive ? "text-blue-700" : "text-slate-800"}`}>{k.kecamatan}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <span className="text-sm font-bold text-slate-900">{Number(k.totalInput).toLocaleString()}</span>
-                        <span className="text-[10px] text-slate-400 ml-1">orang</span>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <span className="text-sm font-semibold text-indigo-600">{k.totalEvent ?? 0}</span>
-                        <span className="text-[10px] text-slate-400 ml-1">event</span>
-                      </td>
-                      <td className="px-5 py-3 text-right">
-                        <span className="text-sm text-slate-600">{k.totalDesa}</span>
-                        <span className="text-[10px] text-slate-400 ml-1">desa</span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                            <div className="h-full rounded-full bg-blue-400 transition-all" style={{ width: `${pct}%`, background: getColor(Number(k.totalInput), maxKec) }} />
-                          </div>
-                          <span className="text-[10px] font-bold text-slate-400 w-7 text-right">{pct}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {kecInSelectedKab.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-400">Tidak ada data kecamatan</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Desa table when a kecamatan is selected */}
-      {view === "kecamatan" && selectedKec && (
-        <div className="bg-white rounded-2xl border border-blue-100 overflow-hidden shadow-sm">
-          <div className="px-5 py-3 border-b border-blue-50 bg-blue-50/50 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-blue-700">Desa / Kelurahan — Kec. {selectedKec}</span>
-              {onDesaClick && <span className="text-[10px] text-blue-400 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded-md">klik desa untuk profil</span>}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-lg">{desaData.length} desa</span>
-              <button onClick={() => setSelectedKec(null)} className="text-xs text-slate-400 hover:text-slate-600 transition px-2 py-0.5 rounded hover:bg-slate-100">✕ tutup</button>
-            </div>
-          </div>
-          <div className="overflow-x-auto max-h-64 overflow-y-auto">
-            <table className="w-full">
-              <thead className="sticky top-0 bg-slate-50 z-10">
-                <tr className="border-b border-slate-100">
-                  <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Kelurahan / Desa</th>
-                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Peserta</th>
-                  <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Event</th>
-                  <th className="px-5 py-2.5 w-28 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Sebaran</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {desaLoading && (
-                  <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-400">Memuat data desa…</td></tr>
-                )}
-                {!desaLoading && desaData.map((d, i) => {
-                  const maxDesaLocal = Math.max(...desaData.map(x => Number(x.totalInput)), 1);
-                  const pct = Math.round((Number(d.totalInput) / maxDesaLocal) * 100);
-                  const clickable = !!onDesaClick;
-                  return (
-                    <tr
-                      key={d.kelurahan}
-                      onClick={() => clickable && onDesaClick?.(d.kelurahan, selectedKec!, selectedKab!)}
-                      className={`transition-colors ${clickable ? "cursor-pointer hover:bg-blue-50 group" : "hover:bg-blue-50/20"}`}
-                    >
-                      <td className="px-5 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-slate-300 w-5 text-right shrink-0">{i + 1}</span>
-                          <span className={`text-sm font-medium ${clickable ? "text-blue-700 group-hover:underline" : "text-slate-800"}`}>{d.kelurahan}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-2.5 text-right">
-                        <span className="text-sm font-bold text-slate-900">{Number(d.totalInput).toLocaleString()}</span>
-                        <span className="text-[10px] text-slate-400 ml-1">orang</span>
-                      </td>
-                      <td className="px-5 py-2.5 text-right">
-                        <span className="text-sm font-semibold text-indigo-600">{d.totalEvent ?? 0}</span>
-                        <span className="text-[10px] text-slate-400 ml-1">event</span>
-                      </td>
-                      <td className="px-5 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: getColor(Number(d.totalInput), maxDesaLocal) }} />
-                          </div>
-                          <span className="text-[10px] font-bold text-slate-400 w-7 text-right">{pct}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {!desaLoading && desaData.length === 0 && (
-                  <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-400">Tidak ada data desa untuk kecamatan ini</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
