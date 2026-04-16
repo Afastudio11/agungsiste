@@ -326,8 +326,8 @@ export default function EventDetailPage() {
 
         {/* ── Header Section ── */}
         <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.06)] px-6 py-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            {/* Left: title + meta */}
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+            {/* Left: title + meta + action buttons */}
             <div className="flex-1 min-w-0">
               {/* Badge row */}
               <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -371,38 +371,42 @@ export default function EventDetailPage() {
               {event.description && (
                 <p className="mt-2 text-sm text-slate-400 max-w-xl">{event.description}</p>
               )}
-            </div>
 
-            {/* Right: action buttons */}
-            <div className="flex flex-wrap items-center gap-2 lg:pt-1">
-              {(event as any).isRsvp && (
-                <Link href={`/events/${id}/rsvp`}>
-                  <button className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm">
-                    <ClipboardList className="h-4 w-4" />
-                    Kelola RSVP
+              {/* Action buttons — now inside the left column */}
+              <div className="flex flex-wrap items-center gap-2 mt-4">
+                {(event as any).isRsvp && (
+                  <Link href={`/events/${id}/rsvp`}>
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm">
+                      <ClipboardList className="h-4 w-4" />
+                      Kelola RSVP
+                    </button>
+                  </Link>
+                )}
+                <button
+                  onClick={() => exportExcel(filteredList, event.name, activeTab === "rsvp" ? "registrasi" : "absen")}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                  <Download className="h-4 w-4" />
+                  Export Data
+                </button>
+                <Link href={`/events/${id}/edit`}>
+                  <button className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+                    <Edit2 className="h-4 w-4" />
+                    Edit Event
                   </button>
                 </Link>
-              )}
-              <button
-                onClick={() => exportExcel(filteredList, event.name, activeTab === "rsvp" ? "registrasi" : "absen")}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-              >
-                <Download className="h-4 w-4" />
-                Export Data
-              </button>
-              <Link href={`/events/${id}/edit`}>
-                <button className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
-                  <Edit2 className="h-4 w-4" />
-                  Edit Event
-                </button>
-              </Link>
+              </div>
+            </div>
+
+            {/* Right: QR Links Card */}
+            <div className="w-full lg:w-64 shrink-0">
+              <QRLinksCard eventId={id} event={event} />
             </div>
           </div>
         </div>
 
-        {/* ── Stat Cards + QR Card row ── */}
-        <div className="flex flex-col lg:flex-row gap-4 items-start">
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* ── Stat Cards (full width) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard
             label="Reservasi"
             value={participantsLoading ? "—" : rsvpTotal}
@@ -430,10 +434,6 @@ export default function EventDetailPage() {
             numberColor="text-rose-600"
             accentColor="bg-rose-400"
           />
-        </div>
-          <div className="w-full lg:w-52 shrink-0">
-            <QRLinksCard eventId={id} event={event} />
-          </div>
         </div>
 
         {/* ── Full-width Participant Table ── */}
