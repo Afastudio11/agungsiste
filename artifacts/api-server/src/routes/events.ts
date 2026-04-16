@@ -566,6 +566,8 @@ router.post("/public/check-nik", async (req, res) => {
         address: participant.address,
         province: participant.province,
         city: participant.city,
+        birthPlace: participant.birthPlace,
+        birthDate: participant.birthDate,
       },
     });
   } catch (err) {

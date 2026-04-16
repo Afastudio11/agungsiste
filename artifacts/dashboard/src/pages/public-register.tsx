@@ -31,7 +31,7 @@ type KtpData = {
   bloodType?: string | null;
 };
 
-type Step = "loading" | "event-info" | "check-nik" | "scan-ktp" | "fill-form" | "success" | "error";
+type Step = "loading" | "event-info" | "check-nik" | "scan-ktp" | "fill-form" | "verify-data" | "success" | "error";
 
 /* ─── Glassmorphism shell ────────────────────────────────────────── */
 function GlassCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -116,8 +116,17 @@ export default function PublicRegisterPage() {
       const data = await res.json();
       if (data.found) {
         setExistingParticipant(data.participant);
-        setKtpData({ nik: data.participant.nik, fullName: data.participant.fullName, gender: data.participant.gender, address: data.participant.address, province: data.participant.province, city: data.participant.city });
-        setStep("fill-form");
+        setKtpData({
+          nik: data.participant.nik,
+          fullName: data.participant.fullName,
+          gender: data.participant.gender,
+          address: data.participant.address,
+          province: data.participant.province,
+          city: data.participant.city,
+          birthPlace: data.participant.birthPlace,
+          birthDate: data.participant.birthDate,
+        });
+        setStep("verify-data");
       } else {
         setStep("scan-ktp");
       }
@@ -785,6 +794,99 @@ export default function PublicRegisterPage() {
                 )}
               </div>
             )}
+          </GlassCard>
+        )}
+
+        {/* ── STEP: verify-data (NIK found — show NIK+name+TTL only) ── */}
+        {step === "verify-data" && (
+          <GlassCard className="p-8">
+            <button
+              onClick={() => setStep("check-nik")}
+              className="flex items-center gap-1.5 text-[12px] text-slate-400 hover:text-slate-600 font-semibold mb-6 transition"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Kembali
+            </button>
+
+            <div className="text-center mb-7">
+              <StepBadge label="VERIFIKASI DATA" />
+              <h2 className="text-[20px] font-extrabold text-slate-900 mt-4 mb-2" style={{ letterSpacing: "-0.02em" }}>
+                Konfirmasi Data Anda
+              </h2>
+              <p className="text-[13px] text-slate-400 font-medium">
+                Pastikan data di bawah sudah benar sebelum mendaftar
+              </p>
+            </div>
+
+            {/* NIK — read-only badge */}
+            <div className="mb-5">
+              <p className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-2">NIK</p>
+              <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5">
+                <span className="font-mono font-bold text-[15px] text-slate-800 tracking-[0.12em] flex-1">
+                  {ktpData.nik}
+                </span>
+                <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">
+                  TERVERIFIKASI
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Nama Lengkap — editable */}
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-500 tracking-widest mb-1.5">
+                  NAMA LENGKAP
+                </label>
+                <input
+                  type="text"
+                  value={ktpData.fullName || ""}
+                  onChange={(e) => setKtpData({ ...ktpData, fullName: e.target.value })}
+                  placeholder="Sesuai KTP"
+                  className="w-full px-4 py-3.5 bg-white border-2 border-slate-200 focus:border-blue-400 rounded-2xl text-[14px] font-semibold text-slate-900 focus:outline-none transition placeholder:text-slate-300 placeholder:font-normal"
+                />
+              </div>
+
+              {/* TTL — Tempat & Tanggal Lahir */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-extrabold text-slate-500 tracking-widest mb-1.5">
+                    TEMPAT LAHIR
+                  </label>
+                  <input
+                    type="text"
+                    value={ktpData.birthPlace || ""}
+                    onChange={(e) => setKtpData({ ...ktpData, birthPlace: e.target.value })}
+                    placeholder="Kota lahir"
+                    className="w-full px-4 py-3.5 bg-white border-2 border-slate-200 focus:border-blue-400 rounded-2xl text-[14px] font-semibold text-slate-900 focus:outline-none transition placeholder:text-slate-300 placeholder:font-normal"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-extrabold text-slate-500 tracking-widest mb-1.5">
+                    TANGGAL LAHIR
+                  </label>
+                  <input
+                    type="date"
+                    value={ktpData.birthDate || ""}
+                    onChange={(e) => setKtpData({ ...ktpData, birthDate: e.target.value })}
+                    className="w-full px-4 py-3.5 bg-white border-2 border-slate-200 focus:border-blue-400 rounded-2xl text-[14px] font-semibold text-slate-900 focus:outline-none transition"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || !ktpData.nik || !ktpData.fullName}
+              className="w-full mt-7 flex items-center justify-center gap-2.5 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-2xl font-extrabold text-[15px] transition shadow-md shadow-blue-500/20 active:scale-[0.98]"
+            >
+              {submitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  {isAttendance ? "Konfirmasi Absensi" : "Reservasi Sekarang"}
+                  <ChevronRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
           </GlassCard>
         )}
 
