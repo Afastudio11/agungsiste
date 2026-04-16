@@ -5,7 +5,8 @@ import {
   useGetParticipantByNik,
   getGetParticipantByNikQueryKey,
 } from "@workspace/api-client-react";
-import { CalendarDays, MapPin, ImageIcon, Download } from "lucide-react";
+import { CalendarDays, MapPin, ImageIcon, Download, FileText, Loader2 } from "lucide-react";
+import jsPDF from "jspdf";
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -17,6 +18,148 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
 }
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+async function fetchImageAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const r = await fetch(url, { credentials: "include" });
+    if (!r.ok) return null;
+    const blob = await r.blob();
+    return await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function generateParticipantPDF(profile: any, nik: string) {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  const contentW = pageW - margin * 2;
+  let y = margin;
+
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(15, 23, 42);
+  doc.text("Data Peserta KTP", margin, y);
+  y += 8;
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Dicetak: ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`, margin, y);
+  y += 3;
+
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageW - margin, y);
+  y += 8;
+
+  const imageUrl = `${BASE_URL}/api/ktp/image/${encodeURIComponent(nik)}`;
+  const dataUrl = await fetchImageAsDataUrl(imageUrl);
+
+  if (dataUrl) {
+    const imgW = contentW;
+    const imgH = imgW * (54 / 85.6);
+    doc.addImage(dataUrl, "JPEG", margin, y, imgW, imgH);
+    y += imgH + 4;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(148, 163, 184);
+    doc.text("Foto KTP", margin, y);
+    y += 8;
+  } else {
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(148, 163, 184);
+    doc.text("[Foto KTP tidak tersedia]", margin, y);
+    y += 8;
+  }
+
+  doc.setDrawColor(226, 232, 240);
+  doc.line(margin, y, pageW - margin, y);
+  y += 7;
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(15, 23, 42);
+  doc.text("Data Lengkap KTP", margin, y);
+  y += 6;
+
+  const fields: [string, string | null | undefined][] = [
+    ["NIK", profile.nik],
+    ["Nama Lengkap", profile.fullName],
+    ["Tempat Lahir", profile.birthPlace],
+    ["Tanggal Lahir", profile.birthDate],
+    ["Jenis Kelamin", profile.gender],
+    ["Agama", profile.religion],
+    ["Status Perkawinan", profile.maritalStatus],
+    ["Pekerjaan", profile.occupation],
+    ["Kewarganegaraan", profile.nationality],
+    ["Golongan Darah", profile.bloodType],
+    ["Alamat", profile.address],
+    ["Kelurahan / Desa", profile.kelurahan],
+    ["Kecamatan", profile.kecamatan],
+    ["Kabupaten / Kota", profile.city],
+    ["Provinsi", profile.province],
+  ];
+
+  const labelW = 52;
+  const rowH = 7;
+
+  fields.forEach(([label, value], i) => {
+    const bg = i % 2 === 0 ? [248, 250, 252] : [255, 255, 255];
+    doc.setFillColor(bg[0], bg[1], bg[2]);
+    doc.rect(margin, y, contentW, rowH, "F");
+
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text(label, margin + 2, y + 4.8);
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    const val = value ?? "—";
+    const maxChars = Math.floor((contentW - labelW - 4) / 2.1);
+    const truncated = val.length > maxChars ? val.slice(0, maxChars) + "…" : val;
+    doc.text(truncated, margin + labelW, y + 4.8);
+    y += rowH;
+  });
+
+  y += 6;
+  if (profile.events && profile.events.length > 0) {
+    doc.setDrawColor(226, 232, 240);
+    doc.line(margin, y, pageW - margin, y);
+    y += 7;
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Riwayat Event (${profile.events.length})`, margin, y);
+    y += 6;
+
+    profile.events.forEach((event: any, i: number) => {
+      const bg = i % 2 === 0 ? [248, 250, 252] : [255, 255, 255];
+      doc.setFillColor(bg[0], bg[1], bg[2]);
+      doc.rect(margin, y, contentW, 7, "F");
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.text(event.name ?? "-", margin + 2, y + 4.8);
+      if (event.eventDate) {
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text(event.eventDate, pageW - margin - 2, y + 4.8, { align: "right" });
+      }
+      y += 7;
+    });
+  }
+
+  doc.save(`peserta_${profile.nik}_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
 
 function KtpImageViewer({ nik }: { nik: string }) {
   const [status, setStatus] = useState<"loading" | "ok" | "missing">("loading");
@@ -68,10 +211,21 @@ function KtpImageViewer({ nik }: { nik: string }) {
 export default function ParticipantDetailPage() {
   const params = useParams();
   const nik = params.nik as string;
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const { data: profile, isLoading } = useGetParticipantByNik(nik, {
     query: { enabled: !!nik, queryKey: getGetParticipantByNikQueryKey(nik) },
   });
+
+  const handleDownloadPDF = async () => {
+    if (!profile || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      await generateParticipantPDF(profile, nik);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -94,13 +248,25 @@ export default function ParticipantDetailPage() {
   return (
     <Layout>
       <div className="space-y-5 max-w-5xl">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-slate-400">
-          <Link href="/participants" className="hover:text-slate-700 hover:underline transition">
-            Peserta
-          </Link>
-          <span>/</span>
-          <span className="text-slate-900 font-semibold">{profile.fullName}</span>
+        {/* Breadcrumb + actions */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm text-slate-400">
+            <Link href="/participants" className="hover:text-slate-700 hover:underline transition">
+              Peserta
+            </Link>
+            <span>/</span>
+            <span className="text-slate-900 font-semibold">{profile.fullName}</span>
+          </div>
+          <button
+            onClick={handleDownloadPDF}
+            disabled={pdfLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 transition shadow-sm"
+          >
+            {pdfLoading
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Membuat PDF...</>
+              : <><FileText className="h-4 w-4" /> Download PDF</>
+            }
+          </button>
         </div>
 
         {/* KTP Photo + Summary row */}
