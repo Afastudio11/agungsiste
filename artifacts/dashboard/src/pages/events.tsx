@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import Layout from "@/components/layout";
 import {
   useListEvents,
@@ -78,6 +78,7 @@ function ParticipantPill({ count }: { count: number }) {
 }
 
 export default function EventsPage() {
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -403,15 +404,14 @@ export default function EventsPage() {
               events.map((event) => (
                 <div
                   key={event.id}
-                  className="group bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] rounded-[1.75rem] px-7 py-5 flex flex-col lg:flex-row items-start lg:items-center gap-5 transition-all hover:border-indigo-100 hover:shadow-[0_8px_32px_rgba(79,70,229,0.08)]"
+                  onClick={() => navigate(`/events/${event.id}`)}
+                  className="group bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] rounded-[1.75rem] px-7 py-5 flex flex-col lg:flex-row items-start lg:items-center gap-5 transition-all hover:border-indigo-100 hover:shadow-[0_8px_32px_rgba(79,70,229,0.08)] cursor-pointer"
                 >
                   {/* Main info */}
                   <div className="flex-1 min-w-0">
-                    <Link href={`/events/${event.id}`}>
-                      <h4 className="text-xl font-bold text-slate-900 truncate mb-1 hover:text-indigo-600 cursor-pointer transition-colors">
-                        {event.name}
-                      </h4>
-                    </Link>
+                    <h4 className="text-xl font-bold text-slate-900 truncate mb-1 group-hover:text-indigo-600 transition-colors">
+                      {event.name}
+                    </h4>
                     {event.description && (
                       <p className="text-sm text-slate-500 mb-3 line-clamp-1">{event.description}</p>
                     )}
@@ -463,14 +463,15 @@ export default function EventsPage() {
                     {/* Action buttons */}
                     <div className="flex gap-2">
                       <button
-                        onClick={() => openEdit(event)}
+                        onClick={(e) => { e.stopPropagation(); openEdit(event); }}
                         title="Edit"
                         className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (confirm(`Hapus event "${event.name}"?`)) {
                             deleteEvent.mutate({ id: event.id });
                           }
