@@ -604,17 +604,19 @@ export default function PemetaanPage() {
           </div>
         </div>
 
-        {/* Top-level: map + table together */}
+        {/* Map — tetap tampil di view kabupaten dan kecamatan */}
+        {(view.type === "kabupaten" || view.type === "kecamatan") && (
+          <PetaMapContent
+            onDesaClick={(desa, _kec, kab) =>
+              setView({ type: "detail", kelurahan: desa, kabupaten: kab })
+            }
+            onKabupatenClick={(kab) => setView({ type: "kecamatan", kabupaten: kab })}
+          />
+        )}
+
+        {/* Tabel di bawah map — berubah sesuai level yang dipilih */}
         {view.type === "kabupaten" && (
-          <>
-            <PetaMapContent
-              onDesaClick={(desa, _kec, kab) =>
-                setView({ type: "detail", kelurahan: desa, kabupaten: kab })
-              }
-              onKabupatenClick={(kab) => setView({ type: "kecamatan", kabupaten: kab })}
-            />
-            <KabupatenView summary={summary} kabData={kabData} onSelect={(kab) => setView({ type: "kecamatan", kabupaten: kab })} />
-          </>
+          <KabupatenView summary={summary} kabData={kabData} onSelect={(kab) => setView({ type: "kecamatan", kabupaten: kab })} />
         )}
 
         {view.type === "kecamatan" && (
