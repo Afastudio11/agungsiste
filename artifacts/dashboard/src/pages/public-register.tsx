@@ -943,11 +943,6 @@ export default function PublicRegisterPage() {
           </GlassCard>
         )}
 
-        {/* Footer branding */}
-        <div className="flex items-center justify-center gap-2 opacity-30 pt-2">
-          <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-blue-600 to-indigo-600" />
-          <span className="text-[10px] font-extrabold tracking-widest text-slate-600">KTP REGISTRASI</span>
-        </div>
       </div>
     </div>
   );
