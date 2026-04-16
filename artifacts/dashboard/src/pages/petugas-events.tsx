@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
   CalendarDays, MapPin, LogOut, ScanLine, Search, ArrowRight,
-  SlidersHorizontal, Shield, ClipboardCheck, Users
+  SlidersHorizontal, Shield, ClipboardCheck, Users, QrCode
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
@@ -68,6 +68,10 @@ export default function PetugasEventsPage() {
 
   const selectEvent = (id: number, isRsvp: boolean) => {
     navigate(isRsvp ? `/petugas/scan-rsvp/${id}` : `/petugas/scan/${id}`);
+  };
+
+  const openQrScan = (id: number) => {
+    navigate(`/petugas/qr-scan/${id}`);
   };
 
   const initials = (user?.name ?? "P").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
@@ -246,14 +250,23 @@ export default function PetugasEventsPage() {
                     </div>
                   )}
 
-                  {/* Select button */}
-                  <button
-                    onClick={() => selectEvent(ev.id, !!ev.isRsvp)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-blue-600 border-2 border-blue-100 rounded-xl hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-200 group-hover:border-blue-300"
-                  >
-                    Pilih Event
-                    <ArrowRight size={15} />
-                  </button>
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => selectEvent(ev.id, !!ev.isRsvp)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold text-blue-600 border-2 border-blue-100 rounded-xl hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-200 group-hover:border-blue-300"
+                    >
+                      Scan KTP
+                      <ArrowRight size={14} />
+                    </button>
+                    <button
+                      onClick={() => openQrScan(ev.id)}
+                      title="Scan QR Absensi"
+                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-bold text-emerald-600 border-2 border-emerald-100 rounded-xl hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all duration-200"
+                    >
+                      <QrCode size={16} />
+                    </button>
+                  </div>
                 </div>
               );
             })}

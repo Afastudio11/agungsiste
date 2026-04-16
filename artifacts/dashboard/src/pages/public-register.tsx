@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams } from "wouter";
-import { Camera, Upload, CheckCircle, AlertTriangle, User, CreditCard, ArrowLeft, Loader2 } from "lucide-react";
+import { Camera, Upload, CheckCircle, AlertTriangle, User, CreditCard, ArrowLeft, Loader2, Download, Smartphone } from "lucide-react";
 import KtpCamera from "@/components/ktp-camera";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -58,6 +58,8 @@ export default function PublicRegisterPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
+  const [participantQr, setParticipantQr] = useState<{ qrDataUrl: string; fullName: string } | null>(null);
+  const [loadingQr, setLoadingQr] = useState(false);
 
   useEffect(() => {
     fetch(`${BASE}/api/events/public/by-token/${token}`)
@@ -160,6 +162,14 @@ export default function PublicRegisterPage() {
       if (res.ok) {
         setSuccessMsg(data.message || "Berhasil!");
         setStep("success");
+        if (data.registrationToken && data.nik) {
+          setLoadingQr(true);
+          fetch(`${BASE}/api/events/public/reservation-qr/${data.registrationToken}/${data.nik}`)
+            .then((r) => r.json())
+            .then((qr) => { if (qr.qrDataUrl) setParticipantQr({ qrDataUrl: qr.qrDataUrl, fullName: qr.fullName }); })
+            .catch(() => {})
+            .finally(() => setLoadingQr(false));
+        }
       } else {
         setErrorMsg(data.error || "Gagal mendaftar");
         setStep("error");
@@ -183,6 +193,16 @@ export default function PublicRegisterPage() {
     setCapturedImage(null);
     setErrorMsg("");
     setSuccessMsg("");
+    setParticipantQr(null);
+    setLoadingQr(false);
+  };
+
+  const downloadQr = () => {
+    if (!participantQr) return;
+    const a = document.createElement("a");
+    a.href = participantQr.qrDataUrl;
+    a.download = `reservasi-${event?.name?.replace(/\s+/g, "-") ?? "event"}.png`;
+    a.click();
   };
 
   if (step === "loading") {
@@ -210,16 +230,59 @@ export default function PublicRegisterPage() {
 
   if (step === "success") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">{successMsg}</h2>
-          <p className="text-slate-600 mb-2">{event?.name}</p>
-          <p className="text-sm text-slate-500 mb-6">
-            {event?.eventDate} {event?.startTime ? `• ${event.startTime}` : ""}
-            {event?.location ? ` • ${event.location}` : ""}
-          </p>
-          <button onClick={resetForm} className="px-6 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700">
+      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white p-4 py-8">
+        <div className="max-w-md mx-auto">
+          <div className="bg-white rounded-2xl shadow-lg p-6 text-center mb-4">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 mb-4">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-800 mb-1">{successMsg}</h2>
+            <p className="text-slate-600 font-medium mb-1">{event?.name}</p>
+            <p className="text-sm text-slate-400">
+              {event?.eventDate} {event?.startTime ? `• ${event.startTime}` : ""}
+              {event?.location ? ` • ${event.location}` : ""}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
+            <h3 className="text-base font-bold text-slate-800 mb-1 text-center">QR Code Reservasi Anda</h3>
+            <p className="text-xs text-slate-500 text-center mb-4">Tunjukkan QR ini kepada petugas saat check-in</p>
+
+            {loadingQr ? (
+              <div className="py-12 text-center">
+                <Loader2 className="h-10 w-10 animate-spin text-blue-500 mx-auto mb-2" />
+                <p className="text-sm text-slate-500">Membuat QR Code...</p>
+              </div>
+            ) : participantQr ? (
+              <div>
+                <div className="flex justify-center mb-3">
+                  <div className="p-3 bg-white border-2 border-slate-100 rounded-2xl shadow-sm">
+                    <img src={participantQr.qrDataUrl} alt="QR Reservasi" className="w-52 h-52" />
+                  </div>
+                </div>
+                <p className="text-sm font-semibold text-slate-700 text-center mb-4">{participantQr.fullName}</p>
+                <button
+                  onClick={downloadQr}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 mb-3"
+                >
+                  <Download className="h-4 w-4" /> Download QR Code
+                </button>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-amber-700 font-semibold text-sm mb-1">
+                    <Smartphone className="h-4 w-4" />
+                    Screenshot QR ini!
+                  </div>
+                  <p className="text-xs text-amber-600">
+                    Simpan QR code ini ke galeri HP Anda. QR akan digunakan saat absensi di lokasi event.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="py-6 text-center text-slate-400 text-sm">QR tidak tersedia</div>
+            )}
+          </div>
+
+          <button onClick={resetForm} className="w-full px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200">
             Daftar Peserta Lain
           </button>
         </div>
@@ -227,7 +290,7 @@ export default function PublicRegisterPage() {
     );
   }
 
-  const modeLabel = event?.mode === "attendance" ? "Absensi" : "Registrasi";
+  const modeLabel = event?.mode === "attendance" ? "Absensi" : "Reservasi";
   const modeColor = event?.mode === "attendance" ? "orange" : "blue";
 
   return (
@@ -372,7 +435,7 @@ export default function PublicRegisterPage() {
               className="w-full mt-6 py-3 bg-blue-600 text-white rounded-xl font-medium disabled:opacity-40 hover:bg-blue-700 flex items-center justify-center gap-2"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {event?.mode === "attendance" ? "Konfirmasi Absensi" : "Daftar Sekarang"}
+              {event?.mode === "attendance" ? "Konfirmasi Absensi" : "Reservasi Sekarang"}
             </button>
           </div>
         )}

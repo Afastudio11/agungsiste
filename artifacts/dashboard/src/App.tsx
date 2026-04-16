@@ -20,6 +20,7 @@ import HelpPage from "@/pages/help";
 import PetugasEventsPage from "@/pages/petugas-events";
 import PetugasScanPage from "@/pages/petugas-scan";
 import PetugasRsvpPage from "@/pages/petugas-rsvp";
+import PetugasQrScanPage from "@/pages/petugas-qr-scan";
 import EventRsvpPage from "@/pages/event-rsvp";
 import PrizesPage from "@/pages/prizes";
 import PublicRegisterPage from "@/pages/public-register";
@@ -105,6 +106,7 @@ function AppRoutes() {
       <Route path="/petugas" component={PetugasEventsPage} />
       <Route path="/petugas/scan/:id" component={PetugasScanPage} />
       <Route path="/petugas/scan-rsvp/:id" component={PetugasRsvpPage} />
+      <Route path="/petugas/qr-scan/:id" component={PetugasQrScanPage} />
 
       <Route component={NotFound} />
     </Switch>

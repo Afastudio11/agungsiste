@@ -199,30 +199,19 @@ function QRLinksCard({ eventId, event }: { eventId: number; event: any }) {
         {!hasTokens ? (
           <div className="py-6 text-center">
             <QrCode className="h-8 w-8 mx-auto mb-2 text-slate-200" />
-            <p className="text-sm text-slate-400">Klik "Generate Link" untuk membuat link registrasi dan absensi</p>
+            <p className="text-sm text-slate-400">Klik "Generate Link" untuk membuat link reservasi</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
             {event.registrationToken && (
               <LinkCard
-                label="Registrasi Online"
+                label="Reservasi Online"
                 type="registration"
                 token={event.registrationToken}
                 qr={qrData.registration}
                 onLoadQr={() => loadQr("registration")}
                 onCopy={(url: string) => copyLink(url, "reg")}
                 isCopied={copied === "reg"}
-              />
-            )}
-            {event.attendanceToken && (
-              <LinkCard
-                label="Absensi di Lokasi"
-                type="attendance"
-                token={event.attendanceToken}
-                qr={qrData.attendance}
-                onLoadQr={() => loadQr("attendance")}
-                onCopy={(url: string) => copyLink(url, "att")}
-                isCopied={copied === "att"}
               />
             )}
           </div>
@@ -328,7 +317,7 @@ export default function EventDetailPage() {
     : null;
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode; count: number }[] = [
-    { key: "rsvp", label: "Registrasi", icon: <ClipboardList className="h-3.5 w-3.5" />, count: rsvpTotal },
+    { key: "rsvp", label: "Reservasi", icon: <ClipboardList className="h-3.5 w-3.5" />, count: rsvpTotal },
     { key: "onsite", label: "Absen Hari-H", icon: <ClipboardCheck className="h-3.5 w-3.5" />, count: hadirTotal },
   ];
 
@@ -426,7 +415,7 @@ export default function EventDetailPage() {
         {/* ── Glassmorphism Stat Cards ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard
-            label="Registrasi"
+            label="Reservasi"
             value={participantsLoading ? "—" : rsvpTotal}
             sub={participantsLoading ? undefined : rsvpCheckedIn > 0 ? `${rsvpCheckedIn} sudah hadir` : "Belum ada check-in"}
             icon={<Users className="h-5 w-5 text-indigo-600" />}
@@ -445,7 +434,7 @@ export default function EventDetailPage() {
           <StatCard
             label="Tidak Hadir"
             value={participantsLoading ? "—" : rsvpNoShow}
-            sub={participantsLoading ? undefined : rsvpTotal > 0 ? `dari ${rsvpTotal} registrasi` : "Tidak ada RSVP"}
+            sub={participantsLoading ? undefined : rsvpTotal > 0 ? `dari ${rsvpTotal} reservasi` : "Tidak ada reservasi"}
             icon={<UserX className="h-5 w-5 text-rose-500" />}
             gradient="bg-gradient-to-br from-rose-50 via-white to-orange-50"
             barColor="bg-rose-400"
@@ -470,7 +459,7 @@ export default function EventDetailPage() {
                     Daftar Peserta
                   </p>
                   <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                    {rsvpTotal} registrasi · {hadirTotal} hadir
+                    {rsvpTotal} reservasi · {hadirTotal} hadir
                     {rsvpNoShow > 0 ? ` · ${rsvpNoShow} tidak hadir` : ""}
                   </p>
                 </div>
@@ -664,7 +653,7 @@ export default function EventDetailPage() {
                         {activeTab === "rsvp" ? (
                           <>
                             <ClipboardList className="h-8 w-8 mx-auto mb-2 text-slate-200" />
-                            <p className="text-sm text-slate-400">Belum ada peserta yang registrasi pra-acara</p>
+                            <p className="text-sm text-slate-400">Belum ada peserta yang reservasi pra-acara</p>
                             {(event as any).isRsvp && (
                               <Link href={`/events/${id}/rsvp`}>
                                 <span className="mt-2 inline-block text-xs font-bold text-indigo-600 hover:underline cursor-pointer">

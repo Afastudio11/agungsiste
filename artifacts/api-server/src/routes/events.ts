@@ -435,6 +435,53 @@ router.get("/:id/qrcode/:type", requireAuth, async (req, res) => {
   }
 });
 
+router.post("/:id/qr-checkin", requireAuth, async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.id);
+    const { nik } = req.body;
+    if (!nik) return res.status(400).json({ error: "NIK diperlukan" });
+
+    const [event] = await db.select().from(eventsTable).where(eq(eventsTable.id, eventId));
+    if (!event) return res.status(404).json({ error: "Event tidak ditemukan" });
+
+    const participant = await db.query.participantsTable.findFirst({
+      where: eq(participantsTable.nik, nik),
+    });
+    if (!participant) return res.status(404).json({ error: "Peserta tidak ditemukan" });
+
+    const registration = await db.query.eventRegistrationsTable.findFirst({
+      where: (t, { and: a, eq: e }) => a(e(t.eventId, eventId), e(t.participantId, participant.id)),
+    });
+    if (!registration) return res.status(404).json({ error: "Peserta belum terdaftar di event ini" });
+
+    if (registration.checkedInAt) {
+      return res.json({
+        success: true,
+        alreadyCheckedIn: true,
+        message: "Peserta sudah check-in sebelumnya",
+        participant: { fullName: participant.fullName, nik: participant.nik },
+        checkedInAt: registration.checkedInAt,
+      });
+    }
+
+    const now = new Date();
+    await db.update(eventRegistrationsTable)
+      .set({ checkedInAt: now })
+      .where(eq(eventRegistrationsTable.id, registration.id));
+
+    res.json({
+      success: true,
+      alreadyCheckedIn: false,
+      message: "Absensi berhasil dicatat",
+      participant: { fullName: participant.fullName, nik: participant.nik },
+      checkedInAt: now.toISOString(),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error QR check-in");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/public/by-token/:token", async (req, res) => {
   try {
     const token = req.params.token;
@@ -605,11 +652,46 @@ router.post("/public/register/:token", async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: isAttendance ? "Absensi berhasil dicatat" : "Registrasi berhasil",
+      message: isAttendance ? "Absensi berhasil dicatat" : "Reservasi berhasil",
+      nik,
+      eventId: event.id,
+      registrationToken: event.registrationToken,
     });
   } catch (err) {
     req.log.error({ err }, "Error public registration");
     res.status(500).json({ error: "Gagal mendaftar" });
+  }
+});
+
+router.get("/public/reservation-qr/:eventToken/:nik", async (req, res) => {
+  try {
+    const { eventToken, nik } = req.params;
+    const [event] = await db.select().from(eventsTable).where(eq(eventsTable.registrationToken, eventToken));
+    if (!event) return res.status(404).json({ error: "Event tidak ditemukan" });
+
+    const participant = await db.query.participantsTable.findFirst({
+      where: eq(participantsTable.nik, nik),
+    });
+    if (!participant) return res.status(404).json({ error: "Peserta tidak ditemukan" });
+
+    const registration = await db.query.eventRegistrationsTable.findFirst({
+      where: (t, { and: a, eq: e }) => a(e(t.eventId, event.id), e(t.participantId, participant.id)),
+    });
+    if (!registration) return res.status(404).json({ error: "Peserta belum terdaftar" });
+
+    const qrContent = `KTP-EVENT|${event.id}|${nik}`;
+    const qrDataUrl = await QRCode.toDataURL(qrContent, { width: 400, margin: 2, errorCorrectionLevel: "H" });
+
+    res.json({
+      qrDataUrl,
+      qrContent,
+      eventName: event.name,
+      fullName: participant.fullName,
+      nik: participant.nik,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error generating reservation QR");
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
