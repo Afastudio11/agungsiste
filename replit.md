@@ -130,5 +130,18 @@ If the app ever shows "not running", restart these two artifact workflows — do
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- `pnpm --filter @workspace/db run seed` — manual reseed: truncate & recreate 4000 participants from jatimWilayah
+
+## Wilayah Data (Single Source of Truth)
+
+**`lib/db/src/jatimWilayah.ts`** — canonical mapping: kabupaten → kecamatan → desa for all 5 kabupaten.
+- Both `autoSeed.ts` and `seed-4000.ts` import from this file; NEVER edit the wilayah data in those files directly.
+- 5 kabupaten: Pacitan (12 kec), Trenggalek (14 kec), Magetan (18 kec), Ponorogo (21 kec), Ngawi (19 kec) = 84 kecamatan total, ~992 desa.
+
+## Map / GeoJSON Data
+
+- **`artifacts/dashboard/src/data/jatim-kecamatan-geo.ts`** — 84 kecamatan border polygons (76 from Nusantaracode, 8 fallback from old data for: Pacitan/Bandar, Pacitan/Ngadirojo, Magetan/Karangrejo, Magetan/Nguntoronadi, Magetan/Sukomoro, Ponorogo/Kauman, Ngawi/Bringin, Ngawi/Karanganyar).
+- **`artifacts/dashboard/public/jatim-5kab-desa.geojson`** — 992 desa features from Nusantaracode. Properties: `district`/`sub_district`/`village` (UPPERCASE), `kabupaten`/`kecamatan`/`kelurahan` (title case).
+- Kabupaten ID_DAGRI codes: Pacitan=35.01, Ponorogo=35.02, Trenggalek=35.03, Magetan=35.20, Ngawi=35.21
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
