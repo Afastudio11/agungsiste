@@ -5,148 +5,7 @@ import {
   useGetParticipantByNik,
   getGetParticipantByNikQueryKey,
 } from "@workspace/api-client-react";
-import { CalendarDays, MapPin, Download, User, ImageIcon, Eye, EyeOff } from "lucide-react";
-
-function KtpCard({ profile }: { profile: NonNullable<ReturnType<typeof useGetParticipantByNik>["data"]> }) {
-  return (
-    <div className="w-full max-w-[520px] mx-auto select-none" style={{ fontFamily: "'Arial', sans-serif" }}>
-      {/* Card */}
-      <div
-        className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200"
-        style={{
-          background: "linear-gradient(135deg, #f0f7ff 0%, #e8f4fd 40%, #ddeeff 100%)",
-          aspectRatio: "85.6 / 54",
-        }}
-      >
-        {/* Top banner */}
-        <div
-          className="absolute top-0 left-0 right-0 flex items-center gap-2 px-4 py-2"
-          style={{ background: "linear-gradient(90deg, #1a4f8b 0%, #1a6fb8 100%)" }}
-        >
-          {/* Garuda placeholder */}
-          <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 text-base">🦅</div>
-          <div className="flex-1 text-center">
-            <div className="text-white text-[8px] font-bold tracking-widest leading-none">REPUBLIK INDONESIA</div>
-            <div className="text-white/80 text-[6px] tracking-wider leading-none mt-0.5">
-              {profile.province ? profile.province.toUpperCase() : "PROVINSI"}
-            </div>
-          </div>
-          <div className="h-8 w-8 shrink-0" />
-        </div>
-
-        {/* Body */}
-        <div className="absolute top-[44px] left-0 right-0 bottom-0 flex">
-          {/* Left: Photo */}
-          <div className="flex flex-col items-center justify-center px-3 shrink-0" style={{ width: "28%" }}>
-            <div
-              className="rounded border-2 border-slate-300 bg-white flex items-center justify-center overflow-hidden"
-              style={{ width: "60px", height: "78px" }}
-            >
-              <div className="flex flex-col items-center text-slate-300">
-                <User className="h-8 w-8" />
-                <span className="text-[7px] mt-1">FOTO</span>
-              </div>
-            </div>
-            {/* Golongan darah */}
-            {profile.bloodType && (
-              <div className="mt-1.5 text-center">
-                <div className="text-[6px] text-slate-500 font-bold tracking-wider">GOL. DARAH</div>
-                <div
-                  className="text-white font-extrabold text-xs rounded px-1.5 mt-0.5"
-                  style={{ background: "#c0392b" }}
-                >
-                  {profile.bloodType}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right: Data fields */}
-          <div className="flex-1 pr-3 py-2 space-y-0.5">
-            {/* NIK */}
-            <div className="mb-1.5">
-              <div className="text-[7px] font-bold text-slate-500 tracking-widest">NIK</div>
-              <div className="text-[11px] font-black tracking-widest text-slate-900 leading-tight">
-                {profile.nik || "—"}
-              </div>
-            </div>
-
-            {[
-              { label: "Nama", value: profile.fullName },
-              {
-                label: "Tempat/Tgl Lahir",
-                value: [profile.birthPlace, profile.birthDate].filter(Boolean).join(", ") || undefined,
-              },
-              { label: "Jenis Kelamin", value: profile.gender },
-              {
-                label: "Alamat",
-                value: profile.address,
-              },
-              {
-                label: "RT/RW",
-                value: (profile as Record<string, unknown>).rtRw as string | undefined,
-              },
-              { label: "Kel/Desa", value: profile.kelurahan },
-              { label: "Kecamatan", value: profile.kecamatan },
-              { label: "Agama", value: profile.religion },
-              {
-                label: "Status Perkawinan",
-                value: profile.maritalStatus,
-              },
-              { label: "Pekerjaan", value: profile.occupation },
-              { label: "Kewarganegaraan", value: profile.nationality },
-              {
-                label: "Berlaku Hingga",
-                value: (profile as Record<string, unknown>).validUntil as string ?? "SEUMUR HIDUP",
-              },
-            ]
-              .filter((f) => f.value)
-              .map(({ label, value }) => (
-                <div key={label} className="flex items-start gap-1 leading-tight">
-                  <span
-                    className="text-slate-600 shrink-0"
-                    style={{ fontSize: "6.5px", width: "64px", paddingTop: "1px" }}
-                  >
-                    {label}
-                  </span>
-                  <span className="text-slate-400 shrink-0" style={{ fontSize: "6.5px", paddingTop: "1px" }}>:</span>
-                  <span
-                    className="text-slate-900 font-semibold leading-tight"
-                    style={{ fontSize: "7px" }}
-                  >
-                    {value}
-                  </span>
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* Bottom strip */}
-        <div
-          className="absolute bottom-0 left-0 right-0 h-4 flex items-center justify-between px-4"
-          style={{ background: "linear-gradient(90deg, #1a4f8b 0%, #1a6fb8 100%)" }}
-        >
-          <div className="text-white/50 text-[5px] tracking-widest">KARTU TANDA PENDUDUK</div>
-          <div className="text-white/50 text-[5px] tracking-widest">KTP-el</div>
-        </div>
-
-        {/* Subtle watermark lines */}
-        <div className="absolute inset-0 pointer-events-none opacity-5">
-          {Array.from({ length: 18 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-full border-t border-blue-400"
-              style={{ top: `${(i + 1) * 5.5}%` }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Label */}
-      <div className="text-center text-[10px] text-slate-400 mt-2">Tampilan KTP Digital — Data dari hasil scan OCR</div>
-    </div>
-  );
-}
+import { CalendarDays, MapPin, ImageIcon, Eye, EyeOff } from "lucide-react";
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -239,21 +98,14 @@ export default function ParticipantDetailPage() {
           <span className="text-slate-900 font-semibold">{profile.fullName}</span>
         </div>
 
-        {/* KTP Card + Summary row */}
+        {/* KTP Photo + Summary row */}
         <div className="grid gap-5 lg:grid-cols-2 items-start">
-          {/* KTP Visual */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 flex flex-col items-center">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 self-start">
-              Kartu Tanda Penduduk
+          {/* KTP Photo */}
+          <div className="bg-white rounded-2xl border border-slate-100 p-5">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+              Foto KTP
             </div>
-            <KtpCard profile={profile} />
-            <button className="mt-4 flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg transition">
-              <Download className="h-3.5 w-3.5" />
-              Unduh KTP Digital
-            </button>
-            <div className="mt-4 w-full">
-              <KtpImageViewer nik={nik} />
-            </div>
+            <KtpImageViewer nik={nik} />
           </div>
 
           {/* Event history + extra info */}
