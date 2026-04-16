@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
-  CalendarDays, MapPin, LogOut, ScanLine, Search, ArrowRight,
-  Shield, ClipboardCheck, Users, QrCode, ChevronRight, X,
+  CalendarDays, MapPin, LogOut, ScanLine, Search,
+  ClipboardCheck, Users, QrCode, X,
   TrendingUp, Zap
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -83,34 +83,27 @@ export default function PetugasEventsPage() {
     >
       {/* ── Sticky Top Bar ───────────────────────────────────────── */}
       <nav className="bg-white border-b border-slate-100 px-5 py-3 flex items-center justify-between sticky top-0 z-20 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm">
-            <Shield size={15} className="text-white" />
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-[13px] font-extrabold shrink-0">
+            {initials}
           </div>
           <div>
-            <div className="text-[13px] font-extrabold text-slate-900 leading-none tracking-tight">
-              Portal Petugas
+            <div className="text-[13px] font-extrabold text-slate-900 leading-none">
+              {user?.name ?? "Petugas"}
             </div>
-            <div className="text-[10px] text-slate-400 font-medium leading-none mt-0.5">
-              KTP Registrasi
-            </div>
+            {(user?.jabatan || user?.wilayah) && (
+              <div className="text-[11px] text-slate-400 font-medium leading-none mt-0.5">
+                {[user.jabatan, user.wilayah].filter(Boolean).join(" · ")}
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5">
-            <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-extrabold">
-              {initials}
-            </div>
-            <span className="text-[12px] font-semibold text-slate-700">{user?.name?.split(" ")[0]}</span>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors px-2.5 py-1.5 rounded-xl hover:bg-red-50"
-          >
-            <LogOut size={14} />
-            <span className="hidden sm:inline">Keluar</span>
-          </button>
-        </div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors p-2 rounded-xl hover:bg-red-50"
+        >
+          <LogOut size={16} />
+        </button>
       </nav>
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">

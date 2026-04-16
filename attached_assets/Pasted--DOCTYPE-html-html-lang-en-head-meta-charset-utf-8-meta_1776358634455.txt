@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .aura-glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border-top: 1px solid rgba(255, 255, 255, 0.4);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#5f28c8",
+                        "surface-container-high": "#dfe3e6",
+                        "surface-container": "#e5e9eb",
+                        "primary-container": "#769dff",
+                        "on-surface": "#2c2f31",
+                        "inverse-on-surface": "#9a9d9f",
+                        "on-primary": "#f1f2ff",
+                        "tertiary-fixed": "#69f6b8",
+                        "tertiary": "#006947",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-dim": "#d0d5d8",
+                        "on-tertiary-fixed-variant": "#006544",
+                        "tertiary-dim": "#005c3d",
+                        "primary-fixed": "#769dff",
+                        "on-secondary-container": "#5517bf",
+                        "on-tertiary": "#c8ffe0",
+                        "on-tertiary-fixed": "#00452d",
+                        "on-primary-fixed-variant": "#002869",
+                        "surface-tint": "#0054ca",
+                        "on-error": "#ffefee",
+                        "error-container": "#fb5151",
+                        "on-error-container": "#570008",
+                        "error-dim": "#9f0519",
+                        "on-tertiary-container": "#005a3c",
+                        "surface-container-low": "#eef1f3",
+                        "outline": "#747779",
+                        "on-secondary": "#f8f0ff",
+                        "on-secondary-fixed": "#40009b",
+                        "error": "#b31b25",
+                        "inverse-primary": "#5a8cff",
+                        "secondary-fixed": "#dac9ff",
+                        "inverse-surface": "#0b0f10",
+                        "secondary": "#6a37d4",
+                        "secondary-container": "#dac9ff",
+                        "on-background": "#2c2f31",
+                        "primary-dim": "#0049b2",
+                        "on-primary-fixed": "#000000",
+                        "tertiary-fixed-dim": "#58e7ab",
+                        "background": "#f5f7f9",
+                        "on-primary-container": "#001f56",
+                        "surface-bright": "#f5f7f9",
+                        "secondary-dim": "#5e26c7",
+                        "primary-fixed-dim": "#5f8fff",
+                        "tertiary-container": "#69f6b8",
+                        "surface-variant": "#d9dde0",
+                        "primary": "#0054ca",
+                        "on-surface-variant": "#595c5e",
+                        "surface-container-highest": "#d9dde0",
+                        "outline-variant": "#abadaf",
+                        "surface": "#f5f7f9",
+                        "secondary-fixed-dim": "#ceb9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
+<!-- Background Ambient Glows -->
+<div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-container/20 blur-[120px] rounded-full"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary-container/20 blur-[120px] rounded-full"></div>
+<main class="w-full max-w-2xl relative z-10">
+<!-- Aura Glass Card -->
+<div class="aura-glass rounded-lg shadow-[0px_20px_40px_rgba(44,47,49,0.06)] p-12 md:p-16 flex flex-col gap-12">
+<!-- Contextual Header -->
+<div class="text-center space-y-4">
+<div class="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant text-[0.75rem] font-bold tracking-wider uppercase">
+                    Registration Step 1
+                </div>
+<h1 class="text-[2rem] md:text-[2.5rem] font-bold tracking-tight text-on-surface leading-tight">
+                    Pernah mengikuti event ini sebelumnya?
+                </h1>
+<p class="text-on-surface-variant text-base max-w-md mx-auto">
+                    Pilih salah satu untuk membantu kami menyesuaikan formulir pendaftaran Anda.
+                </p>
+</div>
+<!-- Action Areas -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Option: Yes -->
+<button class="group relative flex flex-col items-center justify-center gap-6 p-8 rounded-lg bg-surface-container-lowest transition-all duration-500 hover:shadow-[0px_30px_60px_rgba(0,84,202,0.12)] hover:-translate-y-1 active:scale-[0.98]">
+<div class="w-20 h-20 rounded-full bg-primary/5 flex items-center justify-center text-primary transition-colors duration-500 group-hover:bg-primary group-hover:text-white">
+<span class="material-symbols-outlined !text-[40px]" data-icon="fingerprint">fingerprint</span>
+</div>
+<div class="text-center">
+<span class="block text-lg font-bold text-on-surface group-hover:text-primary transition-colors">Ya, sudah pernah</span>
+<span class="block text-sm text-on-surface-variant mt-1">Verifikasi biometric</span>
+</div>
+<!-- Hover Glow -->
+<div class="absolute inset-0 rounded-lg ring-1 ring-primary/0 group-hover:ring-primary/20 transition-all duration-500"></div>
+</button>
+<!-- Option: No -->
+<button class="group relative flex flex-col items-center justify-center gap-6 p-8 rounded-lg bg-surface-container-lowest transition-all duration-500 hover:shadow-[0px_30px_60px_rgba(106,55,212,0.12)] hover:-translate-y-1 active:scale-[0.98]">
+<div class="w-20 h-20 rounded-full bg-secondary/5 flex items-center justify-center text-secondary transition-colors duration-500 group-hover:bg-secondary group-hover:text-white">
+<span class="material-symbols-outlined !text-[40px]" data-icon="description">description</span>
+</div>
+<div class="text-center">
+<span class="block text-lg font-bold text-on-surface group-hover:text-secondary transition-colors">Belum pernah</span>
+<span class="block text-sm text-on-surface-variant mt-1">Lengkapi data baru</span>
+</div>
+<!-- Hover Glow -->
+<div class="absolute inset-0 rounded-lg ring-1 ring-secondary/0 group-hover:ring-secondary/20 transition-all duration-500"></div>
+</button>
+</div>
+<!-- Footer-less Branding -->
+<div class="flex items-center justify-center gap-2 opacity-40">
+<div class="w-6 h-6 rounded-md bg-gradient-to-tr from-primary to-secondary"></div>
+<span class="text-xs font-bold tracking-widest uppercase">EventReg</span>
+</div>
+</div>
+<!-- Bottom Support Text -->
+<div class="mt-8 text-center">
+<a class="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center gap-2" href="#">
+<span class="material-symbols-outlined !text-lg" data-icon="help">help</span>
+                Butuh bantuan teknis?
+            </a>
+</div>
+</main>
+</body></html>
