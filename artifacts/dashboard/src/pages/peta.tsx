@@ -71,7 +71,11 @@ function getColor(count: number, max: number): string {
   return "#1d4ed8";
 }
 
-export default function PetaMapContent() {
+interface PetaMapProps {
+  onDesaClick?: (desa: string, kecamatan: string, kabupaten: string) => void;
+}
+
+export default function PetaMapContent({ onDesaClick }: PetaMapProps = {}) {
   const [view, setView] = useState<"kabupaten" | "kecamatan">("kabupaten");
   const [selectedKab, setSelectedKab] = useState<string | null>(null);
   const [selectedKec, setSelectedKec] = useState<string | null>(null);
@@ -158,44 +162,58 @@ export default function PetaMapContent() {
     const name = feature.properties?.name || "";
     const count = countByKec[name.toLowerCase()] || 0;
     const events = eventByKec[name.toLowerCase()] || 0;
+    const isSelected = name === selectedKec;
     (layer as L.Path).setStyle({
       fillColor: getColor(count, maxKec),
-      weight: 1.5, opacity: 1, color: "white", fillOpacity: 0.78,
+      weight: isSelected ? 2.5 : 1.5,
+      opacity: 1, color: isSelected ? "#2563eb" : "white",
+      fillOpacity: isSelected ? 0.90 : 0.78,
     });
     layer.bindTooltip(
       `<div style="font-family:sans-serif;font-size:13px;line-height:1.5">
         <b style="font-size:14px">${name}</b><br/>
         <span style="color:#3b82f6">👥 ${count.toLocaleString()} peserta</span><br/>
-        <span style="color:#64748b">📅 ${events} event</span>
+        <span style="color:#64748b">📅 ${events} event</span><br/>
+        <span style="color:#94a3b8;font-size:11px">Klik untuk lihat desa</span>
       </div>`,
       { sticky: true, className: "ktp-tooltip" }
     );
     layer.on({
       click: () => setSelectedKec(name),
       mouseover: (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.95, weight: 2.5 }),
-      mouseout: (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.78, weight: 1.5 }),
+      mouseout: (e) => (e.target as L.Path).setStyle({ fillOpacity: isSelected ? 0.90 : 0.78, weight: isSelected ? 2.5 : 1.5 }),
     });
   }
 
   function onEachDesa(feature: any, layer: L.Layer) {
     const villageName = feature.properties?.village || "";
+    const displayName = feature.properties?.kelurahan || villageName;
     const count = countByDesa[villageName.toLowerCase()] || 0;
     const events = eventByDesa[villageName.toLowerCase()] || 0;
     (layer as L.Path).setStyle({
       fillColor: getColor(count, maxDesa),
       weight: 1, opacity: 1, color: "white", fillOpacity: 0.80,
     });
+    const hasData = count > 0;
     layer.bindTooltip(
       `<div style="font-family:sans-serif;font-size:13px;line-height:1.5">
-        <b style="font-size:14px">${villageName}</b><br/>
+        <b style="font-size:14px">${displayName}</b><br/>
         <span style="color:#10b981">👥 ${count.toLocaleString()} peserta</span><br/>
-        <span style="color:#64748b">📅 ${events} event</span>
+        <span style="color:#64748b">📅 ${events} event</span>${hasData && onDesaClick ? `<br/><span style="color:#94a3b8;font-size:11px">Klik untuk profil desa</span>` : ""}
       </div>`,
       { sticky: true, className: "ktp-tooltip" }
     );
     layer.on({
-      mouseover: (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.96, weight: 2 }),
-      mouseout:  (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.80, weight: 1 }),
+      click: () => {
+        if (onDesaClick && selectedKab && selectedKec) {
+          onDesaClick(displayName, selectedKec, selectedKab);
+        }
+      },
+      mouseover: (e) => {
+        (e.target as L.Path).setStyle({ fillOpacity: 0.96, weight: 2, color: onDesaClick ? "#2563eb" : "white" });
+        if (onDesaClick) (e.target as L.Layer).getElement?.()?.setAttribute?.("style", "cursor:pointer");
+      },
+      mouseout:  (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.80, weight: 1, color: "white" }),
     });
   }
 
@@ -387,6 +405,7 @@ export default function PetaMapContent() {
           <div className="px-5 py-3 border-b border-blue-50 bg-blue-50/50 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-blue-700">Desa / Kelurahan — Kec. {selectedKec}</span>
+              {onDesaClick && <span className="text-[10px] text-blue-400 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded-md">klik desa untuk profil</span>}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-lg">{desaData.length} desa</span>
@@ -408,14 +427,19 @@ export default function PetaMapContent() {
                   <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-400">Memuat data desa…</td></tr>
                 )}
                 {!desaLoading && desaData.map((d, i) => {
-                  const maxDesa = Math.max(...desaData.map(x => Number(x.totalInput)), 1);
-                  const pct = Math.round((Number(d.totalInput) / maxDesa) * 100);
+                  const maxDesaLocal = Math.max(...desaData.map(x => Number(x.totalInput)), 1);
+                  const pct = Math.round((Number(d.totalInput) / maxDesaLocal) * 100);
+                  const clickable = !!onDesaClick;
                   return (
-                    <tr key={d.kelurahan} className="hover:bg-blue-50/20 transition-colors">
+                    <tr
+                      key={d.kelurahan}
+                      onClick={() => clickable && onDesaClick?.(d.kelurahan, selectedKec!, selectedKab!)}
+                      className={`transition-colors ${clickable ? "cursor-pointer hover:bg-blue-50 group" : "hover:bg-blue-50/20"}`}
+                    >
                       <td className="px-5 py-2.5">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-bold text-slate-300 w-5 text-right shrink-0">{i + 1}</span>
-                          <span className="text-sm font-medium text-slate-800">{d.kelurahan}</span>
+                          <span className={`text-sm font-medium ${clickable ? "text-blue-700 group-hover:underline" : "text-slate-800"}`}>{d.kelurahan}</span>
                         </div>
                       </td>
                       <td className="px-5 py-2.5 text-right">
@@ -429,7 +453,7 @@ export default function PetaMapContent() {
                       <td className="px-5 py-2.5">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: getColor(Number(d.totalInput), maxDesa) }} />
+                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: getColor(Number(d.totalInput), maxDesaLocal) }} />
                           </div>
                           <span className="text-[10px] font-bold text-slate-400 w-7 text-right">{pct}%</span>
                         </div>

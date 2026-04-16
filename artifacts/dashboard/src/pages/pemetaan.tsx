@@ -500,7 +500,11 @@ export default function PemetaanPage() {
         {/* Top-level: map + table together */}
         {view.type === "kabupaten" && (
           <>
-            <PetaMapContent />
+            <PetaMapContent
+              onDesaClick={(desa, _kec, kab) =>
+                setView({ type: "detail", kelurahan: desa, kabupaten: kab })
+              }
+            />
             <KabupatenView summary={summary} kabData={kabData} onSelect={(kab) => setView({ type: "desa", kabupaten: kab })} />
           </>
         )}
