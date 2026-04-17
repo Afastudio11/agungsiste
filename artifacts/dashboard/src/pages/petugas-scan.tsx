@@ -258,7 +258,7 @@ export default function PetugasScanPage() {
   const qw = ocrMeta?.qualityWarning;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-10" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="min-h-screen bg-blue-50 pb-10" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {showCamera && (
         <KtpCamera onCapture={handleCameraCapture} onClose={() => setShowCamera(false)} />
       )}
