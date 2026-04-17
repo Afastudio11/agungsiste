@@ -29,7 +29,7 @@ import {
   UserCheck,
   UserX,
   Activity,
-} from "lucide-react";
+} from "@/lib/icons";
 
 type TabType = "rsvp" | "onsite";
 

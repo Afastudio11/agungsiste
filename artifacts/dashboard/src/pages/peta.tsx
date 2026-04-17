@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, GeoJSON, ZoomControl, useMap } from "react-lea
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "@/lib/icons";
 import { jatimKabupatenGeo } from "@/data/jatim-geo";
 import { jatimKecamatanGeo } from "@/data/jatim-kecamatan-geo";
 

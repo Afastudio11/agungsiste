@@ -4,7 +4,7 @@ import {
   Camera, Upload, CheckCircle, AlertTriangle, ArrowLeft,
   Loader2, Download, Smartphone, CreditCard, Fingerprint,
   CalendarDays, MapPin, QrCode, ChevronRight, ScanLine
-} from "lucide-react";
+} from "@/lib/icons";
 import KtpCamera from "@/components/ktp-camera";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");

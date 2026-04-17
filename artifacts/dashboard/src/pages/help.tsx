@@ -11,7 +11,7 @@ import {
   MessageSquare,
   BookOpen,
   Zap,
-} from "lucide-react";
+} from "@/lib/icons";
 
 type FAQ = { q: string; a: string };
 

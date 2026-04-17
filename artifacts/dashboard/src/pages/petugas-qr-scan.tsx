@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, CheckCircle2, AlertCircle, Users, QrCode,
   RefreshCw, UserCheck, Clock, Scan, XCircle, Keyboard, Camera
-} from "lucide-react";
+} from "@/lib/icons";
 import { useAuth } from "@/lib/auth";
 import jsQR from "jsqr";
 

@@ -8,7 +8,7 @@ import {
   getListEventsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { Camera, Upload, Sun, Contrast, Eye, Zap, ScanLine, CheckCircle, RotateCcw, PenLine } from "lucide-react";
+import { Camera, Upload, Sun, Contrast, Eye, Zap, ScanLine, CheckCircle, RotateCcw, PenLine } from "@/lib/icons";
 import KtpCamera from "@/components/ktp-camera";
 
 type QualityWarning = "dark" | "overexposed" | "blurry" | "low_contrast" | null;

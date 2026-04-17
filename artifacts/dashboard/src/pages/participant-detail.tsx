@@ -6,7 +6,7 @@ import {
   getGetParticipantByNikQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, MapPin, ImageIcon, Download, FileText, Loader2, Pencil, X, Check, Trash2, AlertTriangle } from "lucide-react";
+import { CalendarDays, MapPin, ImageIcon, Download, FileText, Loader2, Pencil, X, Check, Trash2, AlertTriangle } from "@/lib/icons";
 import jsPDF from "jspdf";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");

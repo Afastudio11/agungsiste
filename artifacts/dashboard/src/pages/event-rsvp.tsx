@@ -5,7 +5,7 @@ import { useGetEvent, getGetEventQueryKey } from "@workspace/api-client-react";
 import {
   ChevronLeft, Upload, UserPlus, Trash2, Download, Search,
   CheckCircle2, XCircle, AlertCircle, FileSpreadsheet, Users
-} from "lucide-react";
+} from "@/lib/icons";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 

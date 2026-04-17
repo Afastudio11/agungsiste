@@ -5,7 +5,7 @@ import {
   ArrowLeft, Camera, Upload, CheckCircle2, AlertCircle, AlertTriangle,
   Phone, Mail, Tag, FileText, User, Users, Zap, Sun, Eye, Contrast,
   RotateCcw, ScanLine, ChevronRight
-} from "lucide-react";
+} from "@/lib/icons";
 import { useAuth } from "@/lib/auth";
 import KtpCamera from "@/components/ktp-camera";
 

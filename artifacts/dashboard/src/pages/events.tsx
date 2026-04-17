@@ -21,7 +21,7 @@ import {
   Download,
   ChevronUp,
   ChevronDown,
-} from "lucide-react";
+} from "@/lib/icons";
 
 type SortKey = "name" | "eventDate" | "location" | "participantCount";
 type SortDir = "asc" | "desc";

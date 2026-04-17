@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, QrCode, CheckCircle2, AlertCircle, ScanLine, User, Search, RefreshCw } from "lucide-react";
+import { ArrowLeft, QrCode, CheckCircle2, AlertCircle, ScanLine, User, Search, RefreshCw } from "@/lib/icons";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 

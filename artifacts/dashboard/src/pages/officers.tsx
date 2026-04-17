@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Plus, Trash2, Trophy, MapPin, Briefcase, X, Eye, EyeOff, Activity, Clock, ScanLine, QrCode, ChevronRight, Pencil } from "lucide-react";
+import { Users, Plus, Trash2, Trophy, MapPin, Briefcase, X, Eye, EyeOff, Activity, Clock, ScanLine, QrCode, ChevronRight, Pencil } from "@/lib/icons";
 import Layout from "@/components/layout";
 import { useAuth } from "@/lib/auth";
 

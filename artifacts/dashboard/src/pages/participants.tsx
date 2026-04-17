@@ -5,7 +5,7 @@ import {
   useListParticipants,
   getListParticipantsQueryKey,
 } from "@workspace/api-client-react";
-import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Gift, CalendarCheck2, Eye, MapPin, ChevronRight, FileText, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Gift, CalendarCheck2, Eye, MapPin, ChevronRight, FileText, FileSpreadsheet, Loader2 } from "@/lib/icons";
 import { useQuery } from "@tanstack/react-query";
 import { exportExcel, exportParticipantsPDF } from "@/lib/exportUtils";
 

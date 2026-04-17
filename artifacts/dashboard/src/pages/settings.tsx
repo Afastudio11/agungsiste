@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Layout from "@/components/layout";
-import { Settings, CheckCircle2, LayoutDashboard } from "lucide-react";
+import { Settings, CheckCircle2, LayoutDashboard } from "@/lib/icons";
 import { useSettings, defaultMenuLabels, type MenuLabels } from "@/lib/settings-context";
 
 function SectionHeader({ icon: Icon, title, desc }: { icon: any; title: string; desc: string }) {

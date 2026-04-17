@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Camera, X, ZapIcon, RotateCcw } from "lucide-react";
+import { Camera, X, ZapIcon, RotateCcw } from "@/lib/icons";
 
 interface KtpCameraProps {
   onCapture: (base64: string) => void;

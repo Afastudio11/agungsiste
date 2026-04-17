@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import Layout from "@/components/layout";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy, Search, TrendingUp, Users, Clock, Medal, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Trophy, Search, TrendingUp, Users, Clock, Medal, ChevronUp, ChevronDown, ChevronsUpDown } from "@/lib/icons";
 
 type SortKey = "staffName" | "totalCount" | "recentCount" | "lastActivity";
 type SortDir = "asc" | "desc";

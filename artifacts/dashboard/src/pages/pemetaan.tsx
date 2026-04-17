@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import {
   MapPin, Globe, Building2, Home, ChevronRight, ChevronLeft, ArrowLeft,
   Users, CalendarDays, TrendingUp, User, Phone, Tag, Clock, Gift,
-} from "lucide-react";
+} from "@/lib/icons";
 import Layout from "@/components/layout";
 import PetaMapContent from "@/pages/peta";
 

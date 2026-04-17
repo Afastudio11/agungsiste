@@ -5,7 +5,7 @@ import {
   CalendarDays, MapPin, LogOut, ScanLine, Search,
   ClipboardCheck, Users, QrCode, X,
   TrendingUp, Zap, History, Clock, ChevronRight
-} from "lucide-react";
+} from "@/lib/icons";
 import { useAuth } from "@/lib/auth";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");

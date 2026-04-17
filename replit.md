@@ -105,6 +105,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - Petugas accent: orange (orange-500)
 - Tables: `rounded-xl overflow-hidden border border-slate-100`
 - Buttons: solid primary (blue/orange) + outline variants
+- **Icons**: Phosphor Icons (`@phosphor-icons/react`) with `weight="bold"` via compat layer at `artifacts/dashboard/src/lib/icons.tsx`. All page/component imports use `from "@/lib/icons"` (NOT `lucide-react`). shadcn/ui components in `components/ui/` keep `lucide-react`. Total: 84 icons mapped.
 
 ## Demo Accounts
 

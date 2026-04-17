@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Layout from "@/components/layout";
-import { Gift, Plus, Trash2, Award, ChevronDown, ChevronUp, Package, Search, X, Users, Globe, Calendar, MapPin } from "lucide-react";
+import { Gift, Plus, Trash2, Award, ChevronDown, ChevronUp, Package, Search, X, Users, Globe, Calendar, MapPin } from "@/lib/icons";
 import { jatimWilayah } from "@workspace/db/jatimWilayah";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
