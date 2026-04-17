@@ -122,7 +122,6 @@ export default function PetugasQrScanPage() {
     if (streamRef.current) return;
     setCameraError("");
     setLastResult(null);
-    setLastRaw(null);
     processingRef.current = false;
 
     try {
