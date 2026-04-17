@@ -118,6 +118,23 @@ router.put("/:id", requireAdmin, async (req, res) => {
   }
 });
 
+router.patch("/:id/status", requireAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+    const { status } = req.body as { status?: string };
+    if (status !== "active" && status !== "inactive") {
+      return res.status(400).json({ error: "status must be 'active' or 'inactive'" });
+    }
+    const [event] = await db.update(eventsTable).set({ status }).where(eq(eventsTable.id, id)).returning();
+    if (!event) return res.status(404).json({ error: "Event not found" });
+    res.json(event);
+  } catch (err) {
+    req.log.error({ err }, "Error toggling event status");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     const { id } = DeleteEventParams.parse({ id: parseInt(req.params.id) });

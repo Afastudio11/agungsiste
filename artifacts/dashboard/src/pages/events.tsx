@@ -23,10 +23,10 @@ import {
   ChevronDown,
 } from "@/lib/icons";
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 type SortKey = "name" | "eventDate" | "location" | "participantCount";
 type SortDir = "asc" | "desc";
-
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 interface DesaOption { kelurahan: string; kecamatan: string; kabupaten: string; }
 
@@ -155,6 +155,28 @@ export default function EventsPage() {
 
   const qc = useQueryClient();
   const { toast } = useToast();
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  const toggleStatus = async (e: React.MouseEvent, id: number, currentStatus: string) => {
+    e.stopPropagation();
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+    setTogglingId(id);
+    try {
+      const res = await fetch(`${BASE}/api/events/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error("Gagal mengubah status");
+      qc.invalidateQueries({ queryKey: getListEventsQueryKey(params) });
+      toast({ title: newStatus === "active" ? "Event diaktifkan" : "Event dinonaktifkan" });
+    } catch {
+      toast({ title: "Gagal mengubah status event", variant: "destructive" });
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const params = {
     ...(search ? { search } : {}),
@@ -428,13 +450,24 @@ export default function EventsPage() {
                 <div
                   key={event.id}
                   onClick={() => navigate(`/events/${event.id}`)}
-                  className="group bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] rounded-[1.75rem] px-7 py-5 flex flex-col lg:flex-row items-start lg:items-center gap-5 transition-all hover:border-indigo-100 hover:shadow-[0_8px_32px_rgba(79,70,229,0.08)] cursor-pointer"
+                  className={`group bg-white border shadow-[0_4px_20px_rgba(0,0,0,0.04)] rounded-[1.75rem] px-7 py-5 flex flex-col lg:flex-row items-start lg:items-center gap-5 transition-all cursor-pointer ${
+                    (event as any).status === "inactive"
+                      ? "border-slate-100 opacity-60 hover:opacity-80"
+                      : "border-slate-100 hover:border-indigo-100 hover:shadow-[0_8px_32px_rgba(79,70,229,0.08)]"
+                  }`}
                 >
                   {/* Main info */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-xl font-bold text-slate-900 truncate mb-1 group-hover:text-indigo-600 transition-colors">
-                      {event.name}
-                    </h4>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className={`text-xl font-bold truncate ${(event as any).status === "inactive" ? "text-slate-400" : "text-slate-900 group-hover:text-indigo-600"} transition-colors`}>
+                        {event.name}
+                      </h4>
+                      {(event as any).status === "inactive" && (
+                        <span className="shrink-0 inline-block text-[10px] font-bold bg-slate-100 text-slate-400 px-2 py-0.5 rounded-lg border border-slate-200">
+                          Nonaktif
+                        </span>
+                      )}
+                    </div>
                     {event.description && (
                       <p className="text-sm text-slate-500 mb-3 line-clamp-1">{event.description}</p>
                     )}
@@ -484,7 +517,26 @@ export default function EventsPage() {
                     )}
                     <div className="h-10 w-px bg-slate-100 hidden lg:block" />
                     {/* Action buttons */}
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
+                      {/* On/Off Toggle */}
+                      <button
+                        onClick={(e) => toggleStatus(e, event.id, (event as any).status ?? "active")}
+                        disabled={togglingId === event.id}
+                        title={(event as any).status === "inactive" ? "Aktifkan event" : "Nonaktifkan event"}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all bg-slate-50 hover:bg-slate-100 disabled:opacity-50"
+                      >
+                        <span
+                          className={`relative inline-block w-8 h-4 rounded-full transition-colors duration-200 ${
+                            (event as any).status === "inactive" ? "bg-slate-300" : "bg-emerald-500"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+                              (event as any).status === "inactive" ? "translate-x-0.5" : "translate-x-[1.125rem]"
+                            }`}
+                          />
+                        </span>
+                      </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); openEdit(event); }}
                         title="Edit"
