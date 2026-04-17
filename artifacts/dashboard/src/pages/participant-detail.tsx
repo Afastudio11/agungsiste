@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Link, useParams } from "wouter";
+import { Link, useParams, useLocation } from "wouter";
 import Layout from "@/components/layout";
 import {
   useGetParticipantByNik,
   getGetParticipantByNikQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, MapPin, ImageIcon, Download, FileText, Loader2, Pencil, X, Check } from "lucide-react";
+import { CalendarDays, MapPin, ImageIcon, Download, FileText, Loader2, Pencil, X, Check, Trash2, AlertTriangle } from "lucide-react";
 import jsPDF from "jspdf";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -301,11 +301,15 @@ function buildForm(profile: any): FormState {
 export default function ParticipantDetailPage() {
   const params = useParams();
   const nik = params.nik as string;
+  const [, navigate] = useLocation();
   const [pdfLoading, setPdfLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: profile, isLoading } = useGetParticipantByNik(nik, {
@@ -354,6 +358,28 @@ export default function ParticipantDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`${BASE_URL}/api/participants/${encodeURIComponent(nik)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setDeleteError(data.error ?? "Gagal menghapus data");
+        return;
+      }
+      navigate("/participants");
+    } catch {
+      setDeleteError("Terjadi kesalahan, coba lagi");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleDownloadPDF = async () => {
     if (!profile || pdfLoading) return;
     setPdfLoading(true);
@@ -395,6 +421,13 @@ export default function ParticipantDetailPage() {
             <span className="text-slate-900 font-semibold">{profile.fullName}</span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-red-200 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 hover:border-red-300 transition shadow-sm"
+            >
+              <Trash2 className="h-4 w-4" />
+              Hapus
+            </button>
             <button
               onClick={handleOpenEdit}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition shadow-sm"
@@ -537,6 +570,50 @@ export default function ParticipantDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {deleteConfirm && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => { if (!deleting) { setDeleteConfirm(false); setDeleteError(null); } }} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <div className="font-bold text-slate-900">Hapus Data Peserta</div>
+                  <div className="text-xs text-slate-400 mt-0.5">Tindakan ini tidak bisa dibatalkan</div>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600 mb-1">
+                Semua data <span className="font-bold text-slate-900">{profile.fullName}</span> beserta riwayat event akan terhapus permanen.
+              </p>
+              {deleteError && (
+                <div className="mt-3 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold px-4 py-2.5 rounded-xl">
+                  {deleteError}
+                </div>
+              )}
+              <div className="flex gap-3 mt-5">
+                <button
+                  onClick={() => { setDeleteConfirm(false); setDeleteError(null); }}
+                  disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition"
+                >
+                  {deleting ? <><Loader2 className="h-4 w-4 animate-spin" /> Menghapus...</> : <><Trash2 className="h-4 w-4" /> Hapus Permanen</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Edit Drawer */}
       {editOpen && form && (

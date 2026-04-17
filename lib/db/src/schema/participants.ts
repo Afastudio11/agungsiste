@@ -96,6 +96,17 @@ export const prizeDistributionsTable = pgTable("prize_distributions", {
   notes: text("notes"),
 });
 
+export const adminAuditLogTable = pgTable("admin_audit_log", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => usersTable.id),
+  userName: text("user_name"),
+  action: text("action").notNull(),
+  participantNik: text("participant_nik"),
+  participantName: text("participant_name"),
+  details: text("details"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(usersTable).omit({ id: true, createdAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof usersTable.$inferSelect;

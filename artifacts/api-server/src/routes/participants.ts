@@ -1,12 +1,34 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { participantsTable, eventRegistrationsTable, eventsTable } from "@workspace/db";
+import { participantsTable, eventRegistrationsTable, eventsTable, usersTable, adminAuditLogTable } from "@workspace/db";
 import { eq, sql, and, gte, lte, ilike, or } from "drizzle-orm";
 import {
   ListParticipantsQueryParams,
   GetParticipantByNikParams,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+
+async function getSessionUser(userId: number | undefined) {
+  if (!userId) return null;
+  const [user] = await db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).where(eq(usersTable.id, userId));
+  return user ?? null;
+}
+
+async function logAdminAction(userId: number | undefined, action: string, participantNik: string, participantName: string, details?: object) {
+  try {
+    const user = await getSessionUser(userId);
+    await db.insert(adminAuditLogTable).values({
+      userId: user?.id ?? null,
+      userName: user?.name ?? null,
+      action,
+      participantNik,
+      participantName,
+      details: details ? JSON.stringify(details) : null,
+    });
+  } catch {
+    // log silently
+  }
+}
 
 const router = Router();
 
@@ -116,7 +138,12 @@ router.put("/:nik", requireAuth, async (req, res) => {
 
     if (!fullName) return res.status(400).json({ error: "Nama lengkap diperlukan" });
 
-    const [updated] = await db
+    const [beforeUpdate] = await db
+      .select({ fullName: participantsTable.fullName })
+      .from(participantsTable)
+      .where(eq(participantsTable.id, existing.id));
+
+    await db
       .update(participantsTable)
       .set({
         fullName,
@@ -139,12 +166,46 @@ router.put("/:nik", requireAuth, async (req, res) => {
         socialStatus: socialStatus || null,
         updatedAt: new Date(),
       })
-      .where(eq(participantsTable.id, existing.id))
-      .returning({ nik: participantsTable.nik });
+      .where(eq(participantsTable.id, existing.id));
 
-    res.json({ success: true, nik: updated.nik });
+    await logAdminAction(
+      req.session?.userId as number | undefined,
+      "EDIT_PARTICIPANT",
+      nik,
+      fullName,
+      { oldName: beforeUpdate?.fullName, city, kecamatan, kelurahan }
+    );
+
+    res.json({ success: true, nik });
   } catch (err) {
     req.log.error({ err }, "Error updating participant");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/:nik", requireAuth, async (req, res) => {
+  try {
+    const { nik } = GetParticipantByNikParams.parse({ nik: req.params.nik });
+
+    const [existing] = await db
+      .select({ id: participantsTable.id, fullName: participantsTable.fullName })
+      .from(participantsTable)
+      .where(eq(participantsTable.nik, nik));
+
+    if (!existing) return res.status(404).json({ error: "Peserta tidak ditemukan" });
+
+    await db.delete(participantsTable).where(eq(participantsTable.id, existing.id));
+
+    await logAdminAction(
+      req.session?.userId as number | undefined,
+      "DELETE_PARTICIPANT",
+      nik,
+      existing.fullName
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "Error deleting participant");
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, prizesTable, usersTable } from "@workspace/db";
+import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, prizesTable, usersTable, adminAuditLogTable } from "@workspace/db";
 import { eq, sql, and, gte, lte, ilike } from "drizzle-orm";
 import { GetDashboardStatsQueryParams, GetEventsSummaryQueryParams, GetDailyRegistrationsQueryParams } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
@@ -375,7 +375,8 @@ router.get("/segments", requireAuth, async (req, res) => {
 router.get("/activity-log", requireAuth, async (req, res) => {
   try {
     const limit = Math.min(parseInt((req.query.limit as string) || "100"), 200);
-    const rows = await db
+
+    const regRows = await db
       .select({
         id: eventRegistrationsTable.id,
         staffId: eventRegistrationsTable.staffId,
@@ -386,14 +387,41 @@ router.get("/activity-log", requireAuth, async (req, res) => {
         registeredAt: eventRegistrationsTable.registeredAt,
         checkedInAt: eventRegistrationsTable.checkedInAt,
         registrationType: eventRegistrationsTable.registrationType,
+        action: sql<string | null>`null`,
+        adminName: sql<string | null>`null`,
+        details: sql<string | null>`null`,
+        logType: sql<string>`'registration'`,
       })
       .from(eventRegistrationsTable)
       .innerJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
       .innerJoin(eventsTable, eq(eventRegistrationsTable.eventId, eventsTable.id))
-      .where(sql`${eventRegistrationsTable.staffId} IS NOT NULL`)
-      .orderBy(sql`COALESCE(${eventRegistrationsTable.checkedInAt}, ${eventRegistrationsTable.registeredAt}) DESC`)
-      .limit(limit);
-    res.json(rows);
+      .where(sql`${eventRegistrationsTable.staffId} IS NOT NULL`);
+
+    const auditRows = await db
+      .select({
+        id: adminAuditLogTable.id,
+        staffId: adminAuditLogTable.userId,
+        staffName: sql<string | null>`null`,
+        participantName: adminAuditLogTable.participantName,
+        participantNik: adminAuditLogTable.participantNik,
+        eventName: sql<string | null>`null`,
+        registeredAt: adminAuditLogTable.createdAt,
+        checkedInAt: sql<Date | null>`null`,
+        registrationType: sql<string | null>`null`,
+        action: adminAuditLogTable.action,
+        adminName: adminAuditLogTable.userName,
+        details: adminAuditLogTable.details,
+        logType: sql<string>`'admin'`,
+      })
+      .from(adminAuditLogTable);
+
+    const combined = [...regRows, ...auditRows].sort((a, b) => {
+      const ta = new Date(a.checkedInAt ?? a.registeredAt).getTime();
+      const tb = new Date(b.checkedInAt ?? b.registeredAt).getTime();
+      return tb - ta;
+    }).slice(0, limit);
+
+    res.json(combined);
   } catch (err) {
     req.log.error({ err }, "Error getting activity log");
     res.status(500).json({ error: "Internal server error" });

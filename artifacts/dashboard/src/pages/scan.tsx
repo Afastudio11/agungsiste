@@ -20,6 +20,14 @@ type KtpMeta = {
   engine?: string;
 };
 
+const ALLOWED_KABUPATEN = ["Pacitan", "Trenggalek", "Magetan", "Ponorogo", "Ngawi"];
+
+function isOutsideKabupaten(city: string | null | undefined): boolean {
+  if (!city) return false;
+  const c = city.trim().toLowerCase().replace(/^kab(upaten)?\.?\s*/i, "").replace(/^kota\s*/i, "").trim();
+  return !ALLOWED_KABUPATEN.some((k) => k.toLowerCase() === c || city.toLowerCase().includes(k.toLowerCase()));
+}
+
 type KtpData = {
   nik?: string | null;
   fullName?: string | null;
@@ -440,7 +448,15 @@ export default function ScanPage() {
                     <FieldRow label="RT/RW" value={(editedData.rtRw as string) ?? ""} onChange={(v) => handleField("rtRw", v)} />
                     <FieldRow label="Kelurahan/Desa" value={(editedData.kelurahan as string) ?? ""} onChange={(v) => handleField("kelurahan", v)} />
                     <FieldRow label="Kecamatan" value={(editedData.kecamatan as string) ?? ""} onChange={(v) => handleField("kecamatan", v)} />
-                    <FieldRow label="Kabupaten/Kota" value={(editedData.city as string) ?? ""} onChange={(v) => handleField("city", v)} />
+                    <div className={isOutsideKabupaten(editedData.city) ? "rounded-xl border border-amber-300 bg-amber-50 px-2 -mx-2" : ""}>
+                      <FieldRow label="Kabupaten/Kota" value={(editedData.city as string) ?? ""} onChange={(v) => handleField("city", v)} />
+                      {isOutsideKabupaten(editedData.city) && (
+                        <div className="flex items-start gap-1.5 pb-2 px-1 text-xs text-amber-800 font-semibold">
+                          <span className="text-base leading-none mt-0.5">⚠️</span>
+                          <span>Di luar wilayah 5 kabupaten (Pacitan, Trenggalek, Magetan, Ponorogo, Ngawi) — mohon verifikasi data</span>
+                        </div>
+                      )}
+                    </div>
                     <FieldRow label="Provinsi" value={(editedData.province as string) ?? ""} onChange={(v) => handleField("province", v)} />
 
                     {/* Divider */}

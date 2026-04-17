@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Plus, Trash2, Trophy, MapPin, Briefcase, X, Eye, EyeOff, Activity, Clock, ScanLine, QrCode, ChevronRight } from "lucide-react";
+import { Users, Plus, Trash2, Trophy, MapPin, Briefcase, X, Eye, EyeOff, Activity, Clock, ScanLine, QrCode, ChevronRight, Pencil } from "lucide-react";
 import Layout from "@/components/layout";
 import { useAuth } from "@/lib/auth";
 
@@ -67,12 +67,15 @@ export default function OfficersPage() {
     id: number;
     staffId: number | null;
     staffName: string | null;
-    participantName: string;
-    participantNik: string;
-    eventName: string;
+    participantName: string | null;
+    participantNik: string | null;
+    eventName: string | null;
     registeredAt: string;
     checkedInAt: string | null;
     registrationType: string | null;
+    action: string | null;
+    adminName: string | null;
+    logType: "registration" | "admin";
   }[]>({
     queryKey: ["activity-log"],
     queryFn: () => fetch(`${BASE}/api/dashboard/activity-log`, { credentials: "include" }).then((r) => r.json()),
@@ -407,23 +410,37 @@ export default function OfficersPage() {
           {!activityLoading && activityLog.length > 0 && (
             <div className="divide-y divide-slate-50 max-h-[500px] overflow-y-auto">
               {activityLog.map((item) => {
+                const isAdmin = item.logType === "admin";
                 const isAbsen = !!item.checkedInAt;
                 const timestamp = item.checkedInAt ?? item.registeredAt;
-                const initials = (item.staffName ?? "?").split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+                const displayName = isAdmin ? (item.adminName ?? "Admin") : (item.staffName ?? "—");
+                const initials = displayName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+                const isDelete = item.action === "DELETE_PARTICIPANT";
+
                 return (
-                  <div key={item.id} className="flex items-start gap-4 px-6 py-3.5 hover:bg-slate-50/60 transition-colors">
-                    {/* Staff avatar */}
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 text-[11px] font-extrabold text-blue-700 mt-0.5">
+                  <div key={`${item.logType}-${item.id}`} className={`flex items-start gap-4 px-6 py-3.5 hover:bg-slate-50/60 transition-colors ${isAdmin && isDelete ? "bg-red-50/40" : ""}`}>
+                    {/* Avatar */}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[11px] font-extrabold mt-0.5 ${isAdmin ? (isDelete ? "bg-red-100 text-red-700" : "bg-violet-100 text-violet-700") : "bg-blue-100 text-blue-700"}`}>
                       {initials}
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-slate-900">
-                          {item.staffName ?? "—"}
-                        </span>
-                        {isAbsen && item.registrationType === "onsite" ? (
+                        <span className="text-sm font-bold text-slate-900">{displayName}</span>
+                        {isAdmin ? (
+                          isDelete ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                              <Trash2 className="h-2.5 w-2.5" />
+                              Hapus Data
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                              <Pencil className="h-2.5 w-2.5" />
+                              Edit Data
+                            </span>
+                          )
+                        ) : isAbsen && item.registrationType === "onsite" ? (
                           <>
                             <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                               <QrCode className="h-2.5 w-2.5" />
@@ -447,11 +464,11 @@ export default function OfficersPage() {
                         )}
                       </div>
                       <div className="mt-0.5 text-sm text-slate-700 font-semibold truncate">
-                        {item.participantName}
-                        <span className="ml-2 font-mono text-xs text-slate-400 font-normal">{maskNik(item.participantNik)}</span>
+                        {item.participantName ?? "—"}
+                        {item.participantNik && <span className="ml-2 font-mono text-xs text-slate-400 font-normal">{maskNik(item.participantNik)}</span>}
                       </div>
                       <div className="mt-0.5 text-xs text-slate-400 truncate">
-                        {item.eventName}
+                        {isAdmin ? (isDelete ? "Data peserta dihapus permanen" : "Data peserta diperbarui") : item.eventName}
                       </div>
                     </div>
 
