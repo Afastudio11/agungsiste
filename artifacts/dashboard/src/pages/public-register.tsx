@@ -807,7 +807,13 @@ export default function PublicRegisterPage() {
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5">
                     <span className="text-[14px] font-bold text-slate-800">
                       {ktpData.birthDate
-                        ? new Date(ktpData.birthDate).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+                        ? (() => {
+                            const parts = ktpData.birthDate!.split(/[-/]/);
+                            const d = parts.length === 3
+                              ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]))
+                              : new Date(ktpData.birthDate!);
+                            return isNaN(d.getTime()) ? ktpData.birthDate : d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+                          })()
                         : "—"}
                     </span>
                   </div>
