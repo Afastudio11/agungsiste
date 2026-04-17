@@ -244,19 +244,15 @@ export default function PetugasEventsPage() {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        {item.checkedInAt ? (
+                        {item.checkedInAt && item.registrationType === "onsite" ? (
                           <div className="flex items-center gap-1">
-                            <div className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                              ABSEN
-                            </div>
-                            <div className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                              +KTP
-                            </div>
+                            <div className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">ABSEN</div>
+                            <div className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">+KTP</div>
                           </div>
+                        ) : item.checkedInAt ? (
+                          <div className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">ABSEN</div>
                         ) : (
-                          <div className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                            KTP
-                          </div>
+                          <div className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">KTP</div>
                         )}
                         <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
                           <Clock size={9} />

@@ -364,6 +364,9 @@ export default function ParticipantDetailPage() {
               <InfoRow label="Tanggal Lahir" value={profile.birthDate} />
               <InfoRow label="Jenis Kelamin" value={profile.gender} />
               <InfoRow label="Agama" value={profile.religion} />
+              <InfoRow label="No. HP" value={profile.phone} />
+              <InfoRow label="Email" value={profile.email} />
+              <InfoRow label="Status Sosial" value={profile.socialStatus} />
             </div>
             <div>
               <InfoRow label="Status Perkawinan" value={profile.maritalStatus} />

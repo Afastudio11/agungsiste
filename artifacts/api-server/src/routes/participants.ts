@@ -132,6 +132,9 @@ router.get("/:nik", requireAuth, async (req, res) => {
     res.json({
       nik: participant.nik,
       fullName: participant.fullName,
+      phone: participant.phone,
+      email: participant.email,
+      socialStatus: participant.socialStatus,
       address: participant.address,
       birthPlace: participant.birthPlace,
       birthDate: participant.birthDate,

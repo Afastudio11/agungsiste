@@ -45,6 +45,9 @@ export interface Participant {
 export interface ParticipantProfile {
   nik: string;
   fullName: string;
+  phone?: string | null;
+  email?: string | null;
+  socialStatus?: string | null;
   address?: string | null;
   birthPlace?: string | null;
   birthDate?: string | null;
@@ -53,6 +56,13 @@ export interface ParticipantProfile {
   maritalStatus?: string | null;
   occupation?: string | null;
   nationality?: string | null;
+  rtRw?: string | null;
+  kelurahan?: string | null;
+  kecamatan?: string | null;
+  city?: string | null;
+  province?: string | null;
+  bloodType?: string | null;
+  ktpImagePath?: string | null;
   events: Event[];
 }
 

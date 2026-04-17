@@ -423,7 +423,7 @@ export default function OfficersPage() {
                         <span className="text-sm font-bold text-slate-900">
                           {item.staffName ?? "—"}
                         </span>
-                        {isAbsen ? (
+                        {isAbsen && item.registrationType === "onsite" ? (
                           <>
                             <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                               <QrCode className="h-2.5 w-2.5" />
@@ -434,6 +434,11 @@ export default function OfficersPage() {
                               + KTP
                             </span>
                           </>
+                        ) : isAbsen ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                            <QrCode className="h-2.5 w-2.5" />
+                            Scan Absen
+                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
                             <ScanLine className="h-2.5 w-2.5" />
@@ -519,11 +524,13 @@ export default function OfficersPage() {
                               <div className="text-sm font-bold text-slate-900 truncate">{item.participantName}</div>
                               <div className="text-xs text-slate-400 font-mono mt-0.5">{maskNik(item.participantNik)}</div>
                               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                {isAbsen ? (
+                                {isAbsen && item.registrationType === "onsite" ? (
                                   <>
                                     <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Scan Absen</span>
                                     <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">+ KTP</span>
                                   </>
+                                ) : isAbsen ? (
+                                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Scan Absen</span>
                                 ) : (
                                   <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Scan KTP</span>
                                 )}
