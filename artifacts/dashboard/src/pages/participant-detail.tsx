@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import Layout from "@/components/layout";
 import {
@@ -8,6 +8,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, MapPin, ImageIcon, Download, FileText, Loader2, Pencil, X, Check, Trash2, AlertTriangle } from "@/lib/icons";
 import jsPDF from "jspdf";
+import { kabupatenList, getKecamatanList, getDesaList } from "@workspace/db/jatimWilayah";
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -61,6 +62,83 @@ function FormRow({
           className={inputClass}
         />
       )}
+    </div>
+  );
+}
+
+const selectCls =
+  "w-full text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition disabled:opacity-40 disabled:cursor-not-allowed";
+
+function WilayahSelectFull({
+  city,
+  kecamatan,
+  kelurahan,
+  onChange,
+}: {
+  city: string;
+  kecamatan: string;
+  kelurahan: string;
+  onChange: (field: "city" | "kecamatan" | "kelurahan", val: string) => void;
+}) {
+  const canonKab = useMemo(
+    () => kabupatenList.find((k) => k.toLowerCase() === city.toLowerCase()) ?? "",
+    [city]
+  );
+  const canonKec = useMemo(() => {
+    if (!canonKab) return "";
+    return getKecamatanList(canonKab).find((k) => k.toLowerCase() === kecamatan.toLowerCase()) ?? "";
+  }, [canonKab, kecamatan]);
+
+  const kecList = canonKab ? getKecamatanList(canonKab) : [];
+  const kelList = canonKab && canonKec ? getDesaList(canonKab, canonKec) : [];
+
+  return (
+    <div className="flex flex-col gap-1 py-1">
+      <label className="text-xs font-medium text-slate-400">Wilayah</label>
+      <div className="grid grid-cols-1 gap-2">
+        <div>
+          <label className="block text-[10px] font-bold tracking-[0.08em] text-slate-300 mb-1">Kabupaten / Kota</label>
+          <select
+            value={canonKab}
+            onChange={(e) => {
+              onChange("city", e.target.value);
+              onChange("kecamatan", "");
+              onChange("kelurahan", "");
+            }}
+            className={selectCls}
+          >
+            <option value="">— Pilih Kabupaten/Kota —</option>
+            {kabupatenList.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[10px] font-bold tracking-[0.08em] text-slate-300 mb-1">Kecamatan</label>
+          <select
+            value={canonKec}
+            disabled={!canonKab}
+            onChange={(e) => {
+              onChange("kecamatan", e.target.value);
+              onChange("kelurahan", "");
+            }}
+            className={selectCls}
+          >
+            <option value="">— Pilih Kecamatan —</option>
+            {kecList.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[10px] font-bold tracking-[0.08em] text-slate-300 mb-1">Kelurahan / Desa</label>
+          <select
+            value={kelurahan}
+            disabled={!canonKec}
+            onChange={(e) => onChange("kelurahan", e.target.value)}
+            className={selectCls}
+          >
+            <option value="">— Pilih Kelurahan/Desa —</option>
+            {kelList.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+        </div>
+      </div>
     </div>
   );
 }
@@ -689,9 +767,12 @@ export default function ParticipantDetailPage() {
 
               <div className="text-[10px] font-bold text-slate-400 tracking-wider pt-3 pb-0.5">Alamat</div>
               <FormRow label="RT/RW" name="rtRw" value={form.rtRw} onChange={handleFieldChange} />
-              <FormRow label="Desa/Kel." name="kelurahan" value={form.kelurahan} onChange={handleFieldChange} />
-              <FormRow label="Kecamatan" name="kecamatan" value={form.kecamatan} onChange={handleFieldChange} />
-              <FormRow label="Kabupaten / Kota" name="city" value={form.city} onChange={handleFieldChange} />
+              <WilayahSelectFull
+                city={form.city}
+                kecamatan={form.kecamatan}
+                kelurahan={form.kelurahan}
+                onChange={(field, val) => handleFieldChange(field, val)}
+              />
               <FormRow label="Provinsi" name="province" value={form.province} onChange={handleFieldChange} />
               <FormRow label="Alamat Lengkap" name="address" value={form.address} onChange={handleFieldChange} />
             </div>
