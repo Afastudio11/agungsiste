@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, ElementType } from "react";
 import Layout from "@/components/layout";
-import { Settings, CheckCircle2, LayoutDashboard } from "@/lib/icons";
+import {
+  Settings, CheckCircle2, LayoutDashboard,
+  Calendar, Users, IdentificationBadge, Scan, Gift, MapTrifold,
+} from "@/lib/icons";
 import { useSettings, defaultMenuLabels, type MenuLabels } from "@/lib/settings-context";
 
 function SectionHeader({ icon: Icon, title, desc }: { icon: any; title: string; desc: string }) {
@@ -17,15 +20,15 @@ function SectionHeader({ icon: Icon, title, desc }: { icon: any; title: string; 
   );
 }
 
-const menuItems: { key: keyof MenuLabels; icon: string; defaultLabel: string }[] = [
-  { key: "dashboard",    icon: "dashboard",         defaultLabel: defaultMenuLabels.dashboard },
-  { key: "events",       icon: "event",             defaultLabel: defaultMenuLabels.events },
-  { key: "participants", icon: "group",             defaultLabel: defaultMenuLabels.participants },
-  { key: "officers",     icon: "badge",             defaultLabel: defaultMenuLabels.officers },
-  { key: "scan",         icon: "document_scanner",  defaultLabel: defaultMenuLabels.scan },
-  { key: "prizes",       icon: "card_giftcard",     defaultLabel: defaultMenuLabels.prizes },
-  { key: "pemetaan",     icon: "map",               defaultLabel: defaultMenuLabels.pemetaan },
-  { key: "settings",     icon: "settings",          defaultLabel: defaultMenuLabels.settings },
+const menuItems: { key: keyof MenuLabels; Icon: ElementType; defaultLabel: string }[] = [
+  { key: "dashboard",    Icon: LayoutDashboard,      defaultLabel: defaultMenuLabels.dashboard },
+  { key: "events",       Icon: Calendar,             defaultLabel: defaultMenuLabels.events },
+  { key: "participants", Icon: Users,                defaultLabel: defaultMenuLabels.participants },
+  { key: "officers",     Icon: IdentificationBadge,  defaultLabel: defaultMenuLabels.officers },
+  { key: "scan",         Icon: Scan,                 defaultLabel: defaultMenuLabels.scan },
+  { key: "prizes",       Icon: Gift,                 defaultLabel: defaultMenuLabels.prizes },
+  { key: "pemetaan",     Icon: MapTrifold,           defaultLabel: defaultMenuLabels.pemetaan },
+  { key: "settings",     Icon: Settings,             defaultLabel: defaultMenuLabels.settings },
 ];
 
 export default function SettingsPage() {
@@ -88,15 +91,10 @@ export default function SettingsPage() {
           desc="Ubah label yang tampil di sidebar untuk setiap menu"
         />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {menuItems.map(({ key, icon, defaultLabel }) => (
+          {menuItems.map(({ key, Icon, defaultLabel }) => (
             <div key={key}>
               <label className="flex items-center gap-1.5 text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
-                <span
-                  className="material-symbols-outlined text-[13px] text-slate-300"
-                  style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20" }}
-                >
-                  {icon}
-                </span>
+                <Icon size={13} weight="bold" className="text-slate-300" />
                 {defaultLabel}
               </label>
               <input

@@ -1,45 +1,50 @@
 import { Link, useLocation } from "wouter";
 import { ReactNode, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { useHeaderContext } from "@/lib/header-context";
 import { useSettings } from "@/lib/settings-context";
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  IdentificationBadge,
+  Scan,
+  Gift,
+  MapTrifold,
+  Settings,
+  PlusCircle,
+  LogOut,
+  List,
+  Download,
+  Bell,
+  History,
+} from "@/lib/icons";
+import type { ElementType } from "react";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const adminNavBase = [
-  { href: "/dashboard", key: "dashboard" as const, icon: "dashboard" },
-  { href: "/events",   key: "events"    as const, icon: "event" },
-  { href: "/participants", key: "participants" as const, icon: "group" },
-  { href: "/officers", key: "officers"  as const, icon: "badge" },
-  { href: "/scan",     key: "scan"      as const, icon: "document_scanner" },
-  { href: "/prizes",   key: "prizes"    as const, icon: "card_giftcard" },
-  { href: "/pemetaan", key: "pemetaan"  as const, icon: "map" },
-  { href: "/settings", key: "settings"  as const, icon: "settings" },
+const adminNavBase: { href: string; key: "dashboard"|"events"|"participants"|"officers"|"scan"|"prizes"|"pemetaan"|"settings"; Icon: ElementType }[] = [
+  { href: "/dashboard",    key: "dashboard",    Icon: LayoutDashboard },
+  { href: "/events",       key: "events",       Icon: Calendar },
+  { href: "/participants", key: "participants", Icon: Users },
+  { href: "/officers",     key: "officers",     Icon: IdentificationBadge },
+  { href: "/scan",         key: "scan",         Icon: Scan },
+  { href: "/prizes",       key: "prizes",       Icon: Gift },
+  { href: "/pemetaan",     key: "pemetaan",     Icon: MapTrifold },
+  { href: "/settings",     key: "settings",     Icon: Settings },
 ];
-
-function MsIcon({ name, className, style }: { name: string; className?: string; style?: React.CSSProperties }) {
-  return (
-    <span
-      className={`material-symbols-outlined select-none leading-none ${className ?? ""}`}
-      style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20", ...style }}
-    >
-      {name}
-    </span>
-  );
-}
 
 function NavItem({
   href,
   label,
-  icon,
+  Icon,
   active,
   onClick,
 }: {
   href: string;
   label: string;
-  icon: string;
+  Icon: ElementType;
   active: boolean;
   onClick?: () => void;
 }) {
@@ -53,9 +58,10 @@ function NavItem({
             : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
         }`}
       >
-        <MsIcon
-          name={icon}
-          className={`text-[18px] shrink-0 ${active ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`}
+        <Icon
+          size={18}
+          weight="bold"
+          className={`shrink-0 ${active ? "text-white" : "text-slate-400 group-hover:text-slate-600"}`}
         />
         <span className="truncate">{label}</span>
       </div>
@@ -67,7 +73,6 @@ export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { startDate, endDate, setStartDate, setEndDate } = useHeaderContext();
   const { settings } = useSettings();
 
   const isDashboard = location === "/dashboard";
@@ -96,12 +101,12 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Main nav */}
       <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto pb-2">
-        {adminNav.map(({ href, label, icon }) => (
+        {adminNav.map(({ href, label, Icon }) => (
           <NavItem
             key={href}
             href={href}
             label={label}
-            icon={icon}
+            Icon={Icon}
             active={location === href || location.startsWith(href + "/")}
             onClick={onNav}
           />
@@ -118,7 +123,7 @@ export default function Layout({ children }: LayoutProps) {
             onClick={onNav}
             className="flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2.5 text-[13px] font-bold text-white shadow-sm shadow-blue-300/50 hover:bg-blue-700 transition-colors cursor-pointer mt-1"
           >
-            <MsIcon name="add_circle" className="text-[18px] text-white" />
+            <PlusCircle size={18} weight="bold" className="text-white" />
             New Scan
           </div>
         </Link>
@@ -138,7 +143,7 @@ export default function Layout({ children }: LayoutProps) {
               title="Sign Out"
               className="p-1 rounded-full text-slate-300 hover:text-red-500 hover:bg-red-50 transition"
             >
-              <MsIcon name="logout" className="text-[16px]" />
+              <LogOut size={16} weight="bold" />
             </button>
           </div>
         )}
@@ -175,7 +180,7 @@ export default function Layout({ children }: LayoutProps) {
             onClick={() => setMobileOpen(true)}
             className="md:hidden p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
           >
-            <MsIcon name="menu" className="text-[20px]" />
+            <List size={20} weight="bold" />
           </button>
 
           {/* Page title */}
@@ -188,17 +193,17 @@ export default function Layout({ children }: LayoutProps) {
           {/* Export button — shown on dashboard */}
           {isDashboard && (
             <button className="hidden sm:flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-[12px] font-bold text-white shadow-sm shadow-blue-300/50 hover:bg-blue-700 transition-colors">
-              <MsIcon name="download" className="text-[15px] text-white" />
+              <Download size={15} weight="bold" className="text-white" />
               Export
             </button>
           )}
 
           <div className="flex items-center gap-1">
             <button className="flex items-center justify-center h-8 w-8 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
-              <MsIcon name="notifications" className="text-[20px]" />
+              <Bell size={20} weight="bold" />
             </button>
             <button className="flex items-center justify-center h-8 w-8 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
-              <MsIcon name="history" className="text-[20px]" />
+              <History size={20} weight="bold" />
             </button>
             <div className="w-px h-5 bg-slate-100 mx-1" />
             {user && (
@@ -219,15 +224,16 @@ export default function Layout({ children }: LayoutProps) {
       {/* ── Mobile bottom navigation ──────────────────────────── */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 backdrop-blur-xl border-t border-slate-100 safe-area-bottom">
         <div className="flex items-center justify-around px-2 py-1.5">
-          {adminNav.slice(0, 5).map(({ href, label, icon }) => {
+          {adminNav.slice(0, 5).map(({ href, label, Icon }) => {
             const active = location === href || location.startsWith(href + "/");
             const shortLabel = label.length > 8 ? label.slice(0, 7) + "…" : label;
             return (
               <Link key={href} href={href}>
                 <div className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl min-w-[44px] transition-all cursor-pointer ${active ? "text-blue-600" : "text-slate-400"}`}>
-                  <MsIcon
-                    name={icon}
-                    className={`text-[22px] ${active ? "text-blue-600" : "text-slate-400"}`}
+                  <Icon
+                    size={22}
+                    weight="bold"
+                    className={active ? "text-blue-600" : "text-slate-400"}
                   />
                   <span className={`text-[9px] font-semibold leading-none ${active ? "text-blue-600" : "text-slate-400"}`}>
                     {shortLabel}

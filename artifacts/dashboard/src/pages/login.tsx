@@ -1,17 +1,7 @@
 import { useState, FormEvent } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-
-function MsIcon({ name, className }: { name: string; className?: string }) {
-  return (
-    <span
-      className={`material-symbols-outlined select-none leading-none ${className ?? ""}`}
-      style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
-    >
-      {name}
-    </span>
-  );
-}
+import { User, Lock, Eye, EyeOff, Check, AlertCircle, ArrowRight } from "@/lib/icons";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -106,9 +96,10 @@ export default function LoginPage() {
                 Username
               </label>
               <div className="relative group">
-                <MsIcon
-                  name="person"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] transition-colors group-focus-within:text-blue-600"
+                <User
+                  size={20}
+                  weight="regular"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-blue-600"
                 />
                 <input
                   id="username"
@@ -148,9 +139,10 @@ export default function LoginPage() {
                 Password
               </label>
               <div className="relative group">
-                <MsIcon
-                  name="lock"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] transition-colors group-focus-within:text-blue-600"
+                <Lock
+                  size={20}
+                  weight="regular"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-blue-600"
                 />
                 <input
                   id="password"
@@ -182,7 +174,7 @@ export default function LoginPage() {
                   onClick={() => setShowPw(!showPw)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
                 >
-                  <MsIcon name={showPw ? "visibility_off" : "visibility"} className="text-[20px]" />
+                  {showPw ? <EyeOff size={20} weight="regular" /> : <Eye size={20} weight="regular" />}
                 </button>
               </div>
             </div>
@@ -197,10 +189,10 @@ export default function LoginPage() {
                     onChange={(e) => setRemember(e.target.checked)}
                     className="peer appearance-none w-5 h-5 rounded-md border-2 border-slate-300 checked:bg-blue-600 checked:border-blue-600 transition-all cursor-pointer focus:outline-none"
                   />
-                  <MsIcon
-                    name="check"
-                    className="absolute inset-0 text-white text-[13px] opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center"
-                    style={{ fontVariationSettings: "'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 16" } as React.CSSProperties}
+                  <Check
+                    size={13}
+                    weight="bold"
+                    className="absolute inset-0 text-white opacity-0 peer-checked:opacity-100 transition-opacity m-auto"
                   />
                 </div>
                 <span className="text-[13px] font-medium text-slate-600 group-hover:text-slate-900 transition-colors">
@@ -212,7 +204,7 @@ export default function LoginPage() {
             {/* Error */}
             {error && (
               <div className="flex items-center gap-2.5 bg-red-50 border border-red-100 text-red-700 text-[12px] font-medium rounded-2xl px-4 py-3">
-                <MsIcon name="error" className="text-[16px] text-red-500 shrink-0" />
+                <AlertCircle size={16} weight="bold" className="text-red-500 shrink-0" />
                 {error}
               </div>
             )}
@@ -247,7 +239,7 @@ export default function LoginPage() {
                 ) : (
                   <>
                     <span>Masuk</span>
-                    <MsIcon name="arrow_forward" className="text-[18px] transition-transform group-hover:translate-x-1" />
+                    <ArrowRight size={18} weight="bold" className="transition-transform group-hover:translate-x-1" />
                   </>
                 )}
               </button>

@@ -1,7 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, ElementType } from "react";
 import { Link } from "wouter";
 import Layout from "@/components/layout";
 import { useHeaderContext } from "@/lib/header-context";
+import {
+  Users, Calendar, ClipboardCheck, Gift,
+  TrendingUp, TrendingDown,
+  MapPin, ArrowUp, ArrowSquareOut, Trophy,
+} from "@/lib/icons";
 import {
   useGetDailyRegistrations,
   getGetDailyRegistrationsQueryKey,
@@ -31,30 +36,19 @@ function pctChange(val: number, prev: number) {
 
 const DOW_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
-function MsIcon({ name, className, style }: { name: string; className?: string; style?: React.CSSProperties }) {
-  return (
-    <span
-      className={`material-symbols-outlined select-none leading-none ${className ?? ""}`}
-      style={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20", ...style }}
-    >
-      {name}
-    </span>
-  );
-}
-
 // ─── Bento Stat Card ──────────────────────────────────────────────────────────
 
 function StatCard({
   label,
   value,
-  icon,
+  Icon,
   circleColor,
   iconColor,
   trend,
 }: {
   label: string;
   value: number;
-  icon: string;
+  Icon: ElementType;
   circleColor: string;
   iconColor: string;
   trend?: string | null;
@@ -69,7 +63,7 @@ function StatCard({
 
       <div className="flex items-start justify-between mb-3 relative">
         <p className="text-[10px] font-bold tracking-[0.1em] text-slate-400">{label}</p>
-        <MsIcon name={icon} className={`text-[20px] ${iconColor}`} />
+        <Icon size={20} weight="bold" className={iconColor} />
       </div>
 
       <p
@@ -81,7 +75,7 @@ function StatCard({
 
       {trend !== undefined && trend !== null && (
         <div className={`mt-3 inline-flex items-center gap-1 text-[11px] font-semibold ${up ? "text-emerald-600" : "text-rose-500"}`}>
-          <MsIcon name={up ? "trending_up" : "trending_down"} className="text-[14px]" />
+          {up ? <TrendingUp size={14} weight="bold" /> : <TrendingDown size={14} weight="bold" />}
           {up ? "+" : ""}{trend}% vs minggu lalu
         </div>
       )}
@@ -291,7 +285,7 @@ export default function DashboardPage() {
                 : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"
             }`}
           >
-            <MsIcon name="calendar_today" className="text-[13px]" />
+            <Calendar size={13} weight="bold" />
             Custom
           </button>
 
@@ -325,7 +319,7 @@ export default function DashboardPage() {
                 : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"
             }`}
           >
-            <MsIcon name="location_on" className="text-[14px]" />
+            <MapPin size={14} weight="bold" />
             Daerah
             {(filterKabupaten || filterKecamatan || filterKelurahan) && (
               <span className="ml-0.5 truncate max-w-[80px]">
@@ -389,28 +383,28 @@ export default function DashboardPage() {
         <StatCard
           label="Total Peserta"
           value={stats?.totalParticipants ?? 0}
-          icon="group"
+          Icon={Users}
           circleColor="bg-blue-500"
           iconColor="text-blue-400"
         />
         <StatCard
           label="Total Event"
           value={stats?.totalEvents ?? 0}
-          icon="event"
+          Icon={Calendar}
           circleColor="bg-violet-500"
           iconColor="text-violet-400"
         />
         <StatCard
           label="Total Registrasi"
           value={stats?.totalRegistrations ?? 0}
-          icon="assignment"
+          Icon={ClipboardCheck}
           circleColor="bg-emerald-500"
           iconColor="text-emerald-400"
         />
         <StatCard
           label="Total Hadiah"
           value={stats?.totalPrizesDistributed ?? 0}
-          icon="card_giftcard"
+          Icon={Gift}
           circleColor="bg-purple-500"
           iconColor="text-purple-400"
         />
@@ -430,7 +424,7 @@ export default function DashboardPage() {
                 </span>
                 {recentTrend && (
                   <span className={`flex items-center gap-0.5 text-[12px] font-semibold ${parseFloat(recentTrend) >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                    <MsIcon name="arrow_upward" className="text-[14px]" />
+                    <ArrowUp size={14} weight="bold" />
                     {parseFloat(recentTrend) >= 0 ? "+" : ""}{recentTrend}%
                   </span>
                 )}
@@ -500,7 +494,7 @@ export default function DashboardPage() {
             </div>
             <Link href="/prizes">
               <span className="text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer flex items-center gap-0.5">
-                Kelola <MsIcon name="arrow_outward" className="text-[13px]" />
+                Kelola <ArrowSquareOut size={13} weight="bold" />
               </span>
             </Link>
           </div>
@@ -524,7 +518,7 @@ export default function DashboardPage() {
               );
             }) : (
               <div className="flex flex-col items-center justify-center flex-1 py-8 text-center">
-                <MsIcon name="card_giftcard" className="text-[40px] text-slate-200 mb-2" />
+                <Gift size={40} weight="bold" className="text-slate-200 mb-2" />
                 <p className="text-sm text-slate-300">Belum ada hadiah</p>
               </div>
             )}
@@ -549,7 +543,7 @@ export default function DashboardPage() {
             <Link href="/events">
               <span className="flex items-center gap-1 text-[12px] font-bold text-blue-600 hover:text-blue-700 cursor-pointer">
                 Kelola semua
-                <MsIcon name="arrow_outward" className="text-[14px]" />
+                <ArrowSquareOut size={14} weight="bold" />
               </span>
             </Link>
           </div>
@@ -687,7 +681,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-5 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
           <div className="flex items-center gap-2.5 px-6 py-4 border-b border-slate-50">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100">
-              <MsIcon name="emoji_events" className="text-[18px] text-amber-500" />
+              <Trophy size={18} weight="bold" className="text-amber-500" />
             </div>
             <div>
               <p className="text-[14px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>

@@ -1,6 +1,13 @@
 import React from "react";
 import type { Icon } from "@phosphor-icons/react";
 import {
+  Bell as PhBell,
+  Certificate as PhCertificate,
+  IdentificationBadge as PhIdentificationBadge,
+  List as PhList,
+  Lock as PhLock,
+  MapTrifold as PhMapTrifold,
+  PlusCircle as PhPlusCircle,
   Pulse as PhActivity,
   WarningCircle as PhWarningCircle,
   Warning as PhWarning,
@@ -69,7 +76,10 @@ import {
   Tag as PhTag,
   Trash as PhTrash,
   TrendUp as PhTrendUp,
+  TrendDown as PhTrendDown,
   Trophy as PhTrophy,
+  ArrowSquareOut as PhArrowSquareOut,
+  ArrowUp as PhArrowUp,
   UploadSimple as PhUploadSimple,
   User as PhUser,
   UserCheck as PhUserCheck,
@@ -98,6 +108,13 @@ function ph(PhIcon: Icon, name: string) {
 }
 
 export const Activity         = ph(PhActivity,              "Activity");
+export const Bell             = ph(PhBell,                  "Bell");
+export const Certificate      = ph(PhCertificate,           "Certificate");
+export const IdentificationBadge = ph(PhIdentificationBadge, "IdentificationBadge");
+export const List             = ph(PhList,                  "List");
+export const Lock             = ph(PhLock,                  "Lock");
+export const MapTrifold       = ph(PhMapTrifold,            "MapTrifold");
+export const PlusCircle       = ph(PhPlusCircle,            "PlusCircle");
 export const AlertCircle      = ph(PhWarningCircle,         "AlertCircle");
 export const AlertTriangle    = ph(PhWarning,               "AlertTriangle");
 export const ArrowLeft        = ph(PhArrowLeft,             "ArrowLeft");
@@ -170,7 +187,10 @@ export const Sun              = ph(PhSun,                   "Sun");
 export const Tag              = ph(PhTag,                   "Tag");
 export const Trash2           = ph(PhTrash,                 "Trash2");
 export const TrendingUp       = ph(PhTrendUp,               "TrendingUp");
+export const TrendingDown     = ph(PhTrendDown,             "TrendingDown");
 export const Trophy           = ph(PhTrophy,                "Trophy");
+export const ArrowSquareOut   = ph(PhArrowSquareOut,        "ArrowSquareOut");
+export const ArrowUp          = ph(PhArrowUp,               "ArrowUp");
 export const Upload           = ph(PhUploadSimple,          "Upload");
 export const User             = ph(PhUser,                  "User");
 export const UserCheck        = ph(PhUserCheck,             "UserCheck");
