@@ -299,9 +299,9 @@ export default function OfficersPage() {
               <span className="font-bold text-slate-900">Statistik Input per Petugas</span>
               <span className="ml-auto text-xs font-semibold text-slate-400 bg-slate-50 border border-slate-100 px-3 py-1 rounded-full">7 hari terakhir</span>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-auto max-h-[520px]">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50/80 border-b border-slate-100">
+                <thead className="bg-slate-50/80 border-b border-slate-100 sticky top-0 z-10">
                   <tr>
                     <th className="text-left px-6 py-3.5 text-xs font-bold tracking-[0.07em] text-slate-400">Nama</th>
                     <th className="text-center px-4 py-3.5 text-xs font-bold tracking-[0.07em] text-slate-400">Total Input</th>
