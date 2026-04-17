@@ -5,8 +5,11 @@ import {
   useGetParticipantByNik,
   getGetParticipantByNikQueryKey,
 } from "@workspace/api-client-react";
-import { CalendarDays, MapPin, ImageIcon, Download, FileText, Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { CalendarDays, MapPin, ImageIcon, Download, FileText, Loader2, Pencil, X, Check } from "lucide-react";
 import jsPDF from "jspdf";
+
+const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -17,7 +20,50 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+function FormRow({
+  label,
+  name,
+  value,
+  onChange,
+  type = "text",
+  options,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (name: string, val: string) => void;
+  type?: string;
+  options?: string[];
+}) {
+  const inputClass =
+    "w-full text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition";
+  return (
+    <div className="flex flex-col gap-1 py-1">
+      <label className="text-xs font-medium text-slate-400">{label}</label>
+      {options ? (
+        <select
+          name={name}
+          value={value}
+          onChange={(e) => onChange(name, e.target.value)}
+          className={inputClass}
+        >
+          <option value="">—</option>
+          {options.map((o) => (
+            <option key={o} value={o}>{o}</option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={(e) => onChange(name, e.target.value)}
+          className={inputClass}
+        />
+      )}
+    </div>
+  );
+}
 
 async function fetchImageAsDataUrl(url: string): Promise<string | null> {
   try {
@@ -208,14 +254,105 @@ function KtpImageViewer({ nik }: { nik: string }) {
   );
 }
 
+type FormState = {
+  fullName: string;
+  birthPlace: string;
+  birthDate: string;
+  gender: string;
+  religion: string;
+  maritalStatus: string;
+  occupation: string;
+  nationality: string;
+  rtRw: string;
+  kelurahan: string;
+  kecamatan: string;
+  city: string;
+  province: string;
+  bloodType: string;
+  address: string;
+  phone: string;
+  email: string;
+  socialStatus: string;
+};
+
+function buildForm(profile: any): FormState {
+  return {
+    fullName: profile.fullName ?? "",
+    birthPlace: profile.birthPlace ?? "",
+    birthDate: profile.birthDate ?? "",
+    gender: profile.gender ?? "",
+    religion: profile.religion ?? "",
+    maritalStatus: profile.maritalStatus ?? "",
+    occupation: profile.occupation ?? "",
+    nationality: profile.nationality ?? "",
+    rtRw: profile.rtRw ?? "",
+    kelurahan: profile.kelurahan ?? "",
+    kecamatan: profile.kecamatan ?? "",
+    city: profile.city ?? "",
+    province: profile.province ?? "",
+    bloodType: profile.bloodType ?? "",
+    address: profile.address ?? "",
+    phone: profile.phone ?? "",
+    email: profile.email ?? "",
+    socialStatus: profile.socialStatus ?? "",
+  };
+}
+
 export default function ParticipantDetailPage() {
   const params = useParams();
   const nik = params.nik as string;
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [form, setForm] = useState<FormState | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: profile, isLoading } = useGetParticipantByNik(nik, {
     query: { enabled: !!nik, queryKey: getGetParticipantByNikQueryKey(nik) },
   });
+
+  const handleOpenEdit = () => {
+    if (!profile) return;
+    setForm(buildForm(profile));
+    setSaveError(null);
+    setEditOpen(true);
+  };
+
+  const handleCloseEdit = () => {
+    setEditOpen(false);
+    setForm(null);
+    setSaveError(null);
+  };
+
+  const handleFieldChange = (name: string, val: string) => {
+    setForm((prev) => prev ? { ...prev, [name]: val } : prev);
+  };
+
+  const handleSave = async () => {
+    if (!form || saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`${BASE_URL}/api/participants/${encodeURIComponent(nik)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.error ?? "Gagal menyimpan data");
+        return;
+      }
+      await queryClient.invalidateQueries({ queryKey: getGetParticipantByNikQueryKey(nik) });
+      handleCloseEdit();
+    } catch {
+      setSaveError("Terjadi kesalahan, coba lagi");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDownloadPDF = async () => {
     if (!profile || pdfLoading) return;
@@ -257,16 +394,25 @@ export default function ParticipantDetailPage() {
             <span>/</span>
             <span className="text-slate-900 font-semibold">{profile.fullName}</span>
           </div>
-          <button
-            onClick={handleDownloadPDF}
-            disabled={pdfLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 transition shadow-sm"
-          >
-            {pdfLoading
-              ? <><Loader2 className="h-4 w-4 animate-spin" /> Membuat PDF...</>
-              : <><FileText className="h-4 w-4" /> Download PDF</>
-            }
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleOpenEdit}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition shadow-sm"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit Data
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={pdfLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 transition shadow-sm"
+            >
+              {pdfLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Membuat PDF...</>
+                : <><FileText className="h-4 w-4" /> Download PDF</>
+              }
+            </button>
+          </div>
         </div>
 
         {/* KTP Photo + Summary row */}
@@ -355,7 +501,16 @@ export default function ParticipantDetailPage() {
 
         {/* Full data table */}
         <div className="bg-white rounded-2xl border border-slate-100 p-5">
-          <h2 className="text-xs font-bold text-slate-400 tracking-wider mb-4">Data Lengkap KTP</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-bold text-slate-400 tracking-wider">Data Lengkap KTP</h2>
+            <button
+              onClick={handleOpenEdit}
+              className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
             <div>
               <InfoRow label="NIK" value={profile.nik} />
@@ -382,6 +537,112 @@ export default function ParticipantDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Drawer */}
+      {editOpen && form && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/30 z-40 transition-opacity"
+            onClick={handleCloseEdit}
+          />
+          {/* Drawer */}
+          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div>
+                <div className="text-base font-bold text-slate-900">Edit Data Peserta</div>
+                <div className="text-xs text-slate-400 font-mono mt-0.5">NIK: {nik}</div>
+              </div>
+              <button
+                onClick={handleCloseEdit}
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Form body */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-1">
+              {saveError && (
+                <div className="mb-2 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold px-4 py-2.5 rounded-xl">
+                  {saveError}
+                </div>
+              )}
+
+              <div className="text-[10px] font-bold text-slate-400 tracking-wider pt-1 pb-0.5">Data Pribadi</div>
+              <FormRow label="Nama Lengkap *" name="fullName" value={form.fullName} onChange={handleFieldChange} />
+              <FormRow label="Tempat Lahir" name="birthPlace" value={form.birthPlace} onChange={handleFieldChange} />
+              <FormRow label="Tanggal Lahir" name="birthDate" value={form.birthDate} onChange={handleFieldChange} />
+              <FormRow
+                label="Jenis Kelamin"
+                name="gender"
+                value={form.gender}
+                onChange={handleFieldChange}
+                options={["LAKI-LAKI", "PEREMPUAN"]}
+              />
+              <FormRow
+                label="Agama"
+                name="religion"
+                value={form.religion}
+                onChange={handleFieldChange}
+                options={["ISLAM", "KRISTEN", "KATOLIK", "HINDU", "BUDDHA", "KONGHUCU"]}
+              />
+              <FormRow
+                label="Status Perkawinan"
+                name="maritalStatus"
+                value={form.maritalStatus}
+                onChange={handleFieldChange}
+                options={["BELUM KAWIN", "KAWIN", "CERAI HIDUP", "CERAI MATI"]}
+              />
+              <FormRow label="Pekerjaan" name="occupation" value={form.occupation} onChange={handleFieldChange} />
+              <FormRow label="Kewarganegaraan" name="nationality" value={form.nationality} onChange={handleFieldChange} />
+              <FormRow
+                label="Golongan Darah"
+                name="bloodType"
+                value={form.bloodType}
+                onChange={handleFieldChange}
+                options={["A", "B", "AB", "O", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]}
+              />
+
+              <div className="text-[10px] font-bold text-slate-400 tracking-wider pt-3 pb-0.5">Kontak</div>
+              <FormRow label="No. HP" name="phone" value={form.phone} onChange={handleFieldChange} type="tel" />
+              <FormRow label="Email" name="email" value={form.email} onChange={handleFieldChange} type="email" />
+              <FormRow label="Status Sosial" name="socialStatus" value={form.socialStatus} onChange={handleFieldChange} />
+
+              <div className="text-[10px] font-bold text-slate-400 tracking-wider pt-3 pb-0.5">Alamat</div>
+              <FormRow label="RT/RW" name="rtRw" value={form.rtRw} onChange={handleFieldChange} />
+              <FormRow label="Desa/Kel." name="kelurahan" value={form.kelurahan} onChange={handleFieldChange} />
+              <FormRow label="Kecamatan" name="kecamatan" value={form.kecamatan} onChange={handleFieldChange} />
+              <FormRow label="Kabupaten / Kota" name="city" value={form.city} onChange={handleFieldChange} />
+              <FormRow label="Provinsi" name="province" value={form.province} onChange={handleFieldChange} />
+              <FormRow label="Alamat Lengkap" name="address" value={form.address} onChange={handleFieldChange} />
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-4 border-t border-slate-100 flex items-center gap-3">
+              <button
+                onClick={handleCloseEdit}
+                disabled={saving}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || !form.fullName.trim()}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition"
+              >
+                {saving ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Menyimpan...</>
+                ) : (
+                  <><Check className="h-4 w-4" /> Simpan</>
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </Layout>
   );
 }

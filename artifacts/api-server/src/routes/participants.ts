@@ -97,6 +97,58 @@ router.get("/social-status-categories", requireAuth, async (req, res) => {
   }
 });
 
+router.put("/:nik", requireAuth, async (req, res) => {
+  try {
+    const { nik } = GetParticipantByNikParams.parse({ nik: req.params.nik });
+
+    const [existing] = await db
+      .select({ id: participantsTable.id })
+      .from(participantsTable)
+      .where(eq(participantsTable.nik, nik));
+
+    if (!existing) return res.status(404).json({ error: "Peserta tidak ditemukan" });
+
+    const {
+      fullName, birthPlace, birthDate, gender, religion, maritalStatus,
+      occupation, nationality, rtRw, kelurahan, kecamatan, city, province,
+      bloodType, address, phone, email, socialStatus,
+    } = req.body;
+
+    if (!fullName) return res.status(400).json({ error: "Nama lengkap diperlukan" });
+
+    const [updated] = await db
+      .update(participantsTable)
+      .set({
+        fullName,
+        birthPlace: birthPlace || null,
+        birthDate: birthDate || null,
+        gender: gender || null,
+        religion: religion || null,
+        maritalStatus: maritalStatus || null,
+        occupation: occupation || null,
+        nationality: nationality || null,
+        rtRw: rtRw || null,
+        kelurahan: kelurahan || null,
+        kecamatan: kecamatan || null,
+        city: city || null,
+        province: province || null,
+        bloodType: bloodType || null,
+        address: address || null,
+        phone: phone || null,
+        email: email || null,
+        socialStatus: socialStatus || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(participantsTable.id, existing.id))
+      .returning({ nik: participantsTable.nik });
+
+    res.json({ success: true, nik: updated.nik });
+  } catch (err) {
+    req.log.error({ err }, "Error updating participant");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:nik", requireAuth, async (req, res) => {
   try {
     const { nik } = GetParticipantByNikParams.parse({ nik: req.params.nik });
