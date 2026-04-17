@@ -1,7 +1,7 @@
 import { Router } from "express";
 import crypto from "crypto";
 import { db } from "@workspace/db";
-import { eventsTable, eventRegistrationsTable, participantsTable } from "@workspace/db";
+import { eventsTable, eventRegistrationsTable, participantsTable, usersTable } from "@workspace/db";
 import { eq, sql, and, gte, lte, ilike, or } from "drizzle-orm";
 import {
   CreateEventBody,
@@ -349,9 +349,24 @@ router.post("/:id/rsvp/check", requireAuth, async (req, res) => {
 
     // Mark check-in time (attendance on the day)
     const now = new Date();
+    const rsvpStaffUserId = (req.session as any).userId as number | undefined;
+
+    const rsvpUpdateFields: Record<string, unknown> = { checkedInAt: now };
+
+    if (rsvpStaffUserId && !registration.staffId) {
+      const [rsvpStaffUser] = await db
+        .select({ name: usersTable.name })
+        .from(usersTable)
+        .where(eq(usersTable.id, rsvpStaffUserId));
+      if (rsvpStaffUser) {
+        rsvpUpdateFields.staffId = rsvpStaffUserId;
+        rsvpUpdateFields.staffName = rsvpStaffUser.name;
+      }
+    }
+
     await db
       .update(eventRegistrationsTable)
-      .set({ checkedInAt: now })
+      .set(rsvpUpdateFields as any)
       .where(
         and(
           eq(eventRegistrationsTable.eventId, eventId),
@@ -376,7 +391,7 @@ router.post("/:id/rsvp/check", requireAuth, async (req, res) => {
         phone: registration.phone,
         email: registration.email,
         tags: registration.tags,
-        staffName: registration.staffName,
+        staffName: rsvpUpdateFields.staffName as string ?? registration.staffName,
       },
     });
   } catch (err) {
@@ -465,8 +480,23 @@ router.post("/:id/qr-checkin", requireAuth, async (req, res) => {
     }
 
     const now = new Date();
+    const staffUserId = (req.session as any).userId as number | undefined;
+
+    const updateFields: Record<string, unknown> = { checkedInAt: now };
+
+    if (staffUserId && !registration.staffId) {
+      const [staffUser] = await db
+        .select({ name: usersTable.name })
+        .from(usersTable)
+        .where(eq(usersTable.id, staffUserId));
+      if (staffUser) {
+        updateFields.staffId = staffUserId;
+        updateFields.staffName = staffUser.name;
+      }
+    }
+
     await db.update(eventRegistrationsTable)
-      .set({ checkedInAt: now })
+      .set(updateFields as any)
       .where(eq(eventRegistrationsTable.id, registration.id));
 
     res.json({
