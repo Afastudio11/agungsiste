@@ -130,6 +130,10 @@ export default function PetugasScanPage() {
   }, [canonKab, ktp.kecamatan]);
   const kecList = useMemo(() => canonKab ? getKecamatanList(canonKab) : [], [canonKab]);
   const kelList = useMemo(() => canonKab && canonKec ? getDesaList(canonKab, canonKec) : [], [canonKab, canonKec]);
+  const canonKel = useMemo(
+    () => kelList.find((k) => k.toLowerCase() === (ktp.kelurahan ?? "").toLowerCase()) ?? "",
+    [kelList, ktp.kelurahan]
+  );
 
   const { data: event } = useQuery<EventInfo>({
     queryKey: ["event", eventId],
@@ -489,7 +493,7 @@ export default function PetugasScanPage() {
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-500 mb-1">Kelurahan / Desa</label>
                     <select
-                      value={ktp.kelurahan || ""}
+                      value={canonKel}
                       disabled={!canonKec}
                       onChange={(e) => setKtp({ ...ktp, kelurahan: e.target.value })}
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition disabled:opacity-40 disabled:cursor-not-allowed"
