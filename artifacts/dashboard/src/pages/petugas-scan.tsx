@@ -391,53 +391,6 @@ export default function PetugasScanPage() {
         {/* ── STEP 2: Form ── */}
         {step === "form" && (
           <div className="space-y-3">
-            {/* KTP Preview Card */}
-            <div className="rounded-2xl overflow-hidden shadow-lg">
-              <div className="bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 px-5 pt-5 pb-5">
-                <div className="text-[9px] font-extrabold tracking-[0.22em] text-slate-500 mb-3 uppercase">
-                  Kartu Tanda Penduduk
-                </div>
-
-                {(qw || ocrMeta?.lowConfidence) && (
-                  <div className="flex items-start gap-2 bg-amber-400/15 border border-amber-400/20 text-amber-300 text-[11px] font-semibold px-3 py-2.5 rounded-xl mb-3">
-                    {qw ? qualityMessages[qw].icon : <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />}
-                    <span>
-                      {qw
-                        ? qualityMessages[qw].text
-                        : `Kepercayaan rendah (${ocrMeta?.tesseractScore}%) — periksa dan koreksi data`}
-                    </span>
-                  </div>
-                )}
-
-                <div className="font-mono text-[15px] font-bold tracking-widest text-white/60 mb-1">
-                  {ktp.nik || "—"}
-                </div>
-                <div className="text-[20px] font-extrabold text-white leading-snug mb-4" style={{ letterSpacing: "-0.02em" }}>
-                  {ktp.fullName || "—"}
-                </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  {[
-                    { label: "Tempat/Tgl Lahir", value: [ktp.birthPlace, ktp.birthDate].filter(Boolean).join(", ") },
-                    { label: "Jenis Kelamin", value: ktp.gender },
-                    { label: "Pekerjaan", value: ktp.occupation },
-                    { label: "Gol. Darah", value: ktp.bloodType },
-                  ].map(({ label, value }) => (
-                    <div key={label}>
-                      <div className="text-[9px] text-slate-500 font-bold tracking-wider uppercase mb-0.5">{label}</div>
-                      <div className="text-[12px] font-semibold text-slate-200">{value || "—"}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <button
-                onClick={() => setStep("upload")}
-                className="w-full flex items-center justify-center gap-2 bg-white/8 hover:bg-white/15 text-white/60 hover:text-white/80 text-[12px] font-semibold py-2.5 transition-all bg-slate-900/80"
-              >
-                <RotateCcw size={11} />
-                Scan Ulang KTP
-              </button>
-            </div>
-
             {/* Data KTP */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-50">
