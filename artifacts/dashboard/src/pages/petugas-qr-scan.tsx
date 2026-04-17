@@ -96,20 +96,30 @@ export default function PetugasQrScanPage() {
   const handleRawQr = useCallback(
     (raw: string) => {
       if (processingRef.current) return;
+      processingRef.current = true;
       const parts = raw.split("|");
       if (parts.length === 3 && parts[0] === "KTP-EVENT") {
         const qrEventId = parseInt(parts[1]);
         const nik = parts[2];
         if (qrEventId === eventId && nik) {
-          processingRef.current = true;
           doCheckin(nik);
         } else {
-          processingRef.current = true;
-          setLastResult({ success: false, message: "QR dari event yang berbeda" });
           stopCamera();
+          setLastResult({
+            success: false,
+            message: `QR ini untuk event #${qrEventId}, bukan event ini (#${eventId}). Pastikan scan tiket peserta yang benar.`,
+          });
         }
+      } else {
+        // QR tidak dikenali — beri feedback agar petugas tahu apa yang salah
+        stopCamera();
+        setLastResult({
+          success: false,
+          message: raw.startsWith("http")
+            ? "QR ini berisi URL/tautan, bukan tiket peserta. Scan QR dari tiket peserta (kode KTP-EVENT)."
+            : `Format QR tidak dikenali: "${raw.slice(0, 60)}${raw.length > 60 ? "…" : ""}". Scan QR dari tiket peserta.`,
+        });
       }
-      // silently ignore non-KTP QR codes
     },
     [eventId, doCheckin, stopCamera]
   );
