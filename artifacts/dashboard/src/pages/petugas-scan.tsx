@@ -180,6 +180,7 @@ export default function PetugasScanPage() {
 
   const handleSubmit = async () => {
     if (!ktp.nik || !ktp.fullName) { setError("NIK dan nama lengkap wajib diisi"); return; }
+    if (!phone.trim()) { setError("Nomor telepon wajib diisi"); return; }
     setSubmitting(true);
     setError("");
     try {
@@ -478,9 +479,9 @@ export default function PetugasScanPage() {
                   <Phone size={14} className="text-emerald-600" />
                 </div>
                 <span className="text-[13px] font-extrabold text-slate-900">Kontak</span>
-                <span className="text-[10px] text-slate-400 font-medium ml-1">— opsional</span>
+                <span className="text-[10px] text-red-400 font-bold ml-1">— No. HP wajib</span>
               </div>
-              <FieldInput label="Nomor HP" value={phone} onChange={setPhone} placeholder="+62 8xx xxxx xxxx" />
+              <FieldInput label="Nomor HP *" value={phone} onChange={setPhone} placeholder="+62 8xx xxxx xxxx" />
               <FieldInput label="Email" value={email} onChange={setEmail} placeholder="nama@email.com" />
             </div>
 

@@ -123,8 +123,15 @@ export default function PublicRegisterPage() {
           address: data.participant.address,
           province: data.participant.province,
           city: data.participant.city,
+          kecamatan: data.participant.kecamatan,
+          kelurahan: data.participant.kelurahan,
+          rtRw: data.participant.rtRw,
           birthPlace: data.participant.birthPlace,
           birthDate: data.participant.birthDate,
+          occupation: data.participant.occupation,
+          bloodType: data.participant.bloodType,
+          maritalStatus: data.participant.maritalStatus,
+          religion: data.participant.religion,
         });
         setStep("verify-data");
       } else {
@@ -164,6 +171,8 @@ export default function PublicRegisterPage() {
 
   const handleSubmit = async () => {
     if (!ktpData.nik || !ktpData.fullName || !event) return;
+    if (!phone.trim()) { setErrorMsg("Nomor telepon wajib diisi"); setStep(step === "verify-data" ? "verify-data" : "fill-form"); return; }
+    setErrorMsg("");
     setSubmitting(true);
     try {
       if (capturedImage && !existingParticipant) {
@@ -785,45 +794,71 @@ export default function PublicRegisterPage() {
               </div>
             </div>
 
-            <div className="space-y-3">
-              {/* Nama Lengkap — read-only */}
-              <div>
-                <p className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-2">NAMA LENGKAP</p>
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5">
-                  <span className="text-[14px] font-bold text-slate-800">{ktpData.fullName || "—"}</span>
+            {/* helper to render a read-only info row */}
+            {(() => {
+              const InfoRow = ({ label, value }: { label: string; value?: string | null }) => (
+                <div>
+                  <p className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-1.5">{label}</p>
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3">
+                    <span className="text-[13px] font-bold text-slate-800">{value || "—"}</span>
+                  </div>
                 </div>
-              </div>
+              );
 
-              {/* TTL — read-only */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-2">TEMPAT LAHIR</p>
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5">
-                    <span className="text-[14px] font-bold text-slate-800">{ktpData.birthPlace || "—"}</span>
+              const formattedBirthDate = ktpData.birthDate
+                ? (() => {
+                    const parts = ktpData.birthDate!.split(/[-/]/);
+                    const d = parts.length === 3
+                      ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]))
+                      : new Date(ktpData.birthDate!);
+                    return isNaN(d.getTime()) ? ktpData.birthDate : d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+                  })()
+                : undefined;
+
+              return (
+                <div className="space-y-3">
+                  <InfoRow label="NAMA LENGKAP" value={ktpData.fullName} />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <InfoRow label="JENIS KELAMIN" value={ktpData.gender} />
+                    <InfoRow label="GOL. DARAH" value={ktpData.bloodType} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <InfoRow label="TEMPAT LAHIR" value={ktpData.birthPlace} />
+                    <InfoRow label="TANGGAL LAHIR" value={formattedBirthDate} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <InfoRow label="KOTA/KABUPATEN" value={ktpData.city} />
+                    <InfoRow label="KECAMATAN" value={ktpData.kecamatan} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <InfoRow label="DESA/KEL." value={ktpData.kelurahan} />
+                    <InfoRow label="RT/RW" value={ktpData.rtRw} />
+                  </div>
+
+                  <InfoRow label="PEKERJAAN" value={ktpData.occupation} />
+                  <InfoRow label="ALAMAT" value={ktpData.address} />
+
+                  <div className="border-t border-slate-100 pt-3 space-y-3">
+                    <p className="text-[11px] font-extrabold text-slate-400 tracking-widest">KONTAK</p>
+                    <FormField label="No. Telepon *" value={phone} onChange={setPhone} placeholder="+62 8xx xxxx xxxx" type="tel" />
+                    <FormField label="Email" value={email} onChange={setEmail} placeholder="email@domain.com" type="email" />
+                    {errorMsg && (
+                      <p className="text-[12px] text-red-600 font-semibold flex items-center gap-1.5">
+                        <span>⚠</span> {errorMsg}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div>
-                  <p className="text-[11px] font-extrabold text-slate-400 tracking-widest mb-2">TANGGAL LAHIR</p>
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5">
-                    <span className="text-[14px] font-bold text-slate-800">
-                      {ktpData.birthDate
-                        ? (() => {
-                            const parts = ktpData.birthDate!.split(/[-/]/);
-                            const d = parts.length === 3
-                              ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]))
-                              : new Date(ktpData.birthDate!);
-                            return isNaN(d.getTime()) ? ktpData.birthDate : d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
-                          })()
-                        : "—"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             <button
               onClick={handleSubmit}
-              disabled={submitting || !ktpData.nik || !ktpData.fullName}
+              disabled={submitting || !ktpData.nik || !ktpData.fullName || !phone.trim()}
               className="w-full mt-7 flex items-center justify-center gap-2.5 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-2xl font-extrabold text-[15px] transition shadow-md shadow-blue-500/20 active:scale-[0.98]"
             >
               {submitting ? (
@@ -877,19 +912,28 @@ export default function PublicRegisterPage() {
                 <FormField label="Jenis Kelamin" value={ktpData.gender || ""} onChange={(v) => setKtpData({ ...ktpData, gender: v })} />
                 <FormField label="Kota/Kabupaten" value={ktpData.city || ""} onChange={(v) => setKtpData({ ...ktpData, city: v })} />
               </div>
-              <FormField label="Provinsi" value={ktpData.province || ""} onChange={(v) => setKtpData({ ...ktpData, province: v })} />
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Kecamatan" value={ktpData.kecamatan || ""} onChange={(v) => setKtpData({ ...ktpData, kecamatan: v })} />
+                <FormField label="Desa/Kel." value={ktpData.kelurahan || ""} onChange={(v) => setKtpData({ ...ktpData, kelurahan: v })} />
+              </div>
+              <FormField label="Pekerjaan" value={ktpData.occupation || ""} onChange={(v) => setKtpData({ ...ktpData, occupation: v })} />
               <FormField label="Alamat" value={ktpData.address || ""} onChange={(v) => setKtpData({ ...ktpData, address: v })} />
 
               <div className="border-t border-slate-100 pt-4 space-y-4">
-                <p className="text-[11px] font-extrabold text-slate-400 tracking-widest">KONTAK (OPSIONAL)</p>
-                <FormField label="No. Telepon" value={phone} onChange={setPhone} placeholder="+62 8xx xxxx xxxx" type="tel" />
+                <p className="text-[11px] font-extrabold text-slate-400 tracking-widest">KONTAK</p>
+                <FormField label="No. Telepon *" value={phone} onChange={setPhone} placeholder="+62 8xx xxxx xxxx" type="tel" />
                 <FormField label="Email" value={email} onChange={setEmail} placeholder="email@domain.com" type="email" />
+                {errorMsg && (
+                  <p className="text-[12px] text-red-600 font-semibold flex items-center gap-1.5">
+                    <span>⚠</span> {errorMsg}
+                  </p>
+                )}
               </div>
             </div>
 
             <button
               onClick={handleSubmit}
-              disabled={submitting || !ktpData.nik || !ktpData.fullName}
+              disabled={submitting || !ktpData.nik || !ktpData.fullName || !phone.trim()}
               className="w-full mt-6 flex items-center justify-center gap-2.5 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-2xl font-extrabold text-[15px] transition shadow-md shadow-blue-500/20 active:scale-[0.98]"
             >
               {submitting ? (

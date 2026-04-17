@@ -596,8 +596,15 @@ router.post("/public/check-nik", async (req, res) => {
         address: participant.address,
         province: participant.province,
         city: participant.city,
+        kecamatan: participant.kecamatan,
+        kelurahan: participant.kelurahan,
+        rtRw: participant.rtRw,
         birthPlace: participant.birthPlace,
         birthDate: participant.birthDate,
+        occupation: participant.occupation,
+        bloodType: participant.bloodType,
+        maritalStatus: participant.maritalStatus,
+        religion: participant.religion,
       },
     });
   } catch (err) {
