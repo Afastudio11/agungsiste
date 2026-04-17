@@ -6,7 +6,7 @@ import {
   ListParticipantsQueryParams,
   GetParticipantByNikParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireAdmin } from "../middlewares/auth";
 
 async function getSessionUser(userId: number | undefined) {
   if (!userId) return null;
@@ -119,7 +119,7 @@ router.get("/social-status-categories", requireAuth, async (req, res) => {
   }
 });
 
-router.put("/:nik", requireAuth, async (req, res) => {
+router.put("/:nik", requireAdmin, async (req, res) => {
   try {
     const { nik } = GetParticipantByNikParams.parse({ nik: req.params.nik });
 
@@ -183,7 +183,7 @@ router.put("/:nik", requireAuth, async (req, res) => {
   }
 });
 
-router.delete("/:nik", requireAuth, async (req, res) => {
+router.delete("/:nik", requireAdmin, async (req, res) => {
   try {
     const { nik } = GetParticipantByNikParams.parse({ nik: req.params.nik });
 

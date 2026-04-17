@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { prizesTable, prizeDistributionsTable, participantsTable, eventsTable, eventRegistrationsTable } from "@workspace/db";
 import { eq, sql, and, or, ilike } from "drizzle-orm";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireAdmin } from "../middlewares/auth";
 
 const router = Router();
 
@@ -40,7 +40,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAdmin, async (req, res) => {
   try {
     const { eventId, name, description, quantity } = req.body;
     if (!name) return res.status(400).json({ error: "name is required" });
@@ -59,7 +59,7 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-router.put("/:id", requireAuth, async (req, res) => {
+router.put("/:id", requireAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { name, description, quantity } = req.body;
@@ -81,7 +81,7 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.delete("/:id", requireAuth, async (req, res) => {
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await db.delete(prizesTable).where(eq(prizesTable.id, id));
@@ -222,7 +222,7 @@ router.get("/:id/distributions", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/:id/distribute", requireAuth, async (req, res) => {
+router.post("/:id/distribute", requireAdmin, async (req, res) => {
   try {
     const prizeId = parseInt(req.params.id);
     const { participantId, distributedBy, notes } = req.body;

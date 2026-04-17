@@ -3,11 +3,11 @@ import bcrypt from "bcryptjs";
 import { db } from "@workspace/db";
 import { usersTable, eventRegistrationsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { requireAuth } from "../middlewares/auth";
+import { requireAdmin } from "../middlewares/auth";
 
 const router = Router();
 
-router.get("/", requireAuth, async (_req, res) => {
+router.get("/", requireAdmin, async (_req, res) => {
   try {
     const users = await db
       .select({
@@ -34,7 +34,7 @@ router.get("/", requireAuth, async (_req, res) => {
   }
 });
 
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAdmin, async (req, res) => {
   try {
     const { username, password, role, name, jabatan, wilayah, phone, notes } = req.body as {
       username: string; password: string; role: string; name: string;
@@ -57,7 +57,7 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-router.put("/:id", requireAuth, async (req, res) => {
+router.put("/:id", requireAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { password, role, name, jabatan, wilayah, phone, notes } = req.body as {
@@ -81,7 +81,7 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.delete("/:id", requireAuth, async (req, res) => {
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     await db.delete(usersTable).where(eq(usersTable.id, id));

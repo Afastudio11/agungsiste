@@ -13,7 +13,7 @@ import {
   ListEventParticipantsParams,
   ListEventParticipantsQueryParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, requireAdmin } from "../middlewares/auth";
 import QRCode from "qrcode";
 
 const router = Router();
@@ -59,7 +59,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAdmin, async (req, res) => {
   try {
     const body = CreateEventBody.parse(req.body);
     const [event] = await db.insert(eventsTable).values(body).returning();
@@ -104,7 +104,7 @@ router.get("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.put("/:id", requireAuth, async (req, res) => {
+router.put("/:id", requireAdmin, async (req, res) => {
   try {
     const { id } = UpdateEventParams.parse({ id: parseInt(req.params.id) });
     const body = UpdateEventBody.parse(req.body);
@@ -118,7 +118,7 @@ router.put("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.delete("/:id", requireAuth, async (req, res) => {
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     const { id } = DeleteEventParams.parse({ id: parseInt(req.params.id) });
     await db.delete(eventsTable).where(eq(eventsTable.id, id));
@@ -213,7 +213,7 @@ router.get("/:id/rsvp", requireAuth, async (req, res) => {
 });
 
 // RSVP: Bulk import pre-registered participants
-router.post("/:id/rsvp/import", requireAuth, async (req, res) => {
+router.post("/:id/rsvp/import", requireAdmin, async (req, res) => {
   try {
     const eventId = parseInt(req.params.id);
     const { participants: rows } = req.body as {
@@ -281,7 +281,7 @@ router.post("/:id/rsvp/import", requireAuth, async (req, res) => {
 });
 
 // RSVP: Delete a pre-registered participant by NIK
-router.delete("/:id/rsvp/:nik", requireAuth, async (req, res) => {
+router.delete("/:id/rsvp/:nik", requireAdmin, async (req, res) => {
   try {
     const eventId = parseInt(req.params.id);
     const nik = req.params.nik.trim();
@@ -400,7 +400,7 @@ router.post("/:id/rsvp/check", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/:id/generate-tokens", requireAuth, async (req, res) => {
+router.post("/:id/generate-tokens", requireAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { type } = req.body;

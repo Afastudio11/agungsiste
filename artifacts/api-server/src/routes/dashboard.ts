@@ -3,11 +3,11 @@ import { db } from "@workspace/db";
 import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, prizesTable, usersTable, adminAuditLogTable } from "@workspace/db";
 import { eq, sql, and, gte, lte, ilike } from "drizzle-orm";
 import { GetDashboardStatsQueryParams, GetEventsSummaryQueryParams, GetDailyRegistrationsQueryParams } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/auth";
+import { requireAdmin } from "../middlewares/auth";
 
 const router = Router();
 
-router.get("/stats", requireAuth, async (req, res) => {
+router.get("/stats", requireAdmin, async (req, res) => {
   try {
     const query = GetDashboardStatsQueryParams.safeParse(req.query);
     const { startDate, endDate } = query.success ? query.data : {};
@@ -102,7 +102,7 @@ router.get("/stats", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/events-summary", requireAuth, async (req, res) => {
+router.get("/events-summary", requireAdmin, async (req, res) => {
   try {
     const query = GetEventsSummaryQueryParams.safeParse(req.query);
     const { startDate, endDate } = query.success ? query.data : {};
@@ -136,7 +136,7 @@ router.get("/events-summary", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/daily-registrations", requireAuth, async (req, res) => {
+router.get("/daily-registrations", requireAdmin, async (req, res) => {
   try {
     const query = GetDailyRegistrationsQueryParams.safeParse(req.query);
     const { startDate, endDate } = query.success ? query.data : {};
@@ -162,7 +162,7 @@ router.get("/daily-registrations", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/multi-event-participants", requireAuth, async (req, res) => {
+router.get("/multi-event-participants", requireAdmin, async (req, res) => {
   try {
     const result = await db
       .select({
@@ -196,7 +196,7 @@ router.get("/multi-event-participants", requireAuth, async (req, res) => {
 });
 
 // Top prizes by distributed count
-router.get("/top-prizes", requireAuth, async (req, res) => {
+router.get("/top-prizes", requireAdmin, async (req, res) => {
   try {
     const data = await db
       .select({
@@ -218,7 +218,7 @@ router.get("/top-prizes", requireAuth, async (req, res) => {
 });
 
 // All staff with detailed stats
-router.get("/staff", requireAuth, async (req, res) => {
+router.get("/staff", requireAdmin, async (req, res) => {
   try {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -268,7 +268,7 @@ router.get("/staff", requireAuth, async (req, res) => {
 });
 
 // Top staff by registration count
-router.get("/top-staff", requireAuth, async (req, res) => {
+router.get("/top-staff", requireAdmin, async (req, res) => {
   try {
     const { startDate, endDate, kabupaten, kecamatan, kelurahan } = req.query as Record<string, string>;
 
@@ -304,7 +304,7 @@ router.get("/top-staff", requireAuth, async (req, res) => {
 });
 
 // New: gender + province breakdown
-router.get("/segments", requireAuth, async (req, res) => {
+router.get("/segments", requireAdmin, async (req, res) => {
   try {
     const { startDate, endDate, kabupaten, kecamatan, kelurahan } = req.query as Record<string, string>;
     const needsDateOrDaerah = startDate || endDate || kabupaten || kecamatan || kelurahan;
@@ -372,7 +372,7 @@ router.get("/segments", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/activity-log", requireAuth, async (req, res) => {
+router.get("/activity-log", requireAdmin, async (req, res) => {
   try {
     const limit = Math.min(parseInt((req.query.limit as string) || "100"), 200);
 

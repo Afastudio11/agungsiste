@@ -31,17 +31,45 @@ app.use(
   }),
 );
 
-app.use(cors({ credentials: true, origin: true }));
+const isProduction = process.env.NODE_ENV === "production";
+
+app.use(
+  cors({
+    credentials: true,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const allowed =
+        !isProduction ||
+        origin.includes(".replit.dev") ||
+        origin.includes(".repl.co") ||
+        origin.includes(".replit.app") ||
+        origin.includes("localhost");
+      if (allowed) return callback(null, true);
+      callback(new Error("Not allowed by CORS"));
+    },
+  }),
+);
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret && isProduction) {
+  throw new Error("SESSION_SECRET environment variable is required in production");
+}
 
 app.use(
   session({
     store: new PgStore({ pool, createTableIfMissing: true }),
-    secret: process.env.SESSION_SECRET || "fallback-secret-change-me",
+    secret: sessionSecret || "dev-fallback-secret-not-for-production",
     resave: false,
     saveUninitialized: false,
-    cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: "lax" },
+    cookie: {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: "lax",
+      secure: isProduction,
+    },
   })
 );
 
