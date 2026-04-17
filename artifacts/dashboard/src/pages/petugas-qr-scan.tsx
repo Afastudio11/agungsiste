@@ -6,7 +6,7 @@ import {
   RefreshCw, UserCheck, Clock, Scan, XCircle, Keyboard, Camera
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { Html5Qrcode } from "html5-qrcode";
+import jsQR from "jsqr";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -33,9 +33,11 @@ export default function PetugasQrScanPage() {
   const [, navigate] = useLocation();
   const { user: _user } = useAuth();
 
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
   const processingRef = useRef(false);
-  const READER_ID = `qr-reader-${eventId}`;
 
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState("");
@@ -53,24 +55,17 @@ export default function PetugasQrScanPage() {
     enabled: eventId > 0,
   });
 
-  const stopCamera = useCallback(async () => {
-    const s = scannerRef.current;
-    if (s) {
-      try {
-        if (s.isScanning) await s.stop();
-        s.clear();
-      } catch { /* ignore */ }
-      scannerRef.current = null;
-    }
+  const stopCamera = useCallback(() => {
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
+    if (videoRef.current) { videoRef.current.srcObject = null; }
     setScanning(false);
   }, []);
 
   const doCheckin = useCallback(
     async (nik: string) => {
-      if (submitting || processingRef.current) return;
-      processingRef.current = true;
       setSubmitting(true);
-      await stopCamera();
+      stopCamera();
       try {
         const r = await fetch(`${BASE}/api/events/${eventId}/qr-checkin`, {
           method: "POST",
@@ -91,7 +86,7 @@ export default function PetugasQrScanPage() {
         setSubmitting(false);
       }
     },
-    [eventId, submitting, stopCamera]
+    [eventId, stopCamera]
   );
 
   const handleRawQr = useCallback(
@@ -113,7 +108,6 @@ export default function PetugasQrScanPage() {
           });
         }
       } else {
-        // QR tidak dikenali — beri feedback agar petugas tahu apa yang salah
         stopCamera();
         setLastResult({
           success: false,
@@ -127,41 +121,79 @@ export default function PetugasQrScanPage() {
   );
 
   const startCamera = useCallback(async () => {
-    if (scannerRef.current) return; // already running
+    if (streamRef.current) return;
     setCameraError("");
     setLastResult(null);
     setLastRaw(null);
     processingRef.current = false;
 
-    // Ensure the target div exists in DOM before creating scanner
-    await new Promise<void>((res) => setTimeout(res, 50));
-
-    const el = document.getElementById(READER_ID);
-    if (!el) { setCameraError("Komponen kamera tidak ditemukan, coba muat ulang."); return; }
-
     try {
-      const scanner = new Html5Qrcode(READER_ID, { verbose: false } as any);
-      scannerRef.current = scanner;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
 
-      await scanner.start(
-        { facingMode: "environment" },
-        { fps: 15 },
-        (decodedText: string) => {
-          if (!processingRef.current) handleRawQr(decodedText);
-        },
-        undefined
-      );
+      const video = videoRef.current;
+      if (!video) { stream.getTracks().forEach((t) => t.stop()); return; }
+      video.srcObject = stream;
+      await video.play();
       setScanning(true);
-    } catch (err: any) {
-      scannerRef.current = null;
-      const msg = String(err?.message || err || "");
+
+      // Try native BarcodeDetector first (Android Chrome, desktop Chrome 88+)
+      const hasBarcodeDetector = "BarcodeDetector" in window;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const detector = hasBarcodeDetector ? new (window as any).BarcodeDetector({ formats: ["qr_code"] }) : null;
+
+      const canvas = canvasRef.current!;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+
+      const tick = async () => {
+        if (!streamRef.current || processingRef.current) return;
+        if (video.readyState < video.HAVE_ENOUGH_DATA) {
+          rafRef.current = requestAnimationFrame(tick);
+          return;
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        let decoded: string | null = null;
+
+        if (detector) {
+          try {
+            const codes = await detector.detect(video);
+            if (codes.length > 0) decoded = codes[0].rawValue;
+          } catch { /* ignore */ }
+        }
+
+        if (!decoded) {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const result = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+          });
+          if (result) decoded = result.data;
+        }
+
+        if (decoded && !processingRef.current) {
+          handleRawQr(decoded);
+          return;
+        }
+
+        rafRef.current = requestAnimationFrame(tick);
+      };
+
+      rafRef.current = requestAnimationFrame(tick);
+    } catch (err: unknown) {
+      const msg = String((err as Error)?.message || err || "");
       setCameraError(
         msg.toLowerCase().includes("notallowed") || msg.toLowerCase().includes("permission")
           ? "Izin kamera ditolak. Mohon izinkan akses kamera di browser."
           : "Tidak dapat mengakses kamera. Coba muat ulang halaman."
       );
     }
-  }, [handleRawQr, READER_ID]);
+  }, [handleRawQr]);
 
   useEffect(() => {
     if (!manualMode) startCamera();
@@ -196,20 +228,8 @@ export default function PetugasQrScanPage() {
   return (
     <div className="min-h-screen bg-slate-50 pb-8" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
 
-      {/* CSS to style the video injected by html5-qrcode */}
-      <style>{`
-        #${READER_ID} video {
-          width: 100% !important;
-          height: 100% !important;
-          object-fit: cover !important;
-          display: block !important;
-          border-radius: 0;
-        }
-        #${READER_ID} img { display: none !important; }
-        #${READER_ID} button { display: none !important; }
-        #${READER_ID} select { display: none !important; }
-        #${READER_ID} #qr-shaded-region { opacity: 0 !important; }
-      `}</style>
+      {/* Hidden canvas for jsQR processing */}
+      <canvas ref={canvasRef} style={{ display: "none" }} />
 
       {/* ── Top Bar ─────────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
@@ -284,9 +304,15 @@ export default function PetugasQrScanPage() {
             {/* ── Camera mode ── */}
             {!manualMode && (
               <>
-                {/* html5-qrcode injects video into this div */}
+                {/* Video element — direct camera feed */}
                 <div className="relative bg-slate-900 mx-4 mb-4 rounded-2xl overflow-hidden" style={{ aspectRatio: "4/3" }}>
-                  <div id={READER_ID} className="w-full h-full" />
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
 
                   {/* Corner brackets overlay */}
                   {scanning && (
