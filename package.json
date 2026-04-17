@@ -10,10 +10,22 @@
   },
   "private": true,
   "pnpm": {
-    "onlyBuiltDependencies": ["sharp", "tesseract.js", "@clerk/shared"]
+    "onlyBuiltDependencies": [
+      "sharp",
+      "tesseract.js",
+      "@clerk/shared",
+      "esbuild",
+      "protobufjs",
+      "@swc/core",
+      "msw",
+      "unrs-resolver"
+    ]
   },
   "devDependencies": {
-    "typescript": "~5.9.2",
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.2"
+  },
+  "dependencies": {
+    "esbuild": "0.27.3"
   }
 }

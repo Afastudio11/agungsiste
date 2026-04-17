@@ -1,1 +1,1 @@
-{"onlyBuiltDependencies":["sharp","tesseract.js","@clerk/shared"]}
+{"onlyBuiltDependencies":["sharp","tesseract.js","@clerk/shared","esbuild","protobufjs"]}

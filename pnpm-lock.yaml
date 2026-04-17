@@ -156,6 +156,10 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      esbuild:
+        specifier: 0.27.3
+        version: 0.27.3
     devDependencies:
       prettier:
         specifier: ^3.8.1
