@@ -68,6 +68,7 @@ export default function PetugasEventsPage() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
+  const [showRiwayat, setShowRiwayat] = useState(false);
 
   const { data: events = [], isLoading } = useQuery<Event[]>({
     queryKey: ["events-active"],
@@ -135,13 +136,130 @@ export default function PetugasEventsPage() {
             )}
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors p-2 rounded-xl hover:bg-red-50"
-        >
-          <LogOut size={16} />
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Riwayat button */}
+          <button
+            onClick={() => setShowRiwayat(true)}
+            className="relative flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-blue-600 transition-colors p-2 rounded-xl hover:bg-blue-50"
+          >
+            <History size={16} />
+            {scanHistory.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-blue-600 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center px-1">
+                {scanHistory.length > 99 ? "99+" : scanHistory.length}
+              </span>
+            )}
+          </button>
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors p-2 rounded-xl hover:bg-red-50"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
       </nav>
+
+      {/* ── Riwayat Bottom Sheet ─────────────────────────────────────── */}
+      {showRiwayat && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+            onClick={() => setShowRiwayat(false)}
+          />
+          {/* Panel */}
+          <div className="relative bg-white rounded-t-3xl max-h-[82vh] flex flex-col shadow-2xl">
+            {/* Handle + Header */}
+            <div className="px-5 pt-4 pb-3 border-b border-slate-100 shrink-0">
+              <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
+              <div className="flex items-center justify-between">
+                <h2 className="text-[14px] font-extrabold text-slate-900 flex items-center gap-2">
+                  <History size={15} className="text-blue-500" />
+                  Riwayat Scan Saya
+                </h2>
+                {scanHistory.length > 0 && (
+                  <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                    {scanHistory.length} entri
+                  </span>
+                )}
+              </div>
+            </div>
+            {/* Scrollable list */}
+            <div className="overflow-y-auto flex-1 p-4 space-y-2">
+              {historyLoading && (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-slate-50 rounded-2xl p-4 animate-pulse">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-slate-200 shrink-0" />
+                        <div className="flex-1">
+                          <div className="h-3.5 bg-slate-200 rounded-lg mb-2 w-2/3" />
+                          <div className="h-3 bg-slate-200 rounded-lg w-1/2" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!historyLoading && scanHistory.length === 0 && (
+                <div className="py-16 text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                    <ScanLine size={28} className="text-slate-300" />
+                  </div>
+                  <div className="text-sm font-bold text-slate-400">Belum ada riwayat</div>
+                  <div className="text-xs text-slate-300 mt-1">Scan KTP atau absen peserta untuk memulai</div>
+                </div>
+              )}
+              {!historyLoading && scanHistory.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden divide-y divide-slate-50">
+                  {scanHistory.map((item, idx) => (
+                    <div key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
+                      <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                        <span className="text-[11px] font-extrabold text-blue-600">{idx + 1}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-extrabold text-slate-900 truncate leading-snug">
+                          {item.participantName}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-[11px] text-slate-400 font-mono tracking-wide">
+                            {maskNik(item.participantNik)}
+                          </span>
+                          {(item.participantCity || item.participantKecamatan) && (
+                            <span className="text-[10px] font-semibold text-slate-400">
+                              · {[item.participantKecamatan, item.participantCity].filter(Boolean).join(", ")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className="flex items-center gap-1 text-[10px] text-blue-500 font-semibold bg-blue-50 px-2 py-0.5 rounded-full max-w-[200px] truncate">
+                            <ChevronRight size={9} className="shrink-0" />
+                            <span className="truncate">{item.eventName}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <div className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                          item.checkedInAt
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {item.checkedInAt ? "ABSEN" : "KTP"}
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                          <Clock size={9} />
+                          {formatRelTime(item.checkedInAt ?? item.registeredAt)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="h-4" />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
 
@@ -384,99 +502,6 @@ export default function PetugasEventsPage() {
               );
             })}
           </div>
-        </div>
-
-        {/* ── Riwayat Scan KTP ─────────────────────────────────────── */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-extrabold text-slate-700 tracking-wide flex items-center gap-2">
-              <History size={14} className="text-blue-500" />
-              RIWAYAT SCAN KTP SAYA
-            </h2>
-            {scanHistory.length > 0 && (
-              <div className="text-xs font-bold text-slate-400">
-                {scanHistory.length} entri
-              </div>
-            )}
-          </div>
-
-          {historyLoading && (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 animate-pulse">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-slate-100 shrink-0" />
-                    <div className="flex-1">
-                      <div className="h-3.5 bg-slate-100 rounded-lg mb-2 w-2/3" />
-                      <div className="h-3 bg-slate-100 rounded-lg w-1/2" />
-                    </div>
-                    <div className="h-3 w-14 bg-slate-100 rounded" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!historyLoading && scanHistory.length === 0 && (
-            <div className="bg-white rounded-2xl border border-slate-100 py-12 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-                <ScanLine size={24} className="text-slate-300" />
-              </div>
-              <div className="text-sm font-bold text-slate-400">Belum ada scan KTP</div>
-              <div className="text-xs text-slate-300 mt-1">Scan KTP peserta untuk mulai merekam riwayat</div>
-            </div>
-          )}
-
-          {!historyLoading && scanHistory.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
-              {scanHistory.map((item, idx) => (
-                <div key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
-                  {/* Index circle */}
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                    <span className="text-[11px] font-extrabold text-blue-600">{idx + 1}</span>
-                  </div>
-
-                  {/* Main info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-extrabold text-slate-900 truncate leading-snug">
-                      {item.participantName}
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-[11px] text-slate-400 font-mono tracking-wide">
-                        {maskNik(item.participantNik)}
-                      </span>
-                      {(item.participantCity || item.participantKecamatan) && (
-                        <span className="text-[10px] font-semibold text-slate-400">
-                          · {[item.participantKecamatan, item.participantCity].filter(Boolean).join(", ")}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className="flex items-center gap-1 text-[10px] text-blue-500 font-semibold bg-blue-50 px-2 py-0.5 rounded-full max-w-[200px] truncate">
-                        <ChevronRight size={9} className="shrink-0" />
-                        <span className="truncate">{item.eventName}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Type badge + Time */}
-                  <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <div className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
-                      item.checkedInAt
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-blue-100 text-blue-700"
-                    }`}>
-                      {item.checkedInAt ? "ABSEN" : "KTP"}
-                    </div>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
-                      <Clock size={9} />
-                      {formatRelTime(item.checkedInAt ?? item.registeredAt)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Bottom spacer */}
