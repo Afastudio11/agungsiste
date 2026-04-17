@@ -24,15 +24,13 @@ const _objectStorage = new ObjectStorageService();
 const _gemini = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
-const TESSDATA_DIR = path.resolve(_thisDir, "..", "tessdata");
 
+const TESSDATA_DIR = path.resolve(_thisDir, "..", "tessdata");
 const router = Router();
 
 type TessWorker = Awaited<ReturnType<typeof createWorker>>;
-
 const workers: Record<string, TessWorker | null> = { a: null, b: null, c: null, d: null };
 const workerInits: Record<string, Promise<TessWorker> | null> = { a: null, b: null, c: null, d: null };
-
 function initWorker(key: string, langs: string[] = ["ind", "eng"]): Promise<TessWorker> {
   if (workers[key]) return Promise.resolve(workers[key]!);
   if (workerInits[key]) return workerInits[key]!;
@@ -44,13 +42,24 @@ function initWorker(key: string, langs: string[] = ["ind", "eng"]): Promise<Tess
     .catch(err => { workerInits[key] = null; throw err; });
   return workerInits[key]!;
 }
-
-initWorker("a").catch(() => {});
-initWorker("b").catch(() => {});
-initWorker("c").catch(() => {});
-initWorker("d").catch(() => {});
-
 let _scanChain: Promise<unknown> = Promise.resolve();
+
+function filterByConfidence(words: Word[] | undefined, rawText: string, minConf = 5): string {
+  if (!words?.length) return rawText;
+  const lineMap = new Map<number, string[]>();
+  for (const word of words) {
+    if (word.confidence < minConf || !word.text.trim()) continue;
+    if (word.text.trim().length < 1) continue;
+    const lineKey = Math.round(word.bbox.y0 / 12);
+    if (!lineMap.has(lineKey)) lineMap.set(lineKey, []);
+    lineMap.get(lineKey)!.push(word.text);
+  }
+  const filtered = [...lineMap.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, ws]) => ws.join(" "))
+    .join("\n");
+  return filtered.trim().length > rawText.length * 0.2 ? filtered : rawText;
+}
 
 const ScanBody = z.object({ imageBase64: z.string() });
 const RegisterBody = z.object({
@@ -230,23 +239,6 @@ async function preprocessKtpImage(imageBase64: string): Promise<{
   };
 }
 
-// ─── Word-confidence filtering ────────────────────────────────────────────────
-function filterByConfidence(words: Word[] | undefined, rawText: string, minConf = 5): string {
-  if (!words?.length) return rawText;
-  const lineMap = new Map<number, string[]>();
-  for (const word of words) {
-    if (word.confidence < minConf || !word.text.trim()) continue;
-    if (word.text.trim().length < 1) continue;
-    const lineKey = Math.round(word.bbox.y0 / 12);
-    if (!lineMap.has(lineKey)) lineMap.set(lineKey, []);
-    lineMap.get(lineKey)!.push(word.text);
-  }
-  const filtered = [...lineMap.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([, ws]) => ws.join(" "))
-    .join("\n");
-  return filtered.trim().length > rawText.length * 0.2 ? filtered : rawText;
-}
 
 // ─── NIK extraction (aggressive) ─────────────────────────────────────────────
 const OCR_DIGIT_MAP: Record<string, string[]> = {
@@ -1454,11 +1446,11 @@ router.post("/scan", async (req, res) => {
     let data: Record<string, string | null>;
     let score: number;
     let qualityWarning: QualityWarning = null;
-    let engine = "gemini-2.5-flash";
+    let engine = "gemini-2.0-flash";
 
-    // 1. Try Gemini Vision — primary: gemini-2.5-flash, fallback: gemini-2.0-flash
+    // 1. Try Gemini Vision — gemini-2.0-flash only
     if (_gemini) {
-      const geminiModels = ["gemini-2.5-flash", "gemini-2.0-flash"];
+      const geminiModels = ["gemini-2.0-flash"];
       let allGeminiFailed = true;
       for (const geminiModel of geminiModels) {
         let transientFail = false;
@@ -1521,21 +1513,11 @@ router.post("/scan", async (req, res) => {
     }
 
     // 3. Fallback: Python OpenCV + Tesseract
-    try {
-      const pyResult = await scanWithPython(imageBase64);
-      if (pyResult.error) throw new Error(String(pyResult.error));
-      data = applyRegionMatching(pyResult);
-      score = typeof pyResult.score === "number" ? pyResult.score : 0;
-      engine = "python-opencv";
-    } catch (pyErr) {
-      // 4. Last resort: Tesseract.js
-      req.log.warn({ err: pyErr }, "Python scanner failed, falling back to Tesseract.js");
-      const tessResult = await ocrWithTesseract(imageBase64);
-      data = tessResult.data;
-      score = tessResult.score;
-      qualityWarning = tessResult.qualityWarning;
-      engine = "tesseract-js";
-    }
+    const pyResult = await scanWithPython(imageBase64);
+    if (pyResult.error) throw new Error(String(pyResult.error));
+    data = applyRegionMatching(pyResult);
+    score = typeof pyResult.score === "number" ? pyResult.score : 0;
+    engine = "python-opencv";
 
     const lowConfidence = score < 65;
     req.log.info({ score, qualityWarning, lowConfidence, engine }, "KTP scan");
