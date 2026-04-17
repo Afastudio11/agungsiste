@@ -44,6 +44,7 @@ export default function PetugasQrScanPage() {
   const [scanCount, setScanCount] = useState(0);
   const [manualMode, setManualMode] = useState(false);
   const [manualNik, setManualNik] = useState("");
+  const [lastRaw, setLastRaw] = useState<string | null>(null);
 
   const { data: event } = useQuery<EventInfo>({
     queryKey: ["event", eventId],
@@ -97,6 +98,7 @@ export default function PetugasQrScanPage() {
     (raw: string) => {
       if (processingRef.current) return;
       processingRef.current = true;
+      setLastRaw(raw);
       const parts = raw.split("|");
       if (parts.length === 3 && parts[0] === "KTP-EVENT") {
         const qrEventId = parseInt(parts[1]);
@@ -128,6 +130,7 @@ export default function PetugasQrScanPage() {
     if (scannerRef.current) return; // already running
     setCameraError("");
     setLastResult(null);
+    setLastRaw(null);
     processingRef.current = false;
 
     // Ensure the target div exists in DOM before creating scanner
@@ -144,8 +147,8 @@ export default function PetugasQrScanPage() {
         { facingMode: "environment" },
         {
           fps: 15,
-          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-        } as any,
+          qrbox: { width: 250, height: 250 },
+        },
         (decodedText: string) => {
           if (!processingRef.current) handleRawQr(decodedText);
         },
@@ -206,6 +209,10 @@ export default function PetugasQrScanPage() {
           border-radius: 0;
         }
         #${READER_ID} img { display: none !important; }
+        #${READER_ID} button { display: none !important; }
+        #${READER_ID} select { display: none !important; }
+        #${READER_ID} #qr-shaded-region { display: none !important; }
+        #${READER_ID} > div:first-child { display: none !important; }
       `}</style>
 
       {/* ── Top Bar ─────────────────────────────────────────────────────── */}
@@ -354,6 +361,13 @@ export default function PetugasQrScanPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Debug: last raw QR detected (helps diagnose scanner issues) */}
+                {lastRaw && !lastResult && (
+                  <div className="mx-4 mb-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[10px] text-slate-500 font-mono break-all">
+                    QR terdeteksi: {lastRaw.slice(0, 80)}{lastRaw.length > 80 ? "…" : ""}
+                  </div>
+                )}
 
                 {/* Camera error */}
                 {cameraError && (
