@@ -490,7 +490,7 @@ export default function ParticipantsPage() {
                           {(p as any).registeredBy && (
                             <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
                               <span className="font-medium">oleh</span>
-                              <span className="font-semibold text-slate-500">{(p as any).registeredBy}</span>
+                              <span className="font-semibold text-slate-500">{(p as any).registeredBy.split(" ").slice(0, 2).join(" ")}</span>
                             </p>
                           )}
                         </td>
