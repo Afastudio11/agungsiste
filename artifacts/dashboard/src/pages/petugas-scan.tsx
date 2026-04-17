@@ -269,7 +269,7 @@ export default function PetugasScanPage() {
       <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-[0_1px_12px_rgba(0,0,0,0.05)]">
         <button
           onClick={() => navigate("/petugas")}
-          className="p-2 hover:bg-slate-100 rounded-xl transition-colors shrink-0"
+          className="p-2 hover:bg-slate-100 rounded-full transition-colors shrink-0"
         >
           <ArrowLeft className="h-4 w-4 text-slate-500" />
         </button>
@@ -331,7 +331,7 @@ export default function PetugasScanPage() {
                   <div className="text-[13px] text-slate-400 mb-5 leading-relaxed">
                     Foto KTP dengan panduan bingkai otomatis
                   </div>
-                  <div className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-md shadow-blue-500/25 transition-colors">
+                  <div className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-2.5 rounded-full shadow-md shadow-blue-500/25 transition-colors">
                     <Camera className="h-4 w-4" />
                     Buka Kamera
                   </div>
@@ -371,12 +371,12 @@ export default function PetugasScanPage() {
               <p className="text-[10px] font-extrabold text-slate-400 tracking-[0.15em] mb-3.5 uppercase">Tips Foto KTP</p>
               <div className="space-y-3">
                 {[
-                  { emoji: "☀️", text: "Foto di tempat terang, hindari bayangan di atas KTP" },
-                  { emoji: "👁️", text: "Tahan kamera stabil agar gambar tidak blur" },
-                  { emoji: "📷", text: "Pastikan seluruh teks KTP terlihat jelas dan terbaca" },
-                ].map(({ emoji, text }, i) => (
+                  { icon: <Sun className="h-3.5 w-3.5 text-amber-500 shrink-0" />, text: "Foto di tempat terang, hindari bayangan di atas KTP" },
+                  { icon: <Eye className="h-3.5 w-3.5 text-blue-500 shrink-0" />, text: "Tahan kamera stabil agar gambar tidak blur" },
+                  { icon: <Camera className="h-3.5 w-3.5 text-slate-400 shrink-0" />, text: "Pastikan seluruh teks KTP terlihat jelas dan terbaca" },
+                ].map(({ icon, text }, i) => (
                   <div key={i} className="flex items-center gap-3 text-[13px] text-slate-500">
-                    <span className="text-[15px] leading-none">{emoji}</span>
+                    {icon}
                     <span>{text}</span>
                   </div>
                 ))}
@@ -559,7 +559,7 @@ export default function PetugasScanPage() {
                     <button
                       type="button"
                       onClick={() => addTag(customTag)}
-                      className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-bold rounded-xl transition border border-blue-100"
+                      className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-bold rounded-full transition border border-blue-100"
                     >
                       +
                     </button>
@@ -602,7 +602,7 @@ export default function PetugasScanPage() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-60 text-white font-extrabold rounded-2xl py-4 text-[15px] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-60 text-white font-extrabold rounded-full py-4 text-[15px] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
             >
               <CheckCircle2 className="h-5 w-5" />
               {submitting ? "Menyimpan..." : "Daftarkan Peserta"}
@@ -637,7 +637,7 @@ export default function PetugasScanPage() {
 
             <button
               onClick={resetForm}
-              className="flex items-center justify-center gap-2.5 w-full max-w-xs px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-extrabold text-[15px] transition-all shadow-lg shadow-blue-500/25 active:scale-[0.98]"
+              className="flex items-center justify-center gap-2.5 w-full max-w-xs px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-extrabold text-[15px] transition-all shadow-lg shadow-blue-500/25 active:scale-[0.98]"
             >
               <RotateCcw className="h-5 w-5" />
               Scan Peserta Berikutnya
