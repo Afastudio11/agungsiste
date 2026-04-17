@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Plus, Trash2, Trophy, MapPin, Briefcase, X, Eye, EyeOff, Activity, Clock, ScanLine, QrCode } from "lucide-react";
+import { Users, Plus, Trash2, Trophy, MapPin, Briefcase, X, Eye, EyeOff, Activity, Clock, ScanLine, QrCode, ChevronRight } from "lucide-react";
 import Layout from "@/components/layout";
 import { useAuth } from "@/lib/auth";
 
@@ -51,6 +51,7 @@ export default function OfficersPage() {
   const [showPw, setShowPw] = useState(false);
   const [filter, setFilter] = useState("");
   const [error, setError] = useState("");
+  const [selectedStaff, setSelectedStaff] = useState<{ id: number; name: string } | null>(null);
 
   const { data: officers = [], isLoading } = useQuery<Officer[]>({
     queryKey: ["officers"],
@@ -313,9 +314,16 @@ export default function OfficersPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {staffStats.map((s, i) => (
-                    <tr key={s.staffId ?? i} className="hover:bg-slate-50/60 transition-colors">
+                    <tr
+                      key={s.staffId ?? i}
+                      className="hover:bg-blue-50/60 transition-colors cursor-pointer"
+                      onClick={() => s.staffId ? setSelectedStaff({ id: s.staffId, name: s.staffName ?? "—" }) : null}
+                    >
                       <td className="px-6 py-4">
-                        <div className="font-bold text-slate-900">{s.staffName ?? "—"}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-bold text-slate-900">{s.staffName ?? "—"}</div>
+                          <ChevronRight className="h-3.5 w-3.5 text-slate-300" />
+                        </div>
                       </td>
                       <td className="px-4 py-4 text-center font-extrabold text-slate-800 tabular-nums">
                         {Number(s.totalInput).toLocaleString("id-ID")}
@@ -453,6 +461,90 @@ export default function OfficersPage() {
             </div>
           )}
         </div>
+
+        {/* ── Staff Detail Modal ──────────────────────────────────────── */}
+        {selectedStaff && (() => {
+          const staffActivity = activityLog.filter((a) => a.staffId === selectedStaff.id);
+          const initials = selectedStaff.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+          return (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                {/* Header */}
+                <div className="flex items-center gap-4 px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center text-sm font-extrabold text-blue-700 shrink-0">
+                    {initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-extrabold text-slate-900 text-base truncate">{selectedStaff.name}</div>
+                    <div className="text-xs text-slate-400 font-medium mt-0.5">
+                      {staffActivity.length} aktivitas tercatat
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedStaff(null)}
+                    className="p-2 hover:bg-slate-100 rounded-xl transition shrink-0"
+                  >
+                    <X className="h-4 w-4 text-slate-500" />
+                  </button>
+                </div>
+
+                {/* List */}
+                <div className="overflow-y-auto flex-1">
+                  {staffActivity.length === 0 ? (
+                    <div className="py-16 text-center">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-3">
+                        <ScanLine className="h-7 w-7 text-slate-200" />
+                      </div>
+                      <div className="text-sm font-bold text-slate-400">Belum ada aktivitas</div>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-50">
+                      {staffActivity.map((item) => {
+                        const isAbsen = !!item.checkedInAt;
+                        const timestamp = item.checkedInAt ?? item.registeredAt;
+                        const d = new Date(timestamp);
+                        const dateStr = d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "2-digit" });
+                        const timeStr = d.getHours().toString().padStart(2, "0") + ":" + d.getMinutes().toString().padStart(2, "0");
+                        return (
+                          <div key={item.id} className="flex items-start gap-3 px-6 py-3.5 hover:bg-slate-50/60 transition-colors">
+                            {/* Type icon */}
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${isAbsen ? "bg-emerald-50" : "bg-blue-50"}`}>
+                              {isAbsen
+                                ? <QrCode className="h-4 w-4 text-emerald-600" />
+                                : <ScanLine className="h-4 w-4 text-blue-600" />
+                              }
+                            </div>
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-bold text-slate-900 truncate">{item.participantName}</div>
+                              <div className="text-xs text-slate-400 font-mono mt-0.5">{maskNik(item.participantNik)}</div>
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                {isAbsen ? (
+                                  <>
+                                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Scan Absen</span>
+                                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">+ KTP</span>
+                                  </>
+                                ) : (
+                                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Scan KTP</span>
+                                )}
+                                <span className="text-[10px] text-slate-400 truncate max-w-[160px]">{item.eventName}</span>
+                              </div>
+                            </div>
+                            {/* Date + time */}
+                            <div className="text-right shrink-0">
+                              <div className="text-[11px] font-bold text-slate-500">{timeStr}</div>
+                              <div className="text-[10px] text-slate-400 mt-0.5">{dateStr}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Add Officer Modal */}
         {showForm && (
