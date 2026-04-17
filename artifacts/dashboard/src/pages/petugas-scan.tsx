@@ -48,28 +48,30 @@ const qualityMessages: Record<string, { icon: React.ReactNode; text: string }> =
 
 function StepBar({ step }: { step: "upload" | "form" | "done" }) {
   const steps = [
-    { key: "upload", label: "Scan KTP", icon: <ScanLine size={14} /> },
-    { key: "form", label: "Isi Data", icon: <User size={14} /> },
-    { key: "done", label: "Selesai", icon: <CheckCircle2 size={14} /> },
+    { key: "upload", label: "Scan KTP", icon: <ScanLine size={13} /> },
+    { key: "form", label: "Isi Data", icon: <User size={13} /> },
+    { key: "done", label: "Selesai", icon: <CheckCircle2 size={13} /> },
   ];
   const idx = steps.findIndex((s) => s.key === step);
   return (
-    <div className="flex items-center">
+    <div className="flex items-center w-full">
       {steps.map((s, i) => {
         const done = i < idx;
         const active = i === idx;
         return (
           <div key={s.key} className="flex items-center flex-1 last:flex-none">
-            <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition-all ${
-              active ? "bg-blue-600 text-white shadow-sm"
-              : done ? "bg-emerald-100 text-emerald-700"
-              : "bg-slate-100 text-slate-400"
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all duration-300 ${
+              active
+                ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                : done
+                ? "bg-emerald-100 text-emerald-600"
+                : "bg-slate-100 text-slate-400"
             }`}>
               {s.icon}
-              <span className="hidden sm:inline">{s.label}</span>
+              <span>{s.label}</span>
             </div>
             {i < steps.length - 1 && (
-              <div className={`flex-1 mx-1.5 h-0.5 rounded-full transition-colors ${done ? "bg-emerald-300" : "bg-slate-200"}`} />
+              <div className={`flex-1 mx-2 h-px rounded-full transition-colors duration-500 ${done ? "bg-emerald-300" : "bg-slate-200"}`} />
             )}
           </div>
         );
@@ -81,10 +83,10 @@ function StepBar({ step }: { step: "upload" | "form" | "done" }) {
 function FieldInput({ label, value, onChange, placeholder, textarea }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; textarea?: boolean;
 }) {
-  const cls = "w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition font-medium placeholder:text-slate-300";
+  const cls = "w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition font-medium placeholder:text-slate-300 text-slate-800";
   return (
     <div>
-      <label className="block text-[11px] font-bold text-slate-500 mb-1 tracking-wide">{label}</label>
+      <label className="block text-[11px] font-bold text-slate-400 mb-1.5 tracking-wide uppercase">{label}</label>
       {textarea ? (
         <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={2}
           className={`${cls} resize-none`} />
@@ -258,126 +260,123 @@ export default function PetugasScanPage() {
   const qw = ocrMeta?.qualityWarning;
 
   return (
-    <div className="min-h-screen bg-blue-50 pb-10" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="min-h-screen bg-[#EEF3FB] pb-12" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {showCamera && (
         <KtpCamera onCapture={handleCameraCapture} onClose={() => setShowCamera(false)} />
       )}
 
-      {/* ── Top Bar ──────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+      {/* Top Bar */}
+      <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-[0_1px_12px_rgba(0,0,0,0.05)]">
         <button
           onClick={() => navigate("/petugas")}
           className="p-2 hover:bg-slate-100 rounded-xl transition-colors shrink-0"
         >
-          <ArrowLeft className="h-4 w-4 text-slate-600" />
+          <ArrowLeft className="h-4 w-4 text-slate-500" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-extrabold text-blue-600 tracking-widest">SCAN KTP</div>
+          <div className="text-[10px] font-extrabold text-blue-500 tracking-widest uppercase">Scan KTP</div>
           <div className="text-[13px] font-extrabold text-slate-900 truncate leading-tight">
             {event?.name || "Memuat..."}
           </div>
         </div>
         {event && (
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 shrink-0 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-xl">
-            <Users className="h-3 w-3" />
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 shrink-0 bg-slate-50 border border-slate-100 px-2.5 py-1.5 rounded-xl">
+            <Users className="h-3 w-3 text-blue-400" />
             {event.participantCount}
           </div>
         )}
       </div>
 
-      <div className="max-w-lg mx-auto px-4 pt-5 space-y-4">
+      <div className="max-w-md mx-auto px-4 pt-5 space-y-4">
 
         {/* Step indicator */}
         <StepBar step={step} />
 
-        {/* ── STEP 1: Upload ───────────────────────────────────────── */}
+        {/* ── STEP 1: Upload ── */}
         {step === "upload" && (
           <div className="space-y-3">
-            {/* Primary: Camera */}
+
+            {/* Camera Card */}
             <button
               onClick={() => !scanning && setShowCamera(true)}
               disabled={scanning}
-              className={`w-full rounded-2xl border-2 p-6 text-center transition-all duration-200 ${
+              className={`w-full rounded-2xl border-2 p-7 text-center transition-all duration-200 shadow-sm ${
                 scanning
-                  ? "border-blue-300 bg-blue-50 cursor-wait"
-                  : "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50/30 active:scale-[0.99] cursor-pointer"
+                  ? "border-blue-300 bg-white cursor-wait"
+                  : "border-blue-400/60 bg-white hover:border-blue-500 hover:shadow-md active:scale-[0.99] cursor-pointer"
               }`}
             >
-              <div className="flex justify-center mb-4">
-                <div
-                  className={`h-16 w-16 rounded-2xl flex items-center justify-center transition-all ${
-                    scanning
-                      ? "bg-blue-100 animate-pulse"
-                      : "bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30"
-                  }`}
-                >
-                  <Camera className="h-8 w-8 text-white" />
+              {/* Icon */}
+              <div className="flex justify-center mb-5">
+                <div className={`h-[68px] w-[68px] rounded-[20px] flex items-center justify-center transition-all ${
+                  scanning
+                    ? "bg-blue-100 animate-pulse"
+                    : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30"
+                }`}>
+                  <Camera className="h-8 w-8 text-white" strokeWidth={2} />
                 </div>
               </div>
 
               {scanning ? (
                 <>
-                  <div className="text-[15px] font-extrabold text-blue-700 mb-1">Membaca KTP...</div>
-                  <div className="text-xs text-blue-400 mb-3">OCR sedang berjalan, mohon tunggu</div>
-                  <div className="mx-auto max-w-[200px] h-1.5 overflow-hidden rounded-full bg-blue-100">
-                    <div
-                      className="h-full rounded-full bg-blue-500 animate-pulse"
-                      style={{ width: "70%" }}
-                    />
+                  <div className="text-[16px] font-extrabold text-blue-700 mb-1">Membaca KTP...</div>
+                  <div className="text-xs text-blue-400 mb-4">OCR sedang berjalan, mohon tunggu</div>
+                  <div className="mx-auto max-w-[180px] h-1.5 overflow-hidden rounded-full bg-blue-100">
+                    <div className="h-full w-2/3 rounded-full bg-blue-500 animate-[pulse_1s_ease-in-out_infinite]" />
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="text-[15px] font-extrabold text-slate-900 mb-1">Buka Kamera</div>
-                  <div className="text-xs text-slate-400 mb-3">
+                  <div className="text-[17px] font-extrabold text-slate-900 mb-1.5">Buka Kamera</div>
+                  <div className="text-[13px] text-slate-400 mb-5 leading-relaxed">
                     Foto KTP dengan panduan bingkai otomatis
                   </div>
-                  <div className="inline-flex items-center gap-2 bg-blue-600 text-white text-xs font-bold px-5 py-2 rounded-xl">
-                    <Camera className="h-3.5 w-3.5" />
+                  <div className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-md shadow-blue-500/25 transition-colors">
+                    <Camera className="h-4 w-4" />
                     Buka Kamera
                   </div>
-                  <div className="flex items-center justify-center gap-1 mt-3 text-[10px] text-slate-400">
-                    <Zap className="h-3 w-3 text-emerald-500" />
-                    OCR otomatis — data terisi langsung
+                  <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-slate-400">
+                    <Zap className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>OCR otomatis — data terisi langsung</span>
                   </div>
                 </>
               )}
             </button>
 
-            {/* Secondary: Upload */}
+            {/* Upload Row */}
             <div
               onDrop={handleDrop}
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
               onClick={() => !scanning && fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl px-5 py-4 flex items-center gap-3 cursor-pointer transition-all ${
+              className={`flex items-center gap-4 bg-white rounded-2xl px-5 py-4 cursor-pointer border transition-all shadow-sm ${
                 isDragging
-                  ? "border-blue-400 bg-blue-50"
-                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                  ? "border-blue-400 bg-blue-50/50"
+                  : "border-slate-100 hover:border-slate-200 hover:shadow-md"
               }`}
             >
-              <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                <Upload className="h-4 w-4 text-slate-500" />
+              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                <Upload className="h-4.5 w-4.5 text-slate-500" strokeWidth={2} />
               </div>
-              <div>
-                <div className="text-sm font-semibold text-slate-600">Upload dari galeri</div>
-                <div className="text-xs text-slate-400">Drag & drop atau klik untuk pilih file</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[14px] font-bold text-slate-700">Upload dari galeri</div>
+                <div className="text-[12px] text-slate-400">Drag & drop atau klik untuk pilih file</div>
               </div>
-              <ChevronRight size={16} className="text-slate-300 ml-auto shrink-0" />
+              <ChevronRight size={16} className="text-slate-300 shrink-0" />
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} className="hidden" />
 
             {/* Tips */}
-            <div className="bg-white rounded-2xl border border-slate-100 px-5 py-4">
-              <p className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-3">TIPS FOTO KTP</p>
-              <div className="space-y-2.5">
+            <div className="bg-white rounded-2xl border border-slate-100 px-5 py-4 shadow-sm">
+              <p className="text-[10px] font-extrabold text-slate-400 tracking-[0.15em] mb-3.5 uppercase">Tips Foto KTP</p>
+              <div className="space-y-3">
                 {[
-                  { icon: <Sun className="h-3.5 w-3.5 text-amber-500 shrink-0" />, text: "Foto di tempat terang, hindari bayangan di atas KTP" },
-                  { icon: <Eye className="h-3.5 w-3.5 text-blue-500 shrink-0" />, text: "Tahan kamera stabil agar gambar tidak blur" },
-                  { icon: <Camera className="h-3.5 w-3.5 text-slate-500 shrink-0" />, text: "Pastikan seluruh teks KTP terlihat jelas dan terbaca" },
-                ].map(({ icon, text }, i) => (
-                  <div key={i} className="flex items-start gap-2.5 text-[12px] text-slate-500">
-                    {icon}
+                  { emoji: "☀️", text: "Foto di tempat terang, hindari bayangan di atas KTP" },
+                  { emoji: "👁️", text: "Tahan kamera stabil agar gambar tidak blur" },
+                  { emoji: "📷", text: "Pastikan seluruh teks KTP terlihat jelas dan terbaca" },
+                ].map(({ emoji, text }, i) => (
+                  <div key={i} className="flex items-center gap-3 text-[13px] text-slate-500">
+                    <span className="text-[15px] leading-none">{emoji}</span>
                     <span>{text}</span>
                   </div>
                 ))}
@@ -386,28 +385,26 @@ export default function PetugasScanPage() {
 
             {error && (
               <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-2xl px-4 py-3.5 flex items-start gap-2.5">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
-                <span>{error}</span>
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-400" />
+                <span className="font-medium">{error}</span>
               </div>
             )}
           </div>
         )}
 
-        {/* ── STEP 2: Form ─────────────────────────────────────────── */}
+        {/* ── STEP 2: Form ── */}
         {step === "form" && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* KTP Preview Card */}
-            <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 shadow-lg">
-              <div className="px-5 pt-4 pb-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="text-[9px] font-extrabold tracking-[0.2em] text-slate-400">
-                    KARTU TANDA PENDUDUK
-                  </div>
+            <div className="rounded-2xl overflow-hidden shadow-lg">
+              <div className="bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 px-5 pt-5 pb-5">
+                <div className="text-[9px] font-extrabold tracking-[0.22em] text-slate-500 mb-3 uppercase">
+                  Kartu Tanda Penduduk
                 </div>
 
                 {(qw || ocrMeta?.lowConfidence) && (
-                  <div className="flex items-center gap-2 bg-amber-500/15 text-amber-300 text-[11px] font-semibold px-3 py-2 rounded-xl mb-3">
-                    {qw ? qualityMessages[qw].icon : <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+                  <div className="flex items-start gap-2 bg-amber-400/15 border border-amber-400/20 text-amber-300 text-[11px] font-semibold px-3 py-2.5 rounded-xl mb-3">
+                    {qw ? qualityMessages[qw].icon : <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />}
                     <span>
                       {qw
                         ? qualityMessages[qw].text
@@ -416,195 +413,196 @@ export default function PetugasScanPage() {
                   </div>
                 )}
 
-                <div className="font-mono text-[17px] font-bold tracking-widest text-white/90 mb-0.5">
+                <div className="font-mono text-[15px] font-bold tracking-widest text-white/60 mb-1">
                   {ktp.nik || "—"}
                 </div>
-                <div className="text-[18px] font-extrabold text-white leading-tight mb-3" style={{ letterSpacing: "-0.02em" }}>
+                <div className="text-[20px] font-extrabold text-white leading-snug mb-4" style={{ letterSpacing: "-0.02em" }}>
                   {ktp.fullName || "—"}
                 </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px] text-slate-300">
-                  <div>
-                    <div className="text-[9px] text-slate-500 font-bold tracking-wider">Tempat/Tgl Lahir</div>
-                    <div className="font-medium text-slate-200">{[ktp.birthPlace, ktp.birthDate].filter(Boolean).join(", ") || "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] text-slate-500 font-bold tracking-wider">Jenis Kelamin</div>
-                    <div className="font-medium text-slate-200">{ktp.gender || "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] text-slate-500 font-bold tracking-wider">Pekerjaan</div>
-                    <div className="font-medium text-slate-200">{ktp.occupation || "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] text-slate-500 font-bold tracking-wider">Gol. Darah</div>
-                    <div className="font-medium text-slate-200">{ktp.bloodType || "—"}</div>
-                  </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  {[
+                    { label: "Tempat/Tgl Lahir", value: [ktp.birthPlace, ktp.birthDate].filter(Boolean).join(", ") },
+                    { label: "Jenis Kelamin", value: ktp.gender },
+                    { label: "Pekerjaan", value: ktp.occupation },
+                    { label: "Gol. Darah", value: ktp.bloodType },
+                  ].map(({ label, value }) => (
+                    <div key={label}>
+                      <div className="text-[9px] text-slate-500 font-bold tracking-wider uppercase mb-0.5">{label}</div>
+                      <div className="text-[12px] font-semibold text-slate-200">{value || "—"}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
               <button
                 onClick={() => setStep("upload")}
-                className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white/80 text-xs font-bold py-2.5 transition"
+                className="w-full flex items-center justify-center gap-2 bg-white/8 hover:bg-white/15 text-white/60 hover:text-white/80 text-[12px] font-semibold py-2.5 transition-all bg-slate-900/80"
               >
-                <RotateCcw size={12} />
+                <RotateCcw size={11} />
                 Scan Ulang KTP
               </button>
             </div>
 
-            {/* Edit fields */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
-              <div className="flex items-center gap-2">
+            {/* Data KTP */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-50">
                 <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
                   <User size={14} className="text-blue-600" />
                 </div>
                 <span className="text-[13px] font-extrabold text-slate-900">Data KTP</span>
-                <span className="text-[10px] text-slate-400 font-medium ml-1">— koreksi jika ada kesalahan</span>
+                <span className="text-[10px] text-slate-400 font-medium ml-0.5">— koreksi jika perlu</span>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <FieldInput label="NIK *" value={ktp.nik || ""} onChange={(v) => setKtp({ ...ktp, nik: v })} placeholder="16 digit NIK" />
+              <div className="p-5 space-y-3">
+                <FieldInput label="NIK *" value={ktp.nik || ""} onChange={(v) => setKtp({ ...ktp, nik: v })} placeholder="16 digit NIK" />
+                <FieldInput label="Nama Lengkap *" value={ktp.fullName || ""} onChange={(v) => setKtp({ ...ktp, fullName: v })} placeholder="Sesuai KTP" />
+
+                {/* Wilayah cascading */}
+                <div className="space-y-2">
+                  {[
+                    {
+                      label: "Kabupaten / Kota",
+                      value: canonKab,
+                      disabled: false,
+                      options: kabupatenList,
+                      placeholder: "— Pilih Kabupaten/Kota —",
+                      onChange: (v: string) => setKtp({ ...ktp, city: v, kecamatan: "", kelurahan: "" }),
+                    },
+                    {
+                      label: "Kecamatan",
+                      value: canonKec,
+                      disabled: !canonKab,
+                      options: kecList,
+                      placeholder: "— Pilih Kecamatan —",
+                      onChange: (v: string) => setKtp({ ...ktp, kecamatan: v, kelurahan: "" }),
+                    },
+                    {
+                      label: "Kelurahan / Desa",
+                      value: canonKel,
+                      disabled: !canonKec,
+                      options: kelList,
+                      placeholder: "— Pilih Kelurahan/Desa —",
+                      onChange: (v: string) => setKtp({ ...ktp, kelurahan: v }),
+                    },
+                  ].map(({ label, value, disabled, options, placeholder, onChange }) => (
+                    <div key={label}>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1.5 tracking-wide uppercase">{label}</label>
+                      <select
+                        value={value}
+                        disabled={disabled}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-slate-50"
+                      >
+                        <option value="">{placeholder}</option>
+                        {options.map((k) => <option key={k} value={k}>{k}</option>)}
+                      </select>
+                    </div>
+                  ))}
                 </div>
-                <div className="col-span-2">
-                  <FieldInput label="Nama Lengkap *" value={ktp.fullName || ""} onChange={(v) => setKtp({ ...ktp, fullName: v })} placeholder="Sesuai KTP" />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Kabupaten / Kota</label>
-                    <select
-                      value={canonKab}
-                      onChange={(e) => setKtp({ ...ktp, city: e.target.value, kecamatan: "", kelurahan: "" })}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
-                    >
-                      <option value="">— Pilih Kabupaten/Kota —</option>
-                      {kabupatenList.map((k) => <option key={k} value={k}>{k}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Kecamatan</label>
-                    <select
-                      value={canonKec}
-                      disabled={!canonKab}
-                      onChange={(e) => setKtp({ ...ktp, kecamatan: e.target.value, kelurahan: "" })}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <option value="">— Pilih Kecamatan —</option>
-                      {kecList.map((k) => <option key={k} value={k}>{k}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Kelurahan / Desa</label>
-                    <select
-                      value={canonKel}
-                      disabled={!canonKec}
-                      onChange={(e) => setKtp({ ...ktp, kelurahan: e.target.value })}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <option value="">— Pilih Kelurahan/Desa —</option>
-                      {kelList.map((k) => <option key={k} value={k}>{k}</option>)}
-                    </select>
-                  </div>
-                </div>
+
                 <FieldInput label="Pekerjaan" value={ktp.occupation || ""} onChange={(v) => setKtp({ ...ktp, occupation: v })} />
               </div>
             </div>
 
-            {/* Contact */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
-              <div className="flex items-center gap-2">
+            {/* Kontak */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-50">
                 <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
                   <Phone size={14} className="text-emerald-600" />
                 </div>
                 <span className="text-[13px] font-extrabold text-slate-900">Kontak</span>
-                <span className="text-[10px] text-red-400 font-bold ml-1">— No. HP wajib</span>
+                <span className="text-[10px] text-red-400 font-bold ml-0.5">— No. HP wajib</span>
               </div>
-              <FieldInput label="Nomor HP *" value={phone} onChange={setPhone} placeholder="+62 8xx xxxx xxxx" />
-              <FieldInput label="Email" value={email} onChange={setEmail} placeholder="nama@email.com" />
+              <div className="p-5 space-y-3">
+                <FieldInput label="Nomor HP *" value={phone} onChange={setPhone} placeholder="+62 8xx xxxx xxxx" />
+                <FieldInput label="Email" value={email} onChange={setEmail} placeholder="nama@email.com" />
+              </div>
             </div>
 
-            {/* Tags */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
-              <div className="flex items-center gap-2">
+            {/* Tags & Catatan */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-50">
                 <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
                   <Tag size={14} className="text-violet-600" />
                 </div>
                 <span className="text-[13px] font-extrabold text-slate-900">Kategori & Catatan</span>
               </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-2 tracking-wide">Profesi / Kategori</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {profesiList.map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => { if (tags.includes(p)) removeTag(p); else addTag(p); }}
-                      className={`text-[11px] px-2.5 py-1 rounded-full border font-semibold transition-all ${
-                        tags.includes(p)
-                          ? "bg-blue-600 border-blue-600 text-white"
-                          : "border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600"
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 tracking-wide">Tag Tambahan</label>
-                <div className="flex gap-2">
-                  <input
-                    value={customTag}
-                    onChange={(e) => setCustomTag(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(customTag); } }}
-                    placeholder="Tambah tag..."
-                    className="flex-1 px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => addTag(customTag)}
-                    className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-bold rounded-xl transition border border-blue-200"
-                  >
-                    +
-                  </button>
-                </div>
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {tags.map((t) => (
-                      <span key={t} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-semibold">
-                        {t}
-                        <button onClick={() => removeTag(t)} className="hover:text-red-600 ml-0.5">×</button>
-                      </span>
+              <div className="p-5 space-y-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-2 tracking-wide uppercase">Profesi / Kategori</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {profesiList.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => { if (tags.includes(p)) removeTag(p); else addTag(p); }}
+                        className={`text-[11px] px-2.5 py-1 rounded-full border font-semibold transition-all ${
+                          tags.includes(p)
+                            ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                            : "border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600 bg-white"
+                        }`}
+                      >
+                        {p}
+                      </button>
                     ))}
                   </div>
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <FileText size={11} className="text-slate-400" />
-                  <label className="text-[11px] font-bold text-slate-500 tracking-wide">Catatan</label>
                 </div>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={2}
-                  placeholder="Catatan tambahan tentang peserta..."
-                  className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition resize-none"
-                />
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1.5 tracking-wide uppercase">Tag Tambahan</label>
+                  <div className="flex gap-2">
+                    <input
+                      value={customTag}
+                      onChange={(e) => setCustomTag(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(customTag); } }}
+                      placeholder="Tambah tag..."
+                      className="flex-1 px-3.5 py-2 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addTag(customTag)}
+                      className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-bold rounded-xl transition border border-blue-100"
+                    >
+                      +
+                    </button>
+                  </div>
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {tags.map((t) => (
+                        <span key={t} className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-semibold">
+                          {t}
+                          <button onClick={() => removeTag(t)} className="hover:text-red-600 ml-0.5 leading-none">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <FileText size={11} className="text-slate-400" />
+                    <label className="text-[11px] font-bold text-slate-400 tracking-wide uppercase">Catatan</label>
+                  </div>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={2}
+                    placeholder="Catatan tambahan tentang peserta..."
+                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition resize-none"
+                  />
+                </div>
               </div>
             </div>
 
             {error && (
               <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-2xl px-4 py-3.5 flex items-start gap-2.5">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
-                <span>{error}</span>
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-400" />
+                <span className="font-medium">{error}</span>
               </div>
             )}
 
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:opacity-60 text-white font-extrabold rounded-2xl py-4 text-[15px] transition-all shadow-lg shadow-emerald-500/25 active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-60 text-white font-extrabold rounded-2xl py-4 text-[15px] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
             >
               <CheckCircle2 className="h-5 w-5" />
               {submitting ? "Menyimpan..." : "Daftarkan Peserta"}
@@ -612,27 +610,27 @@ export default function PetugasScanPage() {
           </div>
         )}
 
-        {/* ── STEP 3: Done ─────────────────────────────────────────── */}
+        {/* ── STEP 3: Done ── */}
         {step === "done" && (
-          <div className="flex flex-col items-center text-center py-8">
-            <div className="relative mb-6">
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-500/30">
-                <CheckCircle2 className="h-12 w-12 text-white" />
+          <div className="flex flex-col items-center text-center py-10">
+            <div className="relative mb-7">
+              <div className="w-28 h-28 rounded-[28px] bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-2xl shadow-emerald-500/30">
+                <CheckCircle2 className="h-14 w-14 text-white" strokeWidth={1.8} />
               </div>
-              <div className="absolute -top-2 -right-2 w-8 h-8 bg-amber-400 rounded-xl flex items-center justify-center shadow-md">
+              <div className="absolute -top-2 -right-2 w-9 h-9 bg-amber-400 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-400/30">
                 <span className="text-white text-sm font-extrabold">✓</span>
               </div>
             </div>
 
-            <h2 className="text-[24px] font-extrabold text-slate-900 mb-2" style={{ letterSpacing: "-0.03em" }}>
+            <h2 className="text-[26px] font-extrabold text-slate-900 mb-2" style={{ letterSpacing: "-0.03em" }}>
               Berhasil Didaftarkan!
             </h2>
-            <p className="text-sm text-slate-400 max-w-xs mb-3">{successMsg}</p>
+            <p className="text-sm text-slate-400 max-w-xs mb-5 leading-relaxed">{successMsg}</p>
 
             {ktp.fullName && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-3 mb-6">
-                <div className="text-[10px] font-bold text-emerald-600 tracking-wider mb-0.5">PESERTA</div>
-                <div className="text-[15px] font-extrabold text-slate-900">{ktp.fullName}</div>
+              <div className="bg-white border border-emerald-100 rounded-2xl px-6 py-4 mb-7 shadow-sm">
+                <div className="text-[10px] font-extrabold text-emerald-500 tracking-widest mb-1 uppercase">Peserta</div>
+                <div className="text-[16px] font-extrabold text-slate-900">{ktp.fullName}</div>
                 <div className="text-xs text-slate-400 font-mono mt-0.5">{ktp.nik}</div>
               </div>
             )}
@@ -646,7 +644,7 @@ export default function PetugasScanPage() {
             </button>
             <button
               onClick={() => navigate("/petugas")}
-              className="mt-3 text-sm text-slate-400 hover:text-slate-600 font-semibold transition"
+              className="mt-3.5 text-sm text-slate-400 hover:text-slate-600 font-semibold transition"
             >
               Kembali ke daftar event
             </button>
