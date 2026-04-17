@@ -180,7 +180,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
       opacity: 1, color: "white", fillOpacity: opacity,
     });
     layer.bindTooltip(
-      `<div style="font-family:sans-serif;font-size:13px"><b>${name}</b><br/><span style="color:#64748b">${count.toLocaleString()} peserta</span></div>`,
+      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px"><b>${name}</b><br/><span style="color:#64748b">${count.toLocaleString()} peserta</span></div>`,
       { sticky: true, className: "ktp-tooltip" }
     );
     layer.on({
@@ -206,7 +206,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
       fillOpacity: isSelected ? 0.90 : 0.78,
     });
     layer.bindTooltip(
-      `<div style="font-family:sans-serif;font-size:13px;line-height:1.5">
+      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;line-height:1.5">
         <b style="font-size:14px">${name}</b><br/>
         <span style="color:#3b82f6">👥 ${count.toLocaleString()} peserta</span><br/>
         <span style="color:#64748b">📅 ${events} event</span><br/>
@@ -232,7 +232,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
     });
     const hasData = count > 0;
     layer.bindTooltip(
-      `<div style="font-family:sans-serif;font-size:13px;line-height:1.5">
+      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;line-height:1.5">
         <b style="font-size:14px">${displayName}</b><br/>
         <span style="color:#10b981">👥 ${count.toLocaleString()} peserta</span><br/>
         <span style="color:#64748b">📅 ${events} event</span>${hasData && onDesaClick ? `<br/><span style="color:#94a3b8;font-size:11px">Klik untuk profil desa</span>` : ""}

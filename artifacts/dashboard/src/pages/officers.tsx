@@ -133,8 +133,7 @@ export default function OfficersPage() {
 
   return (
     <Layout>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');`}</style>
-      <div className="space-y-6 max-w-6xl" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div className="space-y-6 max-w-6xl">
 
         {/* Action bar — no page title */}
         <div className="flex items-center justify-end">
