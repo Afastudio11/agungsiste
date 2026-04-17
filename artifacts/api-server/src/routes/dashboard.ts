@@ -347,4 +347,32 @@ router.get("/segments", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/activity-log", requireAuth, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt((req.query.limit as string) || "100"), 200);
+    const rows = await db
+      .select({
+        id: eventRegistrationsTable.id,
+        staffId: eventRegistrationsTable.staffId,
+        staffName: eventRegistrationsTable.staffName,
+        participantName: participantsTable.fullName,
+        participantNik: participantsTable.nik,
+        eventName: eventsTable.name,
+        registeredAt: eventRegistrationsTable.registeredAt,
+        checkedInAt: eventRegistrationsTable.checkedInAt,
+        registrationType: eventRegistrationsTable.registrationType,
+      })
+      .from(eventRegistrationsTable)
+      .innerJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+      .innerJoin(eventsTable, eq(eventRegistrationsTable.eventId, eventsTable.id))
+      .where(sql`${eventRegistrationsTable.staffId} IS NOT NULL`)
+      .orderBy(sql`COALESCE(${eventRegistrationsTable.checkedInAt}, ${eventRegistrationsTable.registeredAt}) DESC`)
+      .limit(limit);
+    res.json(rows);
+  } catch (err) {
+    req.log.error({ err }, "Error getting activity log");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

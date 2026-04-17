@@ -1,10 +1,31 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Plus, Trash2, Trophy, MapPin, Briefcase, X, Eye, EyeOff, Activity } from "lucide-react";
+import { Users, Plus, Trash2, Trophy, MapPin, Briefcase, X, Eye, EyeOff, Activity, Clock, ScanLine, QrCode } from "lucide-react";
 import Layout from "@/components/layout";
 import { useAuth } from "@/lib/auth";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function maskNik(nik: string) {
+  if (!nik || nik.length < 8) return nik;
+  return nik.slice(0, 4) + "·".repeat(nik.length - 8) + nik.slice(-4);
+}
+
+function formatActivityTime(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "baru saja";
+  if (diffMin < 60) return `${diffMin} mnt lalu`;
+  if (diffMin < 1440) {
+    const jam = d.getHours().toString().padStart(2, "0");
+    const menit = d.getMinutes().toString().padStart(2, "0");
+    return `${jam}:${menit}`;
+  }
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" }) +
+    " " + d.getHours().toString().padStart(2, "0") + ":" + d.getMinutes().toString().padStart(2, "0");
+}
 
 interface Officer {
   id: number;
@@ -39,6 +60,22 @@ export default function OfficersPage() {
     queryKey: ["staff-stats"],
     queryFn: () => fetch(`${BASE}/api/dashboard/staff`, { credentials: "include" }).then((r) => r.json()),
     staleTime: 60_000,
+  });
+
+  const { data: activityLog = [], isLoading: activityLoading } = useQuery<{
+    id: number;
+    staffId: number | null;
+    staffName: string | null;
+    participantName: string;
+    participantNik: string;
+    eventName: string;
+    registeredAt: string;
+    checkedInAt: string | null;
+    registrationType: string | null;
+  }[]>({
+    queryKey: ["activity-log"],
+    queryFn: () => fetch(`${BASE}/api/dashboard/activity-log`, { credentials: "include" }).then((r) => r.json()),
+    refetchInterval: 20_000,
   });
 
   const create = useMutation({
@@ -315,6 +352,98 @@ export default function OfficersPage() {
             </div>
           </div>
         )}
+
+        {/* ── Log Aktivitas Petugas ─────────────────────────────────── */}
+        <div className="rounded-2xl bg-white border border-slate-100 overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-xl bg-blue-50 flex items-center justify-center">
+              <Activity className="h-4 w-4 text-blue-500" />
+            </div>
+            <span className="font-bold text-slate-900">Log Aktivitas Petugas</span>
+            <div className="flex items-center gap-1.5 ml-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] font-semibold text-emerald-600">Live</span>
+            </div>
+            {activityLog.length > 0 && (
+              <span className="ml-auto text-xs font-semibold text-slate-400 bg-slate-50 border border-slate-100 px-3 py-1 rounded-full">
+                {activityLog.length} aktivitas
+              </span>
+            )}
+          </div>
+
+          {activityLoading && (
+            <div className="divide-y divide-slate-50">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-4 px-6 py-3.5 animate-pulse">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 shrink-0" />
+                  <div className="flex-1">
+                    <div className="h-3.5 bg-slate-100 rounded w-1/3 mb-2" />
+                    <div className="h-3 bg-slate-100 rounded w-1/2" />
+                  </div>
+                  <div className="h-3 w-16 bg-slate-100 rounded" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!activityLoading && activityLog.length === 0 && (
+            <div className="py-16 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-3">
+                <ScanLine className="h-7 w-7 text-slate-200" />
+              </div>
+              <div className="text-sm font-bold text-slate-400">Belum ada aktivitas</div>
+              <div className="text-xs text-slate-300 mt-1">Aktivitas petugas akan muncul di sini secara real-time</div>
+            </div>
+          )}
+
+          {!activityLoading && activityLog.length > 0 && (
+            <div className="divide-y divide-slate-50 max-h-[500px] overflow-y-auto">
+              {activityLog.map((item) => {
+                const isAbsen = !!item.checkedInAt;
+                const timestamp = item.checkedInAt ?? item.registeredAt;
+                const initials = (item.staffName ?? "?").split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+                return (
+                  <div key={item.id} className="flex items-start gap-4 px-6 py-3.5 hover:bg-slate-50/60 transition-colors">
+                    {/* Staff avatar */}
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 text-[11px] font-extrabold text-blue-700 mt-0.5">
+                      {initials}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-bold text-slate-900">
+                          {item.staffName ?? "—"}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          isAbsen
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {isAbsen ? <QrCode className="h-2.5 w-2.5" /> : <ScanLine className="h-2.5 w-2.5" />}
+                          {isAbsen ? "Scan Absen" : "Scan KTP"}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 text-sm text-slate-700 font-semibold truncate">
+                        {item.participantName}
+                        <span className="ml-2 font-mono text-xs text-slate-400 font-normal">{maskNik(item.participantNik)}</span>
+                      </div>
+                      <div className="mt-0.5 text-xs text-slate-400 truncate">
+                        {item.eventName}
+                      </div>
+                    </div>
+
+                    {/* Timestamp */}
+                    <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium shrink-0 mt-1">
+                      <Clock className="h-3 w-3" />
+                      {formatActivityTime(timestamp)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Add Officer Modal */}
         {showForm && (
