@@ -492,14 +492,14 @@ export default function PetugasEventsPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => selectEvent(ev.id, !!ev.isRsvp)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-extrabold bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-extrabold bg-blue-600 text-white rounded-full hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
                       >
                         <ScanLine size={14} />
                         Scan KTP
                       </button>
                       <button
                         onClick={() => openQrScan(ev.id)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:scale-95 transition-all"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full hover:bg-emerald-600 hover:text-white hover:border-emerald-600 active:scale-95 transition-all"
                       >
                         <QrCode size={14} />
                         Scan Absen
