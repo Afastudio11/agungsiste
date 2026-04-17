@@ -5,7 +5,7 @@ import {
   useListParticipants,
   getListParticipantsQueryKey,
 } from "@workspace/api-client-react";
-import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Gift, CalendarCheck2, Eye, MapPin, ChevronRight, FileText, FileSpreadsheet, Loader2 } from "@/lib/icons";
+import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Gift, CalendarCheck2, Eye, MapPin, ChevronRight, FileText, FileSpreadsheet, Loader2, RefreshCw } from "@/lib/icons";
 import { useQuery } from "@tanstack/react-query";
 import { exportExcel, exportParticipantsPDF } from "@/lib/exportUtils";
 
@@ -93,8 +93,8 @@ export default function ParticipantsPage() {
     ...(filterKelurahan ? { kelurahan: filterKelurahan } : {}),
   };
 
-  const { data: rawParticipants, isLoading } = useListParticipants(params as any, {
-    query: { queryKey: getListParticipantsQueryKey(params as any) },
+  const { data: rawParticipants, isLoading, isRefetching, refetch } = useListParticipants(params as any, {
+    query: { queryKey: getListParticipantsQueryKey(params as any), refetchInterval: 30_000 },
   });
 
   // Cascading domisili data
@@ -252,6 +252,16 @@ export default function ParticipantsPage() {
                 <X className="h-3.5 w-3.5" /> Reset
               </button>
             )}
+
+            {/* Refresh button */}
+            <button
+              onClick={() => refetch()}
+              disabled={isLoading || isRefetching}
+              title="Refresh data"
+              className="flex items-center gap-2 px-3 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-full font-bold text-sm shadow-sm hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50 transition-colors active:scale-95"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`} />
+            </button>
 
             {/* Export buttons */}
             <button

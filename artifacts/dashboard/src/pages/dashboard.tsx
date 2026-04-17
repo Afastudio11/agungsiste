@@ -127,6 +127,7 @@ export default function DashboardPage() {
     queryKey: ["dashboard-stats", statsQs],
     queryFn: () => fetch(`/api/dashboard/stats${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
     staleTime: 30_000,
+    refetchInterval: 30_000,
   });
   const dateQs = new URLSearchParams({
     ...(startDate ? { startDate } : {}),
@@ -140,16 +141,19 @@ export default function DashboardPage() {
     queryKey: ["dashboard-events-summary", statsQs],
     queryFn: () => fetch(`/api/dashboard/events-summary${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
     staleTime: 30_000,
+    refetchInterval: 30_000,
   });
   const { data: segments } = useQuery({
     queryKey: ["dashboard-segments", statsQs],
     queryFn: () => fetch(`/api/dashboard/segments${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
     staleTime: 30_000,
+    refetchInterval: 30_000,
   });
   const { data: topStaff } = useQuery<{ staffName: string | null; count: number }[]>({
     queryKey: ["dashboard-top-staff", statsQs],
     queryFn: () => fetch(`/api/dashboard/top-staff${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
     staleTime: 30_000,
+    refetchInterval: 30_000,
   });
   const { data: kabupatenData } = useQuery<{ kabupaten: string; totalInput: number }[]>({
     queryKey: ["pemetaan-kabupaten", dateQs],
