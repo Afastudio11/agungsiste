@@ -178,6 +178,9 @@ importers:
       '@google/generative-ai':
         specifier: ^0.24.1
         version: 0.24.1
+      '@gradio/client':
+        specifier: ^2.2.0
+        version: 2.2.0
       '@types/qrcode':
         specifier: ^1.5.6
         version: 1.5.6
@@ -917,6 +920,10 @@ packages:
 
   '@google/generative-ai@0.24.1':
     resolution: {integrity: sha512-MqO+MLfM6kjxcKoy0p1wRzG3b4ZZXtPI+z2IE26UogS2Cm/XHO+7gGRBh6gcJsOiIVoH93UwKvW4HdgiOZCy9Q==}
+    engines: {node: '>=18.0.0'}
+
+  '@gradio/client@2.2.0':
+    resolution: {integrity: sha512-D5XLMy6UD1hEDy5EBEQYE2qip6WCLBbbjbzyhvgQAKFWIuLByutMbk4xbAD1c91iX2EDKETnwSSUJsQaxZv64w==}
     engines: {node: '>=18.0.0'}
 
   '@hookform/resolvers@3.10.0':
@@ -2784,6 +2791,9 @@ packages:
     resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
     engines: {node: ^12.20 || >= 14.13}
 
+  fetch-event-stream@0.1.6:
+    resolution: {integrity: sha512-GREtJ5HNikdU2AXtZ6E/5bk+aslMU6ie5mPG6H9nvsdDkkHQ6m5lHwmmmDTOBexok9hApQ7EprsXCdmz9ZC68w==}
+
   fflate@0.8.2:
     resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
 
@@ -4507,6 +4517,10 @@ snapshots:
       - utf-8-validate
 
   '@google/generative-ai@0.24.1': {}
+
+  '@gradio/client@2.2.0':
+    dependencies:
+      fetch-event-stream: 0.1.6
 
   '@hookform/resolvers@3.10.0(react-hook-form@7.71.2(react@19.1.0))':
     dependencies:
@@ -6364,6 +6378,8 @@ snapshots:
     dependencies:
       node-domexception: 1.0.0
       web-streams-polyfill: 3.3.3
+
+  fetch-event-stream@0.1.6: {}
 
   fflate@0.8.2: {}
 

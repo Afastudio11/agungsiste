@@ -17,6 +17,7 @@ import {
 } from "../data/regions.js";
 import { requireAuth } from "../middlewares/auth";
 import { GoogleGenAI } from "@google/genai";
+import { Client as GradioClient } from "@gradio/client";
 
 const _thisDir = path.dirname(fileURLToPath(import.meta.url));
 const _objectStorage = new ObjectStorageService();
@@ -1372,6 +1373,40 @@ function scanWithPython(imageBase64: string): Promise<Record<string, unknown>> {
   });
 }
 
+// ─── Chandra OCR via HuggingFace ZeroGPU Space (free) ───────────────────────
+async function scanWithChandraHF(imageBase64: string): Promise<Record<string, string | null>> {
+  // Compress image before sending (reuse Gemini compressor)
+  let rawB64 = imageBase64;
+  const durlMatch = rawB64.match(/^data:([^;]+);base64,(.+)$/);
+  if (durlMatch) rawB64 = durlMatch[2];
+  rawB64 = await compressForGemini(rawB64);
+
+  const imgBuffer = Buffer.from(rawB64, "base64");
+  const blob = new Blob([imgBuffer], { type: "image/jpeg" });
+
+  const connectOpts: Record<string, unknown> = {};
+  if (process.env.HF_TOKEN) connectOpts.hf_token = process.env.HF_TOKEN;
+
+  const client = await GradioClient.connect("victor/chandra-ocr-2", connectOpts as any);
+
+  const result = await client.predict("/run_ocr", {
+    image: blob,
+    prompt_type: "ocr_layout",
+    max_tokens: 4096,
+  } as any);
+
+  const raw = result.data;
+  const ocrText = Array.isArray(raw) ? String(raw[0]) : String(raw);
+
+  if (!ocrText || ocrText.trim().length < 10) {
+    throw new Error("Chandra HF returned empty or too-short text");
+  }
+
+  // Parse raw OCR text into structured KTP fields using existing parser
+  const parsed = parseKtpText(ocrText);
+  return applyRegionMatching(parsed);
+}
+
 /** Apply region database matching on top of raw Python OCR result */
 function applyRegionMatching(raw: Record<string, unknown>): Record<string, string | null> {
   const str = (v: unknown) => (typeof v === "string" && v.length > 0 ? v : null);
@@ -1461,7 +1496,31 @@ router.post("/scan", async (req, res) => {
       engine = "python-opencv";
     }
 
-    // 2. Fallback: Python OpenCV + Tesseract
+    // 2. Fallback: Chandra OCR via HuggingFace ZeroGPU (free, 90s timeout)
+    try {
+      req.log.info("Trying Chandra HF (ZeroGPU)...");
+      const chandraResult = await Promise.race([
+        scanWithChandraHF(imageBase64),
+        new Promise<never>((_, rej) =>
+          setTimeout(() => rej(new Error("Chandra HF timeout after 90s")), 90_000)
+        ),
+      ]);
+      data = chandraResult;
+      const filledFields = Object.values(data).filter((v) => v !== null && v !== "").length;
+      score = Math.round((filledFields / 16) * 100);
+      engine = "chandra-hf";
+      req.log.info({ score, engine }, "KTP scan via Chandra HF");
+      const lowConfidence = score < 65;
+      return res.json({
+        ...data,
+        _meta: { tesseractScore: score, qualityWarning: null, lowConfidence, engine },
+      });
+    } catch (chandraErr) {
+      req.log.warn({ err: chandraErr }, "Chandra HF failed, falling back to Python OCR");
+      engine = "python-opencv";
+    }
+
+    // 3. Fallback: Python OpenCV + Tesseract
     try {
       const pyResult = await scanWithPython(imageBase64);
       if (pyResult.error) throw new Error(String(pyResult.error));
@@ -1469,7 +1528,7 @@ router.post("/scan", async (req, res) => {
       score = typeof pyResult.score === "number" ? pyResult.score : 0;
       engine = "python-opencv";
     } catch (pyErr) {
-      // 3. Last resort: Tesseract.js
+      // 4. Last resort: Tesseract.js
       req.log.warn({ err: pyErr }, "Python scanner failed, falling back to Tesseract.js");
       const tessResult = await ocrWithTesseract(imageBase64);
       data = tessResult.data;
