@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, prizesTable } from "@workspace/db";
+import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, prizesTable, usersTable } from "@workspace/db";
 import { eq, sql, and, gte, lte, ilike } from "drizzle-orm";
 import { GetDashboardStatsQueryParams, GetEventsSummaryQueryParams, GetDailyRegistrationsQueryParams } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
@@ -223,19 +223,44 @@ router.get("/staff", requireAuth, async (req, res) => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    // Main stats per staffId
     const staffRows = await db
       .select({
-        staffName: eventRegistrationsTable.staffName,
-        totalCount: sql<number>`cast(count(*) as integer)`,
-        recentCount: sql<number>`cast(sum(case when ${eventRegistrationsTable.registeredAt} >= ${sevenDaysAgo.toISOString()} then 1 else 0 end) as integer)`,
-        lastActivity: sql<string>`to_char(max(${eventRegistrationsTable.registeredAt}), 'YYYY-MM-DD')`,
+        staffId: eventRegistrationsTable.staffId,
+        staffName: usersTable.name,
+        totalInput: sql<number>`cast(count(*) as integer)`,
+        totalEvent: sql<number>`cast(count(distinct ${eventRegistrationsTable.eventId}) as integer)`,
+        recentInput: sql<number>`cast(sum(case when ${eventRegistrationsTable.registeredAt} >= ${sevenDaysAgo.toISOString()} then 1 else 0 end) as integer)`,
+        lastActivity: sql<string>`max(${eventRegistrationsTable.registeredAt})`,
       })
       .from(eventRegistrationsTable)
-      .where(sql`${eventRegistrationsTable.staffName} is not null`)
-      .groupBy(eventRegistrationsTable.staffName)
+      .innerJoin(usersTable, eq(eventRegistrationsTable.staffId, usersTable.id))
+      .where(sql`${eventRegistrationsTable.staffId} is not null`)
+      .groupBy(eventRegistrationsTable.staffId, usersTable.name)
       .orderBy(sql`count(*) desc`);
 
-    res.json(staffRows);
+    // Events breakdown per staffId
+    const eventsRows = await db
+      .select({
+        staffId: eventRegistrationsTable.staffId,
+        eventName: eventsTable.name,
+        count: sql<number>`cast(count(*) as integer)`,
+      })
+      .from(eventRegistrationsTable)
+      .innerJoin(eventsTable, eq(eventRegistrationsTable.eventId, eventsTable.id))
+      .where(sql`${eventRegistrationsTable.staffId} is not null`)
+      .groupBy(eventRegistrationsTable.staffId, eventsTable.name)
+      .orderBy(sql`count(*) desc`);
+
+    // Merge events into staff rows
+    const result = staffRows.map((s) => ({
+      ...s,
+      events: eventsRows
+        .filter((e) => e.staffId === s.staffId)
+        .map((e) => ({ eventName: e.eventName, count: e.count })),
+    }));
+
+    res.json(result);
   } catch (err) {
     req.log.error({ err }, "Error getting staff list");
     res.status(500).json({ error: "Internal server error" });
