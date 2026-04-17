@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
+import { kabupatenList, getKecamatanList, getDesaList } from "@workspace/db/jatimWilayah";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -118,6 +119,17 @@ export default function PetugasScanPage() {
   const [notes, setNotes] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
+
+  const canonKab = useMemo(
+    () => kabupatenList.find((k) => k.toLowerCase() === (ktp.city ?? "").toLowerCase()) ?? "",
+    [ktp.city]
+  );
+  const canonKec = useMemo(() => {
+    if (!canonKab) return "";
+    return getKecamatanList(canonKab).find((k) => k.toLowerCase() === (ktp.kecamatan ?? "").toLowerCase()) ?? "";
+  }, [canonKab, ktp.kecamatan]);
+  const kecList = useMemo(() => canonKab ? getKecamatanList(canonKab) : [], [canonKab]);
+  const kelList = useMemo(() => canonKab && canonKec ? getDesaList(canonKab, canonKec) : [], [canonKab, canonKec]);
 
   const { data: event } = useQuery<EventInfo>({
     queryKey: ["event", eventId],
@@ -387,21 +399,6 @@ export default function PetugasScanPage() {
                   <div className="text-[9px] font-extrabold tracking-[0.2em] text-slate-400">
                     KARTU TANDA PENDUDUK
                   </div>
-                  {ocrMeta && (
-                    <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      ocrMeta.lowConfidence
-                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                        : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    }`}>
-                      <Zap className="h-2.5 w-2.5" />
-                      {ocrMeta.engine?.startsWith("gemini")
-                        ? "Gemini"
-                        : ocrMeta.engine === "python-opencv"
-                        ? "OpenCV"
-                        : "Tesseract"}{" "}
-                      {ocrMeta.tesseractScore}%
-                    </span>
-                  )}
                 </div>
 
                 {(qw || ocrMeta?.lowConfidence) && (
@@ -465,9 +462,43 @@ export default function PetugasScanPage() {
                 <div className="col-span-2">
                   <FieldInput label="Nama Lengkap *" value={ktp.fullName || ""} onChange={(v) => setKtp({ ...ktp, fullName: v })} placeholder="Sesuai KTP" />
                 </div>
-                <FieldInput label="Kota/Kabupaten" value={ktp.city || ""} onChange={(v) => setKtp({ ...ktp, city: v })} />
-                <FieldInput label="Kecamatan" value={ktp.kecamatan || ""} onChange={(v) => setKtp({ ...ktp, kecamatan: v })} />
-                <FieldInput label="Kelurahan/Desa" value={ktp.kelurahan || ""} onChange={(v) => setKtp({ ...ktp, kelurahan: v })} />
+                <div className="col-span-2 space-y-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Kabupaten / Kota</label>
+                    <select
+                      value={canonKab}
+                      onChange={(e) => setKtp({ ...ktp, city: e.target.value, kecamatan: "", kelurahan: "" })}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                    >
+                      <option value="">— Pilih Kabupaten/Kota —</option>
+                      {kabupatenList.map((k) => <option key={k} value={k}>{k}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Kecamatan</label>
+                    <select
+                      value={canonKec}
+                      disabled={!canonKab}
+                      onChange={(e) => setKtp({ ...ktp, kecamatan: e.target.value, kelurahan: "" })}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <option value="">— Pilih Kecamatan —</option>
+                      {kecList.map((k) => <option key={k} value={k}>{k}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Kelurahan / Desa</label>
+                    <select
+                      value={ktp.kelurahan || ""}
+                      disabled={!canonKec}
+                      onChange={(e) => setKtp({ ...ktp, kelurahan: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <option value="">— Pilih Kelurahan/Desa —</option>
+                      {kelList.map((k) => <option key={k} value={k}>{k}</option>)}
+                    </select>
+                  </div>
+                </div>
                 <FieldInput label="Pekerjaan" value={ktp.occupation || ""} onChange={(v) => setKtp({ ...ktp, occupation: v })} />
               </div>
             </div>
