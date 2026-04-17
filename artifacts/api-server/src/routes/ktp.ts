@@ -1446,10 +1446,10 @@ router.post("/scan", async (req, res) => {
     let data: Record<string, string | null>;
     let score: number;
     let qualityWarning: QualityWarning = null;
-    let engine = "gemini-2.0-flash";
+    let engine = "chandra-hf";
 
-    // 1. Try Gemini Vision — gemini-2.0-flash only
-    if (_gemini) {
+    // 1. Gemini dimatikan sementara — langsung ke Chandra HF
+    if (false && _gemini) {
       const geminiModels = ["gemini-2.0-flash"];
       let allGeminiFailed = true;
       for (const geminiModel of geminiModels) {
