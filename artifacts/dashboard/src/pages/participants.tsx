@@ -60,11 +60,12 @@ function SortTh({ col, label, sortKey, sortDir, onSort, className = "" }: {
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function doExportExcel(participants: any[]) {
-  const headers = ["NIK", "Nama", "Kelamin", "Kota", "Provinsi", "Kelurahan", "Kecamatan", "Pekerjaan", "Pertama Daftar", "Total Event"];
+  const headers = ["NIK", "Nama", "Kelamin", "Kota", "Provinsi", "Kelurahan", "Kecamatan", "Pekerjaan", "Pertama Daftar", "Total Event", "Didaftarkan Oleh"];
   const rows = [headers, ...participants.map((p) => [
     p.nik, p.fullName, p.gender ?? "", p.city ?? "", p.province ?? "",
     p.kelurahan ?? "", p.kecamatan ?? "", p.occupation ?? "",
     new Date(p.firstRegisteredAt).toLocaleDateString("id-ID"), p.eventCount,
+    (p as any).registeredBy ?? "",
   ])];
   exportExcel(rows, `peserta_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
@@ -476,6 +477,12 @@ export default function ParticipantsPage() {
                           <p className="text-xs font-medium text-slate-600">
                             {new Date(p.firstRegisteredAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                           </p>
+                          {(p as any).registeredBy && (
+                            <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                              <span className="font-medium">oleh</span>
+                              <span className="font-semibold text-slate-500">{(p as any).registeredBy}</span>
+                            </p>
+                          )}
                         </td>
 
                         {/* Total Event */}
