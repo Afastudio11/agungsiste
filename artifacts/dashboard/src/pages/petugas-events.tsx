@@ -27,10 +27,12 @@ interface Event {
 interface ScanHistoryItem {
   id: number;
   registeredAt: string;
+  checkedInAt: string | null;
   registrationType: string;
   participantName: string;
   participantNik: string;
-  participantKabupaten: string | null;
+  participantCity: string | null;
+  participantKecamatan: string | null;
   eventId: number;
   eventName: string;
   eventLocation: string | null;
@@ -443,9 +445,9 @@ export default function PetugasEventsPage() {
                       <span className="text-[11px] text-slate-400 font-mono tracking-wide">
                         {maskNik(item.participantNik)}
                       </span>
-                      {item.participantKabupaten && (
+                      {(item.participantCity || item.participantKecamatan) && (
                         <span className="text-[10px] font-semibold text-slate-400">
-                          · {item.participantKabupaten}
+                          · {[item.participantKecamatan, item.participantCity].filter(Boolean).join(", ")}
                         </span>
                       )}
                     </div>
@@ -457,11 +459,18 @@ export default function PetugasEventsPage() {
                     </div>
                   </div>
 
-                  {/* Time */}
-                  <div className="flex flex-col items-end gap-1 shrink-0">
+                  {/* Type badge + Time */}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <div className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                      item.checkedInAt
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-blue-100 text-blue-700"
+                    }`}>
+                      {item.checkedInAt ? "ABSEN" : "KTP"}
+                    </div>
                     <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
                       <Clock size={9} />
-                      {formatRelTime(item.registeredAt)}
+                      {formatRelTime(item.checkedInAt ?? item.registeredAt)}
                     </div>
                   </div>
                 </div>

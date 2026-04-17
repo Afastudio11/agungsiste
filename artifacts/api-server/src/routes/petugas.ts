@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { eventRegistrationsTable, participantsTable, eventsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
@@ -18,10 +18,12 @@ router.get("/scan-history", requireAuth, async (req, res) => {
       .select({
         id: eventRegistrationsTable.id,
         registeredAt: eventRegistrationsTable.registeredAt,
+        checkedInAt: eventRegistrationsTable.checkedInAt,
         registrationType: eventRegistrationsTable.registrationType,
-        participantName: participantsTable.name,
+        participantName: participantsTable.fullName,
         participantNik: participantsTable.nik,
-        participantKabupaten: participantsTable.kabupaten,
+        participantCity: participantsTable.city,
+        participantKecamatan: participantsTable.kecamatan,
         eventId: eventsTable.id,
         eventName: eventsTable.name,
         eventLocation: eventsTable.location,
@@ -30,7 +32,7 @@ router.get("/scan-history", requireAuth, async (req, res) => {
       .innerJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
       .innerJoin(eventsTable, eq(eventRegistrationsTable.eventId, eventsTable.id))
       .where(eq(eventRegistrationsTable.staffId, userId))
-      .orderBy(desc(eventRegistrationsTable.registeredAt))
+      .orderBy(desc(sql`COALESCE(${eventRegistrationsTable.checkedInAt}, ${eventRegistrationsTable.registeredAt})`))
       .limit(50);
 
     res.json(rows);
