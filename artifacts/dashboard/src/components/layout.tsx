@@ -55,7 +55,7 @@ function NavItem({
         className={`group flex items-center gap-3 rounded-full px-4 py-2.5 text-[13px] font-semibold transition-all duration-150 cursor-pointer ${
           active
             ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
-            : "text-slate-500 hover:bg-blue-50 hover:text-blue-700"
+            : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"
         }`}
       >
         <Icon
@@ -115,7 +115,7 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Bottom section */}
       <div className="px-3 pb-4 space-y-2">
-        <div className="h-px bg-blue-100 mb-3" />
+        <div className="h-px bg-slate-100 mb-3" />
 
         {/* New Scan CTA */}
         <Link href="/scan">
@@ -130,7 +130,7 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* User profile */}
         {user && (
-          <div className="mt-2 flex items-center gap-3 rounded-2xl bg-blue-50 px-3 py-2.5 border border-blue-100">
+          <div className="mt-2 flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2.5 border border-slate-100">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[12px] font-extrabold text-blue-700">
               {initials}
             </div>
@@ -152,9 +152,9 @@ export default function Layout({ children }: LayoutProps) {
   );
 
   return (
-    <div className="flex min-h-screen bg-blue-50">
+    <div className="flex min-h-screen bg-slate-50">
       {/* ── Desktop Sidebar ──────────────────────────────────── */}
-      <aside className="hidden md:flex w-[240px] flex-col fixed inset-y-0 left-0 z-40 bg-white/90 backdrop-blur-2xl border-r border-blue-100/80 rounded-r-[28px]">
+      <aside className="hidden md:flex w-[240px] flex-col fixed inset-y-0 left-0 z-40 bg-white/80 backdrop-blur-2xl border-r border-slate-100/80 rounded-r-[28px]">
         <Sidebar />
       </aside>
 
@@ -165,7 +165,7 @@ export default function Layout({ children }: LayoutProps) {
             className="absolute inset-0 bg-black/20 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative w-[260px] h-full bg-white/95 backdrop-blur-2xl border-r border-blue-100 rounded-r-[28px] flex flex-col z-10">
+          <aside className="relative w-[260px] h-full bg-white/95 backdrop-blur-2xl border-r border-slate-100 rounded-r-[28px] flex flex-col z-10">
             <Sidebar onNav={() => setMobileOpen(false)} />
           </aside>
         </div>
@@ -174,11 +174,11 @@ export default function Layout({ children }: LayoutProps) {
       {/* ── Main content ─────────────────────────────────────── */}
       <div className="flex-1 md:ml-[240px] min-h-screen flex flex-col">
         {/* Top header bar — frosted glass */}
-        <header className="sticky top-0 z-30 flex items-center gap-3 bg-white/90 backdrop-blur-2xl border-b border-blue-100/80 px-5 py-3">
+        <header className="sticky top-0 z-30 flex items-center gap-3 bg-white/80 backdrop-blur-2xl border-b border-slate-100/80 px-5 py-3">
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden p-2 rounded-xl text-slate-400 hover:bg-blue-100 hover:text-blue-600 transition"
+            className="md:hidden p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
           >
             <List size={20} weight="bold" />
           </button>
@@ -199,13 +199,13 @@ export default function Layout({ children }: LayoutProps) {
           )}
 
           <div className="flex items-center gap-1">
-            <button className="flex items-center justify-center h-8 w-8 rounded-full text-slate-400 hover:bg-blue-100 hover:text-blue-600 transition">
+            <button className="flex items-center justify-center h-8 w-8 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
               <Bell size={20} weight="bold" />
             </button>
-            <button className="flex items-center justify-center h-8 w-8 rounded-full text-slate-400 hover:bg-blue-100 hover:text-blue-600 transition">
+            <button className="flex items-center justify-center h-8 w-8 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
               <History size={20} weight="bold" />
             </button>
-            <div className="w-px h-5 bg-blue-100 mx-1" />
+            <div className="w-px h-5 bg-slate-100 mx-1" />
             {user && (
               <button
                 onClick={handleLogout}
@@ -222,7 +222,7 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {/* ── Mobile bottom navigation ──────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 backdrop-blur-xl border-t border-blue-100 safe-area-bottom">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 backdrop-blur-xl border-t border-slate-100 safe-area-bottom">
         <div className="flex items-center justify-around px-2 py-1.5">
           {adminNav.slice(0, 5).map(({ href, label, Icon }) => {
             const active = location === href || location.startsWith(href + "/");
