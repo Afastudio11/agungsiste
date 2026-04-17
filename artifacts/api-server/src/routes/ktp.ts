@@ -18,11 +18,15 @@ import {
 import { requireAuth } from "../middlewares/auth";
 import { GoogleGenAI } from "@google/genai";
 import { Client as GradioClient } from "@gradio/client";
+import Groq from "groq-sdk";
 
 const _thisDir = path.dirname(fileURLToPath(import.meta.url));
 const _objectStorage = new ObjectStorageService();
 const _gemini = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+  : null;
+const _groq = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
   : null;
 
 const TESSDATA_DIR = path.resolve(_thisDir, "..", "tessdata");
@@ -1360,9 +1364,55 @@ function scanWithPython(imageBase64: string): Promise<Record<string, unknown>> {
         reject(new Error(`Invalid JSON from Python: ${stdout.slice(0, 200)}`));
       }
     });
+    py.stdin.on("error", () => {}); // suppress EPIPE if process exits early
     py.stdin.write(JSON.stringify({ imageBase64 }));
     py.stdin.end();
   });
+}
+
+// ─── Groq Vision OCR — Llama 4 Scout ─────────────────────────────────────────
+const GROQ_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+
+async function scanWithGroq(imageBase64: string): Promise<Record<string, string | null>> {
+  if (!_groq) throw new Error("GROQ_API_KEY not configured");
+
+  let rawB64 = imageBase64;
+  const durlMatch = rawB64.match(/^data:([^;]+);base64,(.+)$/);
+  if (durlMatch) rawB64 = durlMatch[2];
+  rawB64 = await compressForGemini(rawB64);
+
+  const completion = await _groq.chat.completions.create({
+    model: GROQ_VISION_MODEL,
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: { url: `data:image/jpeg;base64,${rawB64}` },
+          },
+          { type: "text", text: GEMINI_KTP_PROMPT },
+        ],
+      },
+    ],
+    temperature: 0,
+    max_tokens: 2048,
+  });
+
+  const text = completion.choices[0]?.message?.content ?? "";
+  if (!text.trim()) throw new Error("Groq returned empty response");
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error(`Groq response has no JSON: ${text.slice(0, 200)}`);
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(jsonMatch[0]);
+  } catch {
+    throw new Error(`Groq JSON parse failed: ${jsonMatch[0].slice(0, 200)}`);
+  }
+
+  return applyRegionMatching(parsed);
 }
 
 // ─── Chandra OCR via HuggingFace ZeroGPU Space (free) ───────────────────────
@@ -1446,46 +1496,27 @@ router.post("/scan", async (req, res) => {
     let data: Record<string, string | null>;
     let score: number;
     let qualityWarning: QualityWarning = null;
-    let engine = "chandra-hf";
+    let engine = "groq-llama4-scout";
 
-    // 1. Gemini dimatikan sementara — langsung ke Chandra HF
-    if (false && _gemini) {
-      const geminiModels = ["gemini-2.0-flash"];
-      let allGeminiFailed = true;
-      for (const geminiModel of geminiModels) {
-        let transientFail = false;
-        for (let attempt = 0; attempt < 2; attempt++) {
-          if (attempt > 0) await new Promise((r) => setTimeout(r, 2000));
-          try {
-            const geminiResult = await scanWithGemini(imageBase64, geminiModel);
-            data = applyRegionMatching(geminiResult);
-            const filledFields = Object.values(data).filter((v) => v !== null && v !== "").length;
-            score = Math.round((filledFields / 16) * 100);
-            engine = geminiModel;
-            req.log.info({ score, engine, attempt }, "KTP scan via Gemini");
-            return res.json({
-              ...data,
-              _meta: { tesseractScore: score, qualityWarning: null, lowConfidence: score < 50, engine },
-            });
-          } catch (err: unknown) {
-            const status = (err as { status?: number }).status;
-            if (status === 503 || status === 429) {
-              req.log.warn({ attempt, status, model: geminiModel }, "Gemini transient error, retrying...");
-              transientFail = true;
-            } else {
-              req.log.warn({ err, model: geminiModel }, "Gemini non-transient error, trying next model");
-              break;
-            }
-          }
-        }
-        if (!transientFail) { allGeminiFailed = true; break; }
-        // transient fail → try next model
-        req.log.warn({ model: geminiModel }, `${geminiModel} overloaded, trying next Gemini model...`);
+    // 1. Groq Vision — Llama 4 Scout
+    if (_groq) {
+      try {
+        req.log.info({ model: GROQ_VISION_MODEL }, "Trying Groq Vision...");
+        const groqResult = await scanWithGroq(imageBase64);
+        data = groqResult;
+        const filledFields = Object.values(data).filter((v) => v !== null && v !== "").length;
+        score = Math.round((filledFields / 16) * 100);
+        engine = "groq-llama4-scout";
+        req.log.info({ score, engine }, "KTP scan via Groq");
+        return res.json({
+          ...data,
+          _meta: { tesseractScore: score, qualityWarning: null, lowConfidence: score < 50, engine },
+        });
+      } catch (groqErr) {
+        req.log.warn({ err: groqErr }, "Groq failed, falling back to Chandra HF");
       }
-      if (allGeminiFailed) {
-        req.log.warn("All Gemini models failed, falling back to Python OCR");
-      }
-      engine = "python-opencv";
+    } else {
+      req.log.warn("GROQ_API_KEY not set, skipping Groq tier");
     }
 
     // 2. Fallback: Chandra OCR via HuggingFace ZeroGPU (free, 90s timeout)
