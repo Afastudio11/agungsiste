@@ -145,10 +145,7 @@ export default function PetugasQrScanPage() {
 
       await scanner.start(
         { facingMode: "environment" },
-        {
-          fps: 15,
-          qrbox: { width: 250, height: 250 },
-        },
+        { fps: 15 },
         (decodedText: string) => {
           if (!processingRef.current) handleRawQr(decodedText);
         },
@@ -205,14 +202,13 @@ export default function PetugasQrScanPage() {
           width: 100% !important;
           height: 100% !important;
           object-fit: cover !important;
-          display: block;
+          display: block !important;
           border-radius: 0;
         }
         #${READER_ID} img { display: none !important; }
         #${READER_ID} button { display: none !important; }
         #${READER_ID} select { display: none !important; }
-        #${READER_ID} #qr-shaded-region { display: none !important; }
-        #${READER_ID} > div:first-child { display: none !important; }
+        #${READER_ID} #qr-shaded-region { opacity: 0 !important; }
       `}</style>
 
       {/* ── Top Bar ─────────────────────────────────────────────────────── */}
