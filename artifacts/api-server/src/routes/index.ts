@@ -9,6 +9,7 @@ import usersRouter from "./users";
 import pemetaanRouter from "./pemetaan";
 import prizesRouter from "./prizes";
 import storageRouter from "./storage";
+import petugasRouter from "./petugas";
 
 const router: IRouter = Router();
 
@@ -21,6 +22,7 @@ router.use("/ktp", ktpRouter);
 router.use("/dashboard", dashboardRouter);
 router.use("/pemetaan", pemetaanRouter);
 router.use("/prizes", prizesRouter);
+router.use("/petugas", petugasRouter);
 router.use(storageRouter);
 
 export default router;

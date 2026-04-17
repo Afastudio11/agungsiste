@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import {
   CalendarDays, MapPin, LogOut, ScanLine, Search,
   ClipboardCheck, Users, QrCode, X,
-  TrendingUp, Zap
+  TrendingUp, Zap, History, Clock, ChevronRight
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
@@ -22,6 +22,34 @@ interface Event {
   isRsvp?: boolean;
   status?: string;
   participantCount: number;
+}
+
+interface ScanHistoryItem {
+  id: number;
+  registeredAt: string;
+  registrationType: string;
+  participantName: string;
+  participantNik: string;
+  participantKabupaten: string | null;
+  eventId: number;
+  eventName: string;
+  eventLocation: string | null;
+}
+
+function maskNik(nik: string) {
+  if (!nik || nik.length < 8) return nik;
+  return nik.slice(0, 4) + "·".repeat(nik.length - 8) + nik.slice(-4);
+}
+
+function formatRelTime(isoStr: string) {
+  const diff = Date.now() - new Date(isoStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "Baru saja";
+  if (m < 60) return `${m} mnt lalu`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} jam lalu`;
+  const d = Math.floor(h / 24);
+  return `${d} hari lalu`;
 }
 
 function getCategoryBadge(ev: Event) {
@@ -43,6 +71,13 @@ export default function PetugasEventsPage() {
     queryKey: ["events-active"],
     queryFn: () =>
       fetch(`${BASE}/api/events`, { credentials: "include" }).then((r) => r.json()),
+  });
+
+  const { data: scanHistory = [], isLoading: historyLoading } = useQuery<ScanHistoryItem[]>({
+    queryKey: ["petugas-scan-history"],
+    queryFn: () =>
+      fetch(`${BASE}/api/petugas/scan-history`, { credentials: "include" }).then((r) => r.json()),
+    refetchInterval: 15000,
   });
 
   const active = events.filter((e) => !e.status || e.status === "active");
@@ -347,6 +382,92 @@ export default function PetugasEventsPage() {
               );
             })}
           </div>
+        </div>
+
+        {/* ── Riwayat Scan KTP ─────────────────────────────────────── */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[13px] font-extrabold text-slate-700 tracking-wide flex items-center gap-2">
+              <History size={14} className="text-blue-500" />
+              RIWAYAT SCAN KTP SAYA
+            </h2>
+            {scanHistory.length > 0 && (
+              <div className="text-xs font-bold text-slate-400">
+                {scanHistory.length} entri
+              </div>
+            )}
+          </div>
+
+          {historyLoading && (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-slate-100 shrink-0" />
+                    <div className="flex-1">
+                      <div className="h-3.5 bg-slate-100 rounded-lg mb-2 w-2/3" />
+                      <div className="h-3 bg-slate-100 rounded-lg w-1/2" />
+                    </div>
+                    <div className="h-3 w-14 bg-slate-100 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!historyLoading && scanHistory.length === 0 && (
+            <div className="bg-white rounded-2xl border border-slate-100 py-12 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                <ScanLine size={24} className="text-slate-300" />
+              </div>
+              <div className="text-sm font-bold text-slate-400">Belum ada scan KTP</div>
+              <div className="text-xs text-slate-300 mt-1">Scan KTP peserta untuk mulai merekam riwayat</div>
+            </div>
+          )}
+
+          {!historyLoading && scanHistory.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
+              {scanHistory.map((item, idx) => (
+                <div key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
+                  {/* Index circle */}
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                    <span className="text-[11px] font-extrabold text-blue-600">{idx + 1}</span>
+                  </div>
+
+                  {/* Main info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-extrabold text-slate-900 truncate leading-snug">
+                      {item.participantName}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-[11px] text-slate-400 font-mono tracking-wide">
+                        {maskNik(item.participantNik)}
+                      </span>
+                      {item.participantKabupaten && (
+                        <span className="text-[10px] font-semibold text-slate-400">
+                          · {item.participantKabupaten}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <div className="flex items-center gap-1 text-[10px] text-blue-500 font-semibold bg-blue-50 px-2 py-0.5 rounded-full max-w-[200px] truncate">
+                        <ChevronRight size={9} className="shrink-0" />
+                        <span className="truncate">{item.eventName}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Time */}
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                      <Clock size={9} />
+                      {formatRelTime(item.registeredAt)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Bottom spacer */}
