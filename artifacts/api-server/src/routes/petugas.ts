@@ -42,4 +42,24 @@ router.get("/scan-history", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/my-stats", requireAuth, async (req, res) => {
+  try {
+    const userId = (req.session as any).userId as number;
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const [row] = await db
+      .select({
+        totalRegistered: sql<number>`cast(count(*) as integer)`,
+        totalEvents: sql<number>`cast(count(distinct ${eventRegistrationsTable.eventId}) as integer)`,
+      })
+      .from(eventRegistrationsTable)
+      .where(eq(eventRegistrationsTable.staffId, userId));
+
+    res.json({ totalRegistered: row?.totalRegistered ?? 0, totalEvents: row?.totalEvents ?? 0 });
+  } catch (err) {
+    console.error("my-stats error:", err);
+    res.status(500).json({ error: "Gagal memuat statistik" });
+  }
+});
+
 export default router;

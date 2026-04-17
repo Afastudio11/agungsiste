@@ -83,6 +83,13 @@ export default function PetugasEventsPage() {
     refetchInterval: 15000,
   });
 
+  const { data: myStats } = useQuery<{ totalRegistered: number; totalEvents: number }>({
+    queryKey: ["petugas-my-stats"],
+    queryFn: () =>
+      fetch(`${BASE}/api/petugas/my-stats`, { credentials: "include" }).then((r) => r.json()),
+    refetchInterval: 30000,
+  });
+
   const active = events.filter((e) => !e.status || e.status === "active");
   const filtered = active.filter(
     (ev) =>
@@ -91,8 +98,6 @@ export default function PetugasEventsPage() {
       (ev.location ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (ev.category ?? "").toLowerCase().includes(search.toLowerCase())
   );
-
-  const totalPeserta = active.reduce((s, e) => s + e.participantCount, 0);
 
   const handleLogout = async () => {
     await logout();
@@ -292,19 +297,19 @@ export default function PetugasEventsPage() {
               <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3">
                 <div className="text-[10px] text-blue-200 font-bold tracking-wider mb-1 flex items-center gap-1">
                   <CalendarDays size={10} />
-                  Event Aktif
+                  Event Saya
                 </div>
                 <div className="text-2xl font-extrabold text-white leading-none" style={{ letterSpacing: "-0.04em" }}>
-                  {isLoading ? "—" : active.length}
+                  {myStats == null ? "—" : myStats.totalEvents.toLocaleString("id-ID")}
                 </div>
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3">
                 <div className="text-[10px] text-blue-200 font-bold tracking-wider mb-1 flex items-center gap-1">
                   <Users size={10} />
-                  Total Peserta
+                  Peserta Saya
                 </div>
                 <div className="text-2xl font-extrabold text-white leading-none" style={{ letterSpacing: "-0.04em" }}>
-                  {isLoading ? "—" : totalPeserta.toLocaleString("id-ID")}
+                  {myStats == null ? "—" : myStats.totalRegistered.toLocaleString("id-ID")}
                 </div>
               </div>
             </div>
