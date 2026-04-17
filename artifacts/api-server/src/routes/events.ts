@@ -601,6 +601,13 @@ router.post("/public/check-nik", async (req, res) => {
       eq(eventRegistrationsTable.participantId, participant.id)
     );
 
+    const [lastReg] = await db
+      .select({ phone: eventRegistrationsTable.phone, email: eventRegistrationsTable.email })
+      .from(eventRegistrationsTable)
+      .where(eq(eventRegistrationsTable.participantId, participant.id))
+      .orderBy(sql`${eventRegistrationsTable.registeredAt} desc`)
+      .limit(1);
+
     res.json({
       found: true,
       eventCount,
@@ -622,6 +629,8 @@ router.post("/public/check-nik", async (req, res) => {
         bloodType: participant.bloodType,
         maritalStatus: participant.maritalStatus,
         religion: participant.religion,
+        phone: lastReg?.phone ?? null,
+        email: lastReg?.email ?? null,
       },
     });
   } catch (err) {

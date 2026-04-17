@@ -56,10 +56,10 @@ function StepBadge({ label }: { label: string }) {
 
 /* ─── Form field ─────────────────────────────────────────────────── */
 function FormField({
-  label, value, onChange, placeholder, type = "text",
+  label, value, onChange, placeholder, type = "text", readOnly = false,
 }: {
   label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string;
+  placeholder?: string; type?: string; readOnly?: boolean;
 }) {
   return (
     <div>
@@ -67,9 +67,14 @@ function FormField({
       <input
         type={type}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        readOnly={readOnly}
+        onChange={(e) => !readOnly && onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm text-slate-800 font-medium placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition"
+        className={`w-full px-4 py-3 border rounded-2xl text-sm font-medium placeholder:text-slate-300 focus:outline-none transition ${
+          readOnly
+            ? "bg-slate-50 border-slate-100 text-slate-500 cursor-default select-none"
+            : "bg-white border-slate-200 text-slate-800 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+        }`}
       />
     </div>
   );
@@ -116,6 +121,8 @@ export default function PublicRegisterPage() {
       const data = await res.json();
       if (data.found) {
         setExistingParticipant(data.participant);
+        if (data.participant.phone) setPhone(data.participant.phone);
+        if (data.participant.email) setEmail(data.participant.email);
         setKtpData({
           nik: data.participant.nik,
           fullName: data.participant.fullName,
@@ -920,9 +927,28 @@ export default function PublicRegisterPage() {
               <FormField label="Alamat" value={ktpData.address || ""} onChange={(v) => setKtpData({ ...ktpData, address: v })} />
 
               <div className="border-t border-slate-100 pt-4 space-y-4">
-                <p className="text-[11px] font-extrabold text-slate-400 tracking-widest">KONTAK</p>
-                <FormField label="No. Telepon *" value={phone} onChange={setPhone} placeholder="+62 8xx xxxx xxxx" type="tel" />
-                <FormField label="Email" value={email} onChange={setEmail} placeholder="email@domain.com" type="email" />
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-extrabold text-slate-400 tracking-widest">KONTAK</p>
+                  {existingParticipant?.phone && (
+                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">Data tersimpan</span>
+                  )}
+                </div>
+                <FormField
+                  label="No. Telepon *"
+                  value={phone}
+                  onChange={setPhone}
+                  placeholder="+62 8xx xxxx xxxx"
+                  type="tel"
+                  readOnly={!!existingParticipant?.phone}
+                />
+                <FormField
+                  label="Email"
+                  value={email}
+                  onChange={setEmail}
+                  placeholder="email@domain.com"
+                  type="email"
+                  readOnly={!!existingParticipant?.email}
+                />
                 {errorMsg && (
                   <p className="text-[12px] text-red-600 font-semibold flex items-center gap-1.5">
                     <span>⚠</span> {errorMsg}
