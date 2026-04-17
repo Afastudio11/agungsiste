@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { eventRegistrationsTable, participantsTable, eventsTable } from "@workspace/db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, ne, desc, sql, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
@@ -53,7 +53,12 @@ router.get("/my-stats", requireAuth, async (req, res) => {
         totalEvents: sql<number>`cast(count(distinct ${eventRegistrationsTable.eventId}) as integer)`,
       })
       .from(eventRegistrationsTable)
-      .where(eq(eventRegistrationsTable.staffId, userId));
+      .where(
+        and(
+          eq(eventRegistrationsTable.staffId, userId),
+          ne(eventRegistrationsTable.registrationType, "attendance")
+        )
+      );
 
     res.json({ totalRegistered: row?.totalRegistered ?? 0, totalEvents: row?.totalEvents ?? 0 });
   } catch (err) {

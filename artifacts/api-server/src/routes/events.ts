@@ -661,7 +661,7 @@ router.post("/public/register/:token", async (req, res) => {
     if (!event) return res.status(404).json({ error: "Event tidak ditemukan" });
 
     const isAttendance = event.attendanceToken === token;
-    const regType = isAttendance ? "onsite" : "rsvp";
+    const regType = isAttendance ? "attendance" : "rsvp";
 
     let participant = await db.query.participantsTable.findFirst({
       where: eq(participantsTable.nik, nik),

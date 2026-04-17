@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { participantsTable, eventRegistrationsTable, eventsTable, usersTable, adminAuditLogTable } from "@workspace/db";
-import { eq, sql, and, gte, lte, ilike, or } from "drizzle-orm";
+import { eq, ne, sql, and, gte, lte, ilike, or } from "drizzle-orm";
 import {
   ListParticipantsQueryParams,
   GetParticipantByNikParams,
@@ -86,7 +86,13 @@ router.get("/", requireAuth, async (req, res) => {
         registeredBy: sql<string>`(select staff_name from event_registrations where participant_id = ${participantsTable.id} order by registered_at desc limit 1)`,
       })
       .from(participantsTable)
-      .leftJoin(eventRegistrationsTable, eq(participantsTable.id, eventRegistrationsTable.participantId))
+      .innerJoin(
+        eventRegistrationsTable,
+        and(
+          eq(participantsTable.id, eventRegistrationsTable.participantId),
+          ne(eventRegistrationsTable.registrationType, "attendance")
+        )
+      )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .groupBy(participantsTable.id)
       .orderBy(sql`max(${eventRegistrationsTable.registeredAt}) desc nulls last`);
