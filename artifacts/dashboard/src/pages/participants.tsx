@@ -267,7 +267,7 @@ export default function ParticipantsPage() {
               className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-full font-bold text-sm shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors active:scale-95"
             >
               <FileText className="h-4 w-4" />
-              PDF + Foto KTP
+              PDF
             </button>
           </div>
 
