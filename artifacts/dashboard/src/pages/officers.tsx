@@ -222,7 +222,7 @@ export default function OfficersPage() {
                       </div>
                       <div className="text-base font-extrabold text-slate-800 tabular-nums">{Number(o.totalInput).toLocaleString("id-ID")}</div>
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 ml-10">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 ml-10">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${rankBarColor(i)}`}
                         style={{ width: `${pct}%` }}
