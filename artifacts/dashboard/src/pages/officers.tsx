@@ -415,14 +415,23 @@ export default function OfficersPage() {
                         <span className="text-sm font-bold text-slate-900">
                           {item.staffName ?? "—"}
                         </span>
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                          isAbsen
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}>
-                          {isAbsen ? <QrCode className="h-2.5 w-2.5" /> : <ScanLine className="h-2.5 w-2.5" />}
-                          {isAbsen ? "Scan Absen" : "Scan KTP"}
-                        </span>
+                        {isAbsen ? (
+                          <>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                              <QrCode className="h-2.5 w-2.5" />
+                              Scan Absen
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                              <ScanLine className="h-2.5 w-2.5" />
+                              + KTP
+                            </span>
+                          </>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                            <ScanLine className="h-2.5 w-2.5" />
+                            Scan KTP
+                          </span>
+                        )}
                       </div>
                       <div className="mt-0.5 text-sm text-slate-700 font-semibold truncate">
                         {item.participantName}
