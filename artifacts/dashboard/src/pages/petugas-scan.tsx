@@ -4,7 +4,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, Camera, Upload, CheckCircle2, AlertCircle, AlertTriangle,
-  Phone, Mail, Tag, FileText, User, Users, Zap, Sun, Eye, Contrast,
+  Phone, Mail, Tag, FileText, User, Users, Sun, Eye, Contrast,
   RotateCcw, ScanLine, ChevronRight
 } from "@/lib/icons";
 import { useAuth } from "@/lib/auth";
@@ -334,10 +334,6 @@ export default function PetugasScanPage() {
                   <div className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-2.5 rounded-full shadow-md shadow-blue-500/25 transition-colors">
                     <Camera className="h-4 w-4" />
                     Buka Kamera
-                  </div>
-                  <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-slate-400">
-                    <Zap className="h-3.5 w-3.5 text-emerald-500" />
-                    <span>OCR otomatis — data terisi langsung</span>
                   </div>
                 </>
               )}
