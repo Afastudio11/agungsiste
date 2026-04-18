@@ -121,6 +121,45 @@ const AGAMA_OPTIONS = ["ISLAM", "KRISTEN", "KATOLIK", "HINDU", "BUDDHA", "KONGHU
 const GOL_DARAH_OPTIONS = ["A", "B", "AB", "O", "A+", "B+", "AB+", "O+", "A-", "B-", "AB-", "O-"];
 const STATUS_KAWIN_OPTIONS = ["BELUM KAWIN", "KAWIN", "CERAI HIDUP", "CERAI MATI"];
 
+/**
+ * Normalizes OCR output for wilayah matching:
+ * - strips "KABUPATEN", "KOTA", "KAB.", "KEC.", "KEL.", "DESA" prefixes
+ * - collapses extra spaces, trims
+ * - lowercases
+ */
+function normalizeOcr(raw: string): string {
+  return raw
+    .replace(/\b(KABUPATEN|KOTA|KAB\.|KAB\s|KEC\.|KEC\s|KEL\.|KEL\s|DESA\s|KELURAHAN\s|KECAMATAN\s)/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Find the canonical wilayah name from a list by OCR string.
+ * 1. Exact lowercase match
+ * 2. Match after stripping common prefixes
+ * 3. Contains/partial match (canonical name inside OCR string)
+ */
+function findCanonical(ocrValue: string, list: string[]): string {
+  if (!ocrValue) return "";
+  const raw = ocrValue.toLowerCase().trim();
+  // 1. Exact case-insensitive
+  const exact = list.find((k) => k.toLowerCase() === raw);
+  if (exact) return exact;
+  // 2. Normalized (strip prefixes) exact match
+  const norm = normalizeOcr(ocrValue);
+  const normExact = list.find((k) => k.toLowerCase() === norm);
+  if (normExact) return normExact;
+  // 3. OCR contains canonical name (e.g. OCR="KABUPATEN TRENGGALEK" → find "Trenggalek")
+  const contains = list.find((k) => raw.includes(k.toLowerCase()) || norm.includes(k.toLowerCase()));
+  if (contains) return contains;
+  // 4. Canonical name starts with OCR (e.g. OCR="TRENGGA" → "Trenggalek")
+  const starts = list.find((k) => k.toLowerCase().startsWith(norm) && norm.length >= 4);
+  if (starts) return starts;
+  return "";
+}
+
 export default function PetugasScanPage() {
   const { id } = useParams();
   const eventId = parseInt(id || "0");
@@ -146,17 +185,17 @@ export default function PetugasScanPage() {
   const [customTag, setCustomTag] = useState("");
 
   const canonKab = useMemo(
-    () => kabupatenList.find((k) => k.toLowerCase() === (ktp.city ?? "").toLowerCase()) ?? "",
+    () => findCanonical(ktp.city ?? "", kabupatenList),
     [ktp.city]
   );
   const canonKec = useMemo(() => {
     if (!canonKab) return "";
-    return getKecamatanList(canonKab).find((k) => k.toLowerCase() === (ktp.kecamatan ?? "").toLowerCase()) ?? "";
+    return findCanonical(ktp.kecamatan ?? "", getKecamatanList(canonKab));
   }, [canonKab, ktp.kecamatan]);
   const kecList = useMemo(() => canonKab ? getKecamatanList(canonKab) : [], [canonKab]);
   const kelList = useMemo(() => canonKab && canonKec ? getDesaList(canonKab, canonKec) : [], [canonKab, canonKec]);
   const canonKel = useMemo(
-    () => kelList.find((k) => k.toLowerCase() === (ktp.kelurahan ?? "").toLowerCase()) ?? "",
+    () => findCanonical(ktp.kelurahan ?? "", kelList),
     [kelList, ktp.kelurahan]
   );
 
@@ -183,7 +222,22 @@ export default function PetugasScanPage() {
       const data: KtpData = await r.json();
       const { _meta, ...rest } = data;
       if (_meta) setOcrMeta(_meta);
-      setKtp(rest);
+
+      // Auto-normalize wilayah: find canonical names from OCR text so dropdowns pre-select correctly
+      const canonCity = findCanonical(rest.city ?? "", kabupatenList);
+      const canonKec2 = canonCity
+        ? findCanonical(rest.kecamatan ?? "", getKecamatanList(canonCity))
+        : "";
+      const canonKel2 = canonCity && canonKec2
+        ? findCanonical(rest.kelurahan ?? "", getDesaList(canonCity, canonKec2))
+        : "";
+
+      setKtp({
+        ...rest,
+        city: canonCity || rest.city,
+        kecamatan: canonKec2 || rest.kecamatan,
+        kelurahan: canonKel2 || rest.kelurahan,
+      });
       setStep("form");
     } catch {
       setError("Gagal membaca KTP. Coba foto ulang dengan pencahayaan yang lebih baik.");

@@ -69,6 +69,29 @@ function FormRow({
 const selectCls =
   "w-full text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition disabled:opacity-40 disabled:cursor-not-allowed";
 
+function normalizeOcr(raw: string): string {
+  return raw
+    .replace(/\b(KABUPATEN|KOTA|KAB\.|KAB\s|KEC\.|KEC\s|KEL\.|KEL\s|DESA\s|KELURAHAN\s|KECAMATAN\s)/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function findCanonical(ocrValue: string, list: string[]): string {
+  if (!ocrValue) return "";
+  const raw = ocrValue.toLowerCase().trim();
+  const exact = list.find((k) => k.toLowerCase() === raw);
+  if (exact) return exact;
+  const norm = normalizeOcr(ocrValue);
+  const normExact = list.find((k) => k.toLowerCase() === norm);
+  if (normExact) return normExact;
+  const contains = list.find((k) => raw.includes(k.toLowerCase()) || norm.includes(k.toLowerCase()));
+  if (contains) return contains;
+  const starts = list.find((k) => k.toLowerCase().startsWith(norm) && norm.length >= 4);
+  if (starts) return starts;
+  return "";
+}
+
 function WilayahSelectFull({
   city,
   kecamatan,
@@ -81,12 +104,12 @@ function WilayahSelectFull({
   onChange: (field: "city" | "kecamatan" | "kelurahan", val: string) => void;
 }) {
   const canonKab = useMemo(
-    () => kabupatenList.find((k) => k.toLowerCase() === city.toLowerCase()) ?? "",
+    () => findCanonical(city, kabupatenList),
     [city]
   );
   const canonKec = useMemo(() => {
     if (!canonKab) return "";
-    return getKecamatanList(canonKab).find((k) => k.toLowerCase() === kecamatan.toLowerCase()) ?? "";
+    return findCanonical(kecamatan, getKecamatanList(canonKab));
   }, [canonKab, kecamatan]);
 
   const kecList = canonKab ? getKecamatanList(canonKab) : [];
