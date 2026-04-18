@@ -14,6 +14,13 @@ const groq = process.env.GROQ_API_KEY
 
 const bot = new Bot(BOT_TOKEN);
 
+// ─── HTML escape ──────────────────────────────────────────────────────────────
+
+function h(text: string | null | undefined): string {
+  if (!text) return "<i>—</i>";
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface KtpData {
@@ -37,28 +44,15 @@ interface KtpData {
 
 type KtpField = keyof KtpData;
 
-interface FieldMeta { label: string; editable: boolean; }
-
-const FIELDS: Record<KtpField, FieldMeta> = {
-  nik:          { label: "NIK",             editable: true },
-  fullName:     { label: "Nama Lengkap",    editable: true },
-  birthPlace:   { label: "Tempat Lahir",    editable: true },
-  birthDate:    { label: "Tanggal Lahir",   editable: true },
-  gender:       { label: "Jenis Kelamin",   editable: true },
-  address:      { label: "Alamat",          editable: true },
-  rtRw:         { label: "RT/RW",           editable: true },
-  kelurahan:    { label: "Desa/Kel.",       editable: true },
-  kecamatan:    { label: "Kecamatan",       editable: true },
-  city:         { label: "Kota/Kab.",       editable: true },
-  province:     { label: "Provinsi",        editable: true },
-  religion:     { label: "Agama",           editable: true },
-  maritalStatus:{ label: "Status Nikah",    editable: true },
-  occupation:   { label: "Pekerjaan",       editable: true },
-  nationality:  { label: "Kewarganegaraan", editable: false },
-  bloodType:    { label: "Gol. Darah",      editable: true },
+const FIELD_LABELS: Record<KtpField, string> = {
+  nik: "NIK", fullName: "Nama Lengkap", birthPlace: "Tempat Lahir", birthDate: "Tanggal Lahir",
+  gender: "Jenis Kelamin", address: "Alamat", rtRw: "RT/RW", kelurahan: "Desa/Kel.",
+  kecamatan: "Kecamatan", city: "Kota/Kab.", province: "Provinsi", religion: "Agama",
+  maritalStatus: "Status Nikah", occupation: "Pekerjaan", nationality: "Kewarganegaraan",
+  bloodType: "Gol. Darah",
 };
 
-// Fields shown as edit buttons (most important ones)
+// Fields that show up as Edit buttons
 const EDIT_BUTTON_FIELDS: KtpField[] = [
   "nik", "fullName", "birthPlace", "birthDate", "gender",
   "city", "kecamatan", "occupation", "religion", "maritalStatus",
@@ -67,7 +61,7 @@ const EDIT_BUTTON_FIELDS: KtpField[] = [
 type BotState =
   | { step: "idle" }
   | { step: "await_photo" }
-  | { step: "await_data_confirm"; ktpData: KtpData; imageBase64: string }
+  | { step: "await_data_confirm"; ktpData: KtpData; imageBase64: string; dataMessageId: number }
   | { step: "await_edit_field"; ktpData: KtpData; imageBase64: string; field: KtpField; dataMessageId: number }
   | { step: "await_petugas"; ktpData: KtpData; imageBase64: string }
   | { step: "await_event"; ktpData: KtpData; imageBase64: string; staffId: number; staffName: string }
@@ -77,11 +71,11 @@ const sessions = new Map<number, BotState>();
 function getState(id: number): BotState { return sessions.get(id) ?? { step: "idle" }; }
 function setState(id: number, s: BotState) { sessions.set(id, s); }
 
-// ─── OCR ─────────────────────────────────────────────────────────────────────
+// ─── OCR via Groq ─────────────────────────────────────────────────────────────
 
 const GROQ_PROMPT = `Kamu adalah OCR untuk KTP Indonesia. Ekstrak data dari foto KTP ini dan kembalikan JSON dengan field berikut (null jika tidak ditemukan):
 {"nik":"16 digit NIK","fullName":"nama lengkap","birthPlace":"tempat lahir","birthDate":"DD-MM-YYYY","gender":"LAKI-LAKI atau PEREMPUAN","address":"alamat lengkap","rtRw":"RT/RW","kelurahan":"desa/kelurahan","kecamatan":"kecamatan","city":"kota/kabupaten","province":"provinsi","religion":"agama","maritalStatus":"status perkawinan","occupation":"pekerjaan","nationality":"kewarganegaraan","bloodType":"golongan darah atau null"}
-Kembalikan hanya JSON, tanpa markdown atau teks lain.`;
+Kembalikan hanya JSON tanpa markdown atau teks lain.`;
 
 async function scanKtp(imageBase64: string): Promise<KtpData> {
   if (!groq) throw new Error("Groq not configured");
@@ -150,38 +144,36 @@ async function registerParticipant(d: { ktpData: KtpData; eventId: number; staff
   return { alreadyRegistered: false, isNew, totalEvents: total };
 }
 
-// ─── UI helpers ───────────────────────────────────────────────────────────────
+// ─── Message builders ─────────────────────────────────────────────────────────
 
-function formatDataMessage(ktp: KtpData): string {
-  const val = (v: string | null) => v || "_kosong_";
+function buildDataMessage(ktp: KtpData): string {
   return (
-    `*Periksa Data KTP*\n\n` +
-    `*NIK:* \`${val(ktp.nik)}\`\n` +
-    `*Nama:* ${val(ktp.fullName)}\n` +
-    `*Tempat Lahir:* ${val(ktp.birthPlace)}\n` +
-    `*Tanggal Lahir:* ${val(ktp.birthDate)}\n` +
-    `*Jenis Kelamin:* ${val(ktp.gender)}\n` +
-    `*Alamat:* ${val(ktp.address)}\n` +
-    (ktp.rtRw ? `*RT/RW:* ${ktp.rtRw}\n` : "") +
-    (ktp.kelurahan ? `*Desa/Kel.:* ${ktp.kelurahan}\n` : "") +
-    `*Kecamatan:* ${val(ktp.kecamatan)}\n` +
-    `*Kota/Kab.:* ${val(ktp.city)}\n` +
-    `*Agama:* ${val(ktp.religion)}\n` +
-    `*Pekerjaan:* ${val(ktp.occupation)}\n` +
-    `*Status Nikah:* ${val(ktp.maritalStatus)}\n` +
-    (ktp.bloodType ? `*Gol. Darah:* ${ktp.bloodType}\n` : "") +
-    `\nPastikan data sudah benar\\. Jika ada yang salah, tekan tombol *Edit* di bawah\\. Jika sudah benar, tekan *Data Benar \\- Lanjut*\\.`
+    `<b>Periksa Data KTP</b>\n\n` +
+    `<b>NIK:</b> <code>${h(ktp.nik)}</code>\n` +
+    `<b>Nama:</b> ${h(ktp.fullName)}\n` +
+    `<b>Tempat Lahir:</b> ${h(ktp.birthPlace)}\n` +
+    `<b>Tanggal Lahir:</b> ${h(ktp.birthDate)}\n` +
+    `<b>Jenis Kelamin:</b> ${h(ktp.gender)}\n` +
+    `<b>Alamat:</b> ${h(ktp.address)}\n` +
+    (ktp.rtRw ? `<b>RT/RW:</b> ${h(ktp.rtRw)}\n` : "") +
+    (ktp.kelurahan ? `<b>Desa/Kel.:</b> ${h(ktp.kelurahan)}\n` : "") +
+    `<b>Kecamatan:</b> ${h(ktp.kecamatan)}\n` +
+    `<b>Kota/Kab.:</b> ${h(ktp.city)}\n` +
+    `<b>Agama:</b> ${h(ktp.religion)}\n` +
+    `<b>Pekerjaan:</b> ${h(ktp.occupation)}\n` +
+    `<b>Status Nikah:</b> ${h(ktp.maritalStatus)}\n` +
+    (ktp.bloodType ? `<b>Gol. Darah:</b> ${h(ktp.bloodType)}\n` : "") +
+    `\n<i>Pastikan data sudah benar. Jika ada yang salah, tekan tombol Edit di bawah. Jika sudah benar, tekan <b>Data Benar - Lanjut</b>.</i>`
   );
 }
 
 function buildDataKeyboard(): InlineKeyboard {
   const kb = new InlineKeyboard();
-  const editFields = EDIT_BUTTON_FIELDS;
-  for (let i = 0; i < editFields.length; i += 2) {
-    const f1 = editFields[i];
-    const f2 = editFields[i + 1];
-    kb.text(`Edit ${FIELDS[f1].label}`, `edit:${f1}`);
-    if (f2) kb.text(`Edit ${FIELDS[f2].label}`, `edit:${f2}`);
+  for (let i = 0; i < EDIT_BUTTON_FIELDS.length; i += 2) {
+    const f1 = EDIT_BUTTON_FIELDS[i];
+    const f2 = EDIT_BUTTON_FIELDS[i + 1];
+    kb.text(`Ubah ${FIELD_LABELS[f1]}`, `edit:${f1}`);
+    if (f2) kb.text(`Ubah ${FIELD_LABELS[f2]}`, `edit:${f2}`);
     kb.row();
   }
   kb.text("Data Benar - Lanjut", "data_ok").row();
@@ -209,21 +201,20 @@ function buildEventKeyboard(events: { id: number; name: string; location: string
 bot.command("start", async (ctx) => {
   setState(ctx.chat.id, { step: "idle" });
   await ctx.reply(
-    "Halo\\! Saya bot pendaftaran KTP\\.\n\n" +
-    "Kirim foto KTP untuk mendaftarkan peserta ke event\\.\n\n" +
-    "Perintah:\n/daftar \\- Mulai pendaftaran\n/batal \\- Batalkan proses",
-    { parse_mode: "MarkdownV2" }
+    "Halo! Saya bot pendaftaran KTP.\n\n" +
+    "Kirim foto KTP untuk mendaftarkan peserta ke event.\n\n" +
+    "Perintah:\n/daftar - Mulai pendaftaran\n/batal - Batalkan proses"
   );
 });
 
 bot.command("daftar", async (ctx) => {
   setState(ctx.chat.id, { step: "await_photo" });
-  await ctx.reply("Silakan kirim foto KTP peserta yang ingin didaftarkan\\.", { parse_mode: "MarkdownV2" });
+  await ctx.reply("Silakan kirim foto KTP peserta yang ingin didaftarkan.");
 });
 
 bot.command("batal", async (ctx) => {
   setState(ctx.chat.id, { step: "idle" });
-  await ctx.reply("Proses dibatalkan\\.", { parse_mode: "MarkdownV2" });
+  await ctx.reply("Proses dibatalkan.");
 });
 
 // ─── Photo handler ─────────────────────────────────────────────────────────
@@ -231,43 +222,44 @@ bot.command("batal", async (ctx) => {
 bot.on("message:photo", async (ctx) => {
   const state = getState(ctx.chat.id);
   if (state.step !== "await_photo" && state.step !== "idle") {
-    await ctx.reply("Sedang dalam proses lain\\. Ketik /batal untuk membatalkan\\.", { parse_mode: "MarkdownV2" });
+    await ctx.reply("Sedang dalam proses lain. Ketik /batal untuk membatalkan.");
     return;
   }
   setState(ctx.chat.id, { step: "await_photo" });
-  const statusMsg = await ctx.reply("Memproses foto KTP\\.\\.\\.", { parse_mode: "MarkdownV2" });
+  const statusMsg = await ctx.reply("Memproses foto KTP...");
   try {
     const photo = ctx.message.photo.at(-1)!;
     const file = await ctx.api.getFile(photo.file_id);
     const imageBase64 = await getImageBase64(`https://api.telegram.org/file/bot${BOT_TOKEN}/${file.file_path}`);
 
-    await ctx.api.editMessageText(ctx.chat.id, statusMsg.message_id, "Membaca data KTP dengan AI\\.\\.\\.", { parse_mode: "MarkdownV2" });
+    await ctx.api.editMessageText(ctx.chat.id, statusMsg.message_id, "Membaca data KTP dengan AI...");
     const ktpData = await scanKtp(imageBase64);
 
-    if (!ktpData.nik || ktpData.nik.length < 16) {
+    if (!ktpData.nik || ktpData.nik.length < 10) {
       await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id);
-      await ctx.reply("Gagal membaca NIK\\. Pastikan foto KTP jelas lalu coba lagi\\.", { parse_mode: "MarkdownV2" });
+      await ctx.reply("Gagal membaca NIK. Pastikan foto KTP jelas lalu coba lagi.");
       setState(ctx.chat.id, { step: "await_photo" });
       return;
     }
     if (!ktpData.fullName) {
       await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id);
-      await ctx.reply("Gagal membaca nama\\. Pastikan foto KTP jelas lalu coba lagi\\.", { parse_mode: "MarkdownV2" });
+      await ctx.reply("Gagal membaca nama. Pastikan foto KTP jelas lalu coba lagi.");
       setState(ctx.chat.id, { step: "await_photo" });
       return;
     }
 
     await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id);
-    setState(ctx.chat.id, { step: "await_data_confirm", ktpData, imageBase64 });
 
-    await ctx.reply(formatDataMessage(ktpData), {
-      parse_mode: "MarkdownV2",
+    const dataMsg = await ctx.reply(buildDataMessage(ktpData), {
+      parse_mode: "HTML",
       reply_markup: buildDataKeyboard(),
     });
+
+    setState(ctx.chat.id, { step: "await_data_confirm", ktpData, imageBase64, dataMessageId: dataMsg.message_id });
   } catch (err) {
     console.error("Photo error:", err);
     try { await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id); } catch {}
-    await ctx.reply("Terjadi kesalahan saat membaca foto\\. Coba lagi\\.", { parse_mode: "MarkdownV2" });
+    await ctx.reply("Terjadi kesalahan saat membaca foto. Coba lagi.");
     setState(ctx.chat.id, { step: "idle" });
   }
 });
@@ -276,38 +268,37 @@ bot.on("message:photo", async (ctx) => {
 
 bot.callbackQuery(/^edit:(.+)$/, async (ctx) => {
   const state = getState(ctx.chat.id);
-  if (state.step !== "await_data_confirm") { await ctx.answerCallbackQuery(); return; }
+  if (state.step !== "await_data_confirm") { await ctx.answerCallbackQuery("Sesi sudah berakhir."); return; }
 
   const field = ctx.match[1] as KtpField;
-  const meta = FIELDS[field];
-  if (!meta?.editable) { await ctx.answerCallbackQuery("Field ini tidak bisa diedit."); return; }
-
+  const label = FIELD_LABELS[field];
   const currentVal = state.ktpData[field];
+
   setState(ctx.chat.id, {
     step: "await_edit_field",
     ktpData: state.ktpData,
     imageBase64: state.imageBase64,
     field,
-    dataMessageId: ctx.callbackQuery.message?.message_id ?? 0,
+    dataMessageId: state.dataMessageId,
   });
 
   await ctx.answerCallbackQuery();
   await ctx.reply(
-    `Ketik nilai baru untuk *${escapeMarkdown(meta.label)}*:\n` +
-    (currentVal ? `Nilai saat ini: _${escapeMarkdown(currentVal)}_` : "Saat ini kosong\\."),
-    { parse_mode: "MarkdownV2" }
+    `Ketik nilai baru untuk <b>${h(label)}</b>:\n` +
+    `Nilai saat ini: <i>${h(currentVal) || "kosong"}</i>`,
+    { parse_mode: "HTML" }
   );
 });
 
-// ─── Data OK callback ─────────────────────────────────────────────────────────
+// ─── Data OK ─────────────────────────────────────────────────────────────────
 
 bot.callbackQuery("data_ok", async (ctx) => {
   const state = getState(ctx.chat.id);
-  if (state.step !== "await_data_confirm") { await ctx.answerCallbackQuery(); return; }
+  if (state.step !== "await_data_confirm") { await ctx.answerCallbackQuery("Sesi sudah berakhir."); return; }
 
   const staff = await getStaff();
   if (staff.length === 0) {
-    await ctx.editMessageText("Tidak ada petugas terdaftar\\. Hubungi admin\\.", { parse_mode: "MarkdownV2" });
+    await ctx.editMessageText("Tidak ada petugas terdaftar. Hubungi admin.");
     setState(ctx.chat.id, { step: "idle" });
     await ctx.answerCallbackQuery();
     return;
@@ -315,8 +306,8 @@ bot.callbackQuery("data_ok", async (ctx) => {
 
   setState(ctx.chat.id, { step: "await_petugas", ktpData: state.ktpData, imageBase64: state.imageBase64 });
   await ctx.editMessageText(
-    `Data dikonfirmasi\\.\n\n*Pilih petugas yang mendaftarkan:*`,
-    { parse_mode: "MarkdownV2", reply_markup: buildPetugasKeyboard(staff) }
+    `<b>Data dikonfirmasi.</b>\n\nPilih petugas yang mendaftarkan:`,
+    { parse_mode: "HTML", reply_markup: buildPetugasKeyboard(staff) }
   );
   await ctx.answerCallbackQuery();
 });
@@ -325,14 +316,14 @@ bot.callbackQuery("data_ok", async (ctx) => {
 
 bot.callbackQuery(/^petugas:(\d+):(.+)$/, async (ctx) => {
   const state = getState(ctx.chat.id);
-  if (state.step !== "await_petugas") { await ctx.answerCallbackQuery(); return; }
+  if (state.step !== "await_petugas") { await ctx.answerCallbackQuery("Sesi sudah berakhir."); return; }
 
   const staffId = parseInt(ctx.match[1]);
   const staffName = decodeURIComponent(ctx.match[2]);
   const events = await getActiveEvents();
 
   if (events.length === 0) {
-    await ctx.editMessageText("Tidak ada event aktif saat ini\\.", { parse_mode: "MarkdownV2" });
+    await ctx.editMessageText("Tidak ada event aktif saat ini. Hubungi admin.");
     setState(ctx.chat.id, { step: "idle" });
     await ctx.answerCallbackQuery();
     return;
@@ -340,8 +331,8 @@ bot.callbackQuery(/^petugas:(\d+):(.+)$/, async (ctx) => {
 
   setState(ctx.chat.id, { step: "await_event", ktpData: state.ktpData, imageBase64: state.imageBase64, staffId, staffName });
   await ctx.editMessageText(
-    `Petugas: *${escapeMarkdown(staffName)}*\n\nPilih event untuk pendaftaran:`,
-    { parse_mode: "MarkdownV2", reply_markup: buildEventKeyboard(events) }
+    `Petugas: <b>${h(staffName)}</b>\n\nPilih event untuk pendaftaran:`,
+    { parse_mode: "HTML", reply_markup: buildEventKeyboard(events) }
   );
   await ctx.answerCallbackQuery();
 });
@@ -350,7 +341,7 @@ bot.callbackQuery(/^petugas:(\d+):(.+)$/, async (ctx) => {
 
 bot.callbackQuery(/^event:(\d+):(.+)$/, async (ctx) => {
   const state = getState(ctx.chat.id);
-  if (state.step !== "await_event") { await ctx.answerCallbackQuery(); return; }
+  if (state.step !== "await_event") { await ctx.answerCallbackQuery("Sesi sudah berakhir."); return; }
 
   const eventId = parseInt(ctx.match[1]);
   const eventName = decodeURIComponent(ctx.match[2]);
@@ -361,52 +352,52 @@ bot.callbackQuery(/^event:(\d+):(.+)$/, async (ctx) => {
 
   setState(ctx.chat.id, { step: "await_confirm", ktpData: ktp, imageBase64: state.imageBase64, staffId: state.staffId, staffName: state.staffName, eventId, eventName });
   await ctx.editMessageText(
-    `*Konfirmasi Akhir*\n\n` +
-    `*Event:* ${escapeMarkdown(eventName)}\n` +
-    `*Petugas:* ${escapeMarkdown(state.staffName)}\n\n` +
-    `*NIK:* \`${ktp.nik}\`\n` +
-    `*Nama:* ${escapeMarkdown(ktp.fullName)}\n` +
-    (ktp.birthPlace && ktp.birthDate ? `*TTL:* ${escapeMarkdown(ktp.birthPlace)}, ${escapeMarkdown(ktp.birthDate)}\n` : "") +
-    (ktp.gender ? `*Kelamin:* ${escapeMarkdown(ktp.gender)}\n` : "") +
-    (ktp.city ? `*Kota:* ${escapeMarkdown(ktp.city)}\n` : "") +
-    (ktp.occupation ? `*Pekerjaan:* ${escapeMarkdown(ktp.occupation)}\n` : "") +
+    `<b>Konfirmasi Akhir</b>\n\n` +
+    `<b>Event:</b> ${h(eventName)}\n` +
+    `<b>Petugas:</b> ${h(state.staffName)}\n\n` +
+    `<b>NIK:</b> <code>${h(ktp.nik)}</code>\n` +
+    `<b>Nama:</b> ${h(ktp.fullName)}\n` +
+    (ktp.birthPlace && ktp.birthDate ? `<b>TTL:</b> ${h(ktp.birthPlace)}, ${h(ktp.birthDate)}\n` : "") +
+    (ktp.gender ? `<b>Kelamin:</b> ${h(ktp.gender)}\n` : "") +
+    (ktp.city ? `<b>Kota:</b> ${h(ktp.city)}\n` : "") +
+    (ktp.occupation ? `<b>Pekerjaan:</b> ${h(ktp.occupation)}\n` : "") +
     `\nLanjutkan pendaftaran?`,
-    { parse_mode: "MarkdownV2", reply_markup: confirmKb }
+    { parse_mode: "HTML", reply_markup: confirmKb }
   );
   await ctx.answerCallbackQuery();
 });
 
-// ─── Confirm callbacks ────────────────────────────────────────────────────────
+// ─── Confirm ──────────────────────────────────────────────────────────────────
 
 bot.callbackQuery("confirm:yes", async (ctx) => {
   const state = getState(ctx.chat.id);
   if (state.step !== "await_confirm") { await ctx.answerCallbackQuery(); return; }
 
-  await ctx.editMessageText("Mendaftarkan peserta\\.\\.\\.", { parse_mode: "MarkdownV2" });
+  await ctx.editMessageText("Mendaftarkan peserta...");
   try {
     const result = await registerParticipant({ ktpData: state.ktpData, eventId: state.eventId, staffId: state.staffId, staffName: state.staffName });
     setState(ctx.chat.id, { step: "idle" });
 
     if (result.alreadyRegistered) {
       await ctx.editMessageText(
-        `Peserta *${escapeMarkdown(state.ktpData.fullName)}* sudah terdaftar di event ini sebelumnya\\.\n\nTotal event diikuti: ${result.totalEvents}`,
-        { parse_mode: "MarkdownV2" }
+        `<b>${h(state.ktpData.fullName)}</b> sudah terdaftar di event ini sebelumnya.\n\nTotal event diikuti: ${result.totalEvents}`,
+        { parse_mode: "HTML" }
       );
     } else {
       await ctx.editMessageText(
-        `*Pendaftaran Berhasil\\!*\n\n` +
-        `*Nama:* ${escapeMarkdown(state.ktpData.fullName)}\n` +
-        `*NIK:* \`${state.ktpData.nik}\`\n` +
-        `*Event:* ${escapeMarkdown(state.eventName)}\n` +
-        `*Petugas:* ${escapeMarkdown(state.staffName)}\n` +
-        `*Status:* ${result.isNew ? "Peserta baru" : "Peserta lama"}\n` +
-        `*Total event diikuti:* ${result.totalEvents}`,
-        { parse_mode: "MarkdownV2" }
+        `<b>Pendaftaran Berhasil!</b>\n\n` +
+        `<b>Nama:</b> ${h(state.ktpData.fullName)}\n` +
+        `<b>NIK:</b> <code>${h(state.ktpData.nik)}</code>\n` +
+        `<b>Event:</b> ${h(state.eventName)}\n` +
+        `<b>Petugas:</b> ${h(state.staffName)}\n` +
+        `<b>Status:</b> ${result.isNew ? "Peserta baru" : "Peserta lama"}\n` +
+        `<b>Total event diikuti:</b> ${result.totalEvents}`,
+        { parse_mode: "HTML" }
       );
     }
   } catch (err) {
     console.error("Register error:", err);
-    await ctx.editMessageText("Gagal mendaftarkan peserta\\. Silakan coba lagi\\.", { parse_mode: "MarkdownV2" });
+    await ctx.editMessageText("Gagal mendaftarkan peserta. Silakan coba lagi.");
     setState(ctx.chat.id, { step: "idle" });
   }
   await ctx.answerCallbackQuery();
@@ -414,17 +405,17 @@ bot.callbackQuery("confirm:yes", async (ctx) => {
 
 bot.callbackQuery("confirm:no", async (ctx) => {
   setState(ctx.chat.id, { step: "idle" });
-  await ctx.editMessageText("Pendaftaran dibatalkan\\.", { parse_mode: "MarkdownV2" });
+  await ctx.editMessageText("Pendaftaran dibatalkan.");
   await ctx.answerCallbackQuery();
 });
 
 bot.callbackQuery("cancel", async (ctx) => {
   setState(ctx.chat.id, { step: "idle" });
-  await ctx.editMessageText("Dibatalkan\\.", { parse_mode: "MarkdownV2" });
+  await ctx.editMessageText("Dibatalkan.");
   await ctx.answerCallbackQuery();
 });
 
-// ─── Text handler — handles edit input ────────────────────────────────────────
+// ─── Text handler — handles edit field input ──────────────────────────────────
 
 bot.on("message:text", async (ctx) => {
   const state = getState(ctx.chat.id);
@@ -433,58 +424,55 @@ bot.on("message:text", async (ctx) => {
     const newValue = ctx.message.text.trim();
     const updatedKtp = { ...state.ktpData, [state.field]: newValue || null };
 
-    // Delete the "Ketik nilai baru" prompt and user's reply via trying to clean up
+    // Delete the "Ketik nilai baru" prompt if possible
     try { await ctx.message.delete(); } catch {}
 
-    setState(ctx.chat.id, { step: "await_data_confirm", ktpData: updatedKtp, imageBase64: state.imageBase64 });
+    setState(ctx.chat.id, {
+      step: "await_data_confirm",
+      ktpData: updatedKtp,
+      imageBase64: state.imageBase64,
+      dataMessageId: state.dataMessageId,
+    });
 
-    // Edit the original data message with updated data
-    if (state.dataMessageId) {
-      try {
-        await ctx.api.editMessageText(ctx.chat.id, state.dataMessageId, formatDataMessage(updatedKtp), {
-          parse_mode: "MarkdownV2",
-          reply_markup: buildDataKeyboard(),
-        });
-      } catch {
-        // If can't edit (e.g. same content), send new message
-        await ctx.reply(formatDataMessage(updatedKtp), {
-          parse_mode: "MarkdownV2",
-          reply_markup: buildDataKeyboard(),
-        });
-      }
-    } else {
-      await ctx.reply(formatDataMessage(updatedKtp), {
-        parse_mode: "MarkdownV2",
+    // Update the original data message
+    try {
+      await ctx.api.editMessageText(ctx.chat.id, state.dataMessageId, buildDataMessage(updatedKtp), {
+        parse_mode: "HTML",
         reply_markup: buildDataKeyboard(),
+      });
+    } catch {
+      const msg = await ctx.reply(buildDataMessage(updatedKtp), {
+        parse_mode: "HTML",
+        reply_markup: buildDataKeyboard(),
+      });
+      setState(ctx.chat.id, {
+        step: "await_data_confirm",
+        ktpData: updatedKtp,
+        imageBase64: state.imageBase64,
+        dataMessageId: msg.message_id,
       });
     }
     return;
   }
 
   if (state.step === "await_photo") {
-    await ctx.reply("Tolong kirimkan foto KTP \\(bukan teks\\)\\.", { parse_mode: "MarkdownV2" });
+    await ctx.reply("Tolong kirimkan foto KTP (bukan teks).");
   } else if (state.step === "idle") {
-    await ctx.reply("Ketik /daftar untuk mulai, atau kirim langsung foto KTP\\.", { parse_mode: "MarkdownV2" });
+    await ctx.reply("Ketik /daftar untuk mulai, atau kirim langsung foto KTP.");
   } else {
-    await ctx.reply("Sedang dalam proses\\. Ketik /batal untuk membatalkan\\.", { parse_mode: "MarkdownV2" });
+    await ctx.reply("Sedang dalam proses. Ketik /batal untuk membatalkan.");
   }
 });
 
 bot.on("message:document", async (ctx) => {
   await ctx.reply(
-    "Untuk hasil OCR terbaik, kirim foto sebagai *foto* \\(bukan file/dokumen\\)\\. " +
-    "Di Telegram, pilih gambar lalu pilih *Send as Photo*\\.",
-    { parse_mode: "MarkdownV2" }
+    "Untuk hasil OCR terbaik, kirim sebagai <b>foto</b> (bukan file/dokumen). " +
+    "Di Telegram, pilih gambar lalu pilih <b>Send as Photo</b>.",
+    { parse_mode: "HTML" }
   );
 });
 
-// ─── MarkdownV2 escaper ───────────────────────────────────────────────────────
-
-function escapeMarkdown(text: string): string {
-  return text.replace(/[_*[\]()~`>#+=|{}.!\\-]/g, "\\$&");
-}
-
-// ─── Error handler + start ────────────────────────────────────────────────────
+// ─── Error + start ────────────────────────────────────────────────────────────
 
 bot.catch((err) => console.error("Bot error:", err.error));
 
