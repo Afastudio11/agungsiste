@@ -477,9 +477,6 @@ export default function ParticipantsPage() {
                         {/* Domisili */}
                         <td className="px-6 py-4">
                           <p className="text-sm font-semibold text-slate-800 leading-tight">{(p as any).city ?? "—"}</p>
-                          {(p as any).province && (
-                            <p className="text-[10px] text-slate-400 mt-0.5">{(p as any).province}</p>
-                          )}
                         </td>
 
                         {/* Terdaftar */}
