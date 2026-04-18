@@ -1,4 +1,4 @@
-modules = ["nodejs-24", "postgresql-16", "python-3.11"]
+modules = ["nodejs-24", "python-3.11", "postgresql-16"]
 
 [[artifacts]]
 id = "artifacts/api-server"
@@ -35,6 +35,10 @@ args = "artifacts/api-server: API Server"
 task = "workflow.run"
 args = "Telegram Bot"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Report Bot"
+
 [[workflows.workflow]]
 name = "artifacts/dashboard: web"
 author = "agent"
@@ -69,6 +73,14 @@ args = "pnpm --filter @workspace/telegram-bot run build && pnpm --filter @worksp
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "Report Bot"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/report-bot run build && pnpm --filter @workspace/report-bot run start"
 
 [agent]
 stack = "PNPM_WORKSPACE"

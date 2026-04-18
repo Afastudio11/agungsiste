@@ -27,7 +27,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 - **KTP Dashboard** (`artifacts/dashboard`) — React + Vite frontend at `/dashboard`
 - **API Server** (`artifacts/api-server`) — Express 5 backend at `/api`
-- **Telegram Bot** (`artifacts/telegram-bot`) — Standalone grammY bot for KTP registration via Telegram (requires `TELEGRAM_BOT_TOKEN` and `GROQ_API_KEY` secrets)
+- **Telegram Bot** (`artifacts/telegram-bot`) — grammY bot for KTP registration via Telegram. Flow: pilih event → pilih petugas → kirim foto KTP → cek/edit data → konfirmasi. (requires `TELEGRAM_BOT_TOKEN` and `GROQ_API_KEY`)
+- **Report Bot** (`artifacts/report-bot`) — grammY bot for daily reports sent to a Telegram group at 09:00 WIB. Includes: active events, registrations today vs yesterday, prizes distributed, top 3 staff. Commands: `/idgrup`, `/laporansekarang`. (requires `TELEGRAM_REPORT_BOT_TOKEN` secret and `REPORT_CHAT_ID` env var)
 
 ## Features
 
