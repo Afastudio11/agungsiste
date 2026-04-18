@@ -99,3 +99,6 @@ packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp
 [userenv.development]
 PORT = "5173"
 BASE_PATH = "/"
+
+[userenv.shared]
+REPORT_CHAT_ID = "-5165216504"

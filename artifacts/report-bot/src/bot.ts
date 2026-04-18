@@ -257,6 +257,21 @@ cron.schedule("0 2 * * *", async () => {
 
 // ─── Error + start ────────────────────────────────────────────────────────────
 
+// Log semua pesan masuk untuk debug & tangkap chat ID
+bot.on("message", async (ctx) => {
+  const chat = ctx.chat;
+  const text = ctx.message.text ?? "";
+  console.log(`[MSG] chat_id=${chat.id} type=${chat.type} title=${"title" in chat ? chat.title : "—"} text="${text}"`);
+  // Jika pesan mengandung "idgrup" atau "id grup" (case-insensitive), balas dengan chat ID
+  if (/idgrup|id grup|chatid|chat id/i.test(text)) {
+    const chatTitle = "title" in chat ? chat.title : "—";
+    await ctx.reply(
+      `Info Chat:\nID: <code>${chat.id}</code>\nTipe: ${chat.type}\nNama: ${h(chatTitle)}\n\nSalin ID di atas dan set sebagai <b>REPORT_CHAT_ID</b>.`,
+      { parse_mode: "HTML" }
+    );
+  }
+});
+
 bot.catch((err) => console.error("Bot error:", err.error));
 
 console.log("Starting Report Bot...");
