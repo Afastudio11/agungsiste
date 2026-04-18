@@ -297,7 +297,7 @@ export default function PetugasEventsPage() {
             </div>
 
             {/* Stats row — horizontal divider style */}
-            <div className="flex items-stretch bg-white/10 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
+            <div className="flex items-stretch bg-white/10 rounded-2xl overflow-hidden">
               <div className="flex-1 px-5 py-4">
                 <div className="text-[10px] text-blue-200/70 font-semibold tracking-widest uppercase mb-1.5 flex items-center gap-1.5">
                   <CalendarDays size={9} />
