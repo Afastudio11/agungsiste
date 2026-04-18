@@ -67,7 +67,7 @@ type BotState =
   | { step: "await_photo"; eventId: number; eventName: string; eventDate: string | null; staffId: number; staffName: string }
   | { step: "await_data_confirm"; eventId: number; eventName: string; staffId: number; staffName: string; ktpData: KtpData; imageBase64: string; dataMessageId: number }
   | { step: "await_edit_field"; eventId: number; eventName: string; staffId: number; staffName: string; ktpData: KtpData; imageBase64: string; field: KtpField; dataMessageId: number }
-  | { step: "await_confirm"; eventId: number; eventName: string; staffId: number; staffName: string; ktpData: KtpData };
+  | { step: "await_confirm"; eventId: number; eventName: string; staffId: number; staffName: string; ktpData: KtpData; imageBase64: string };
 
 const sessions = new Map<number, BotState>();
 function getState(id: number): BotState { return sessions.get(id) ?? { step: "idle" }; }
@@ -118,8 +118,24 @@ async function getActiveEvents() {
     .orderBy(asc(eventsTable.eventDate));
 }
 
-async function registerParticipant(d: { ktpData: KtpData; eventId: number; staffId: number; staffName: string }) {
-  const { ktpData, eventId, staffId, staffName } = d;
+async function saveKtpImage(participantId: number, nik: string, imageBase64: string): Promise<void> {
+  try {
+    const compressed = await sharp(Buffer.from(imageBase64, "base64"))
+      .resize({ width: 800, withoutEnlargement: true })
+      .jpeg({ quality: 70 })
+      .toBuffer();
+    const dataUrl = `data:image/jpeg;base64,${compressed.toString("base64")}`;
+    await db.update(participantsTable)
+      .set({ ktpImagePath: dataUrl })
+      .where(eq(participantsTable.id, participantId));
+    console.log(`[KTP] Image saved for NIK ${nik} (${Math.round(compressed.length / 1024)}KB)`);
+  } catch (err) {
+    console.error(`[KTP] Failed to save image for NIK ${nik}:`, err);
+  }
+}
+
+async function registerParticipant(d: { ktpData: KtpData; eventId: number; staffId: number; staffName: string; imageBase64: string }) {
+  const { ktpData, eventId, staffId, staffName, imageBase64 } = d;
   let participant = await db.query.participantsTable.findFirst({ where: eq(participantsTable.nik, ktpData.nik) });
   const isNew = !participant;
   const fields = {
@@ -135,6 +151,12 @@ async function registerParticipant(d: { ktpData: KtpData; eventId: number; staff
   } else {
     await db.update(participantsTable).set({ ...fields, updatedAt: new Date() }).where(eq(participantsTable.id, participant.id));
   }
+
+  // Save KTP image if not already stored
+  if (!participant.ktpImagePath && imageBase64) {
+    await saveKtpImage(participant.id, ktpData.nik, imageBase64);
+  }
+
   const existing = await db.query.eventRegistrationsTable.findFirst({
     where: (t, { and: a, eq: e }) => a(e(t.eventId, eventId), e(t.participantId, participant!.id)),
   });
@@ -391,6 +413,7 @@ bot.callbackQuery("data_ok", async (ctx) => {
     staffId: state.staffId,
     staffName: state.staffName,
     ktpData: ktp,
+    imageBase64: state.imageBase64,
   });
 
   await ctx.editMessageText(
@@ -417,7 +440,7 @@ bot.callbackQuery("confirm:yes", async (ctx) => {
 
   await ctx.editMessageText("Mendaftarkan peserta...");
   try {
-    const result = await registerParticipant({ ktpData: state.ktpData, eventId: state.eventId, staffId: state.staffId, staffName: state.staffName });
+    const result = await registerParticipant({ ktpData: state.ktpData, eventId: state.eventId, staffId: state.staffId, staffName: state.staffName, imageBase64: state.imageBase64 });
     setState(ctx.chat.id, { step: "idle" });
 
     if (result.alreadyRegistered) {
