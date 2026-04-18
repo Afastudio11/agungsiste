@@ -289,17 +289,17 @@ export default function PetugasEventsPage() {
                 {user?.name?.split(" ")[0] ?? "Petugas"}
               </h1>
               {(user?.jabatan || user?.wilayah) && (
-                <div className="flex items-center gap-1.5 text-blue-200/80 text-[12px] font-medium">
+                <div className="flex items-center gap-1.5 text-white/70 text-[12px] font-medium">
                   <MapPin size={12} />
                   {[user.jabatan, user.wilayah].filter(Boolean).join(" · ")}
                 </div>
               )}
             </div>
 
-            {/* Stats row — horizontal divider style */}
-            <div className="flex items-stretch bg-white/10 rounded-2xl overflow-hidden">
-              <div className="flex-1 px-5 py-4">
-                <div className="text-[10px] text-blue-200/70 font-semibold tracking-widest uppercase mb-1.5 flex items-center gap-1.5">
+            {/* Stats row */}
+            <div className="flex items-stretch gap-0">
+              <div className="flex-1 py-2">
+                <div className="text-[10px] text-white/60 font-semibold tracking-widest uppercase mb-1.5 flex items-center gap-1.5">
                   <CalendarDays size={9} />
                   Event
                 </div>
@@ -307,9 +307,9 @@ export default function PetugasEventsPage() {
                   {myStats == null ? "—" : myStats.totalEvents.toLocaleString("id-ID")}
                 </div>
               </div>
-              <div className="w-px bg-white/10 my-3" />
-              <div className="flex-1 px-5 py-4">
-                <div className="text-[10px] text-blue-200/70 font-semibold tracking-widest uppercase mb-1.5 flex items-center gap-1.5">
+              <div className="w-px bg-white/20 my-1" />
+              <div className="flex-1 py-2 pl-5">
+                <div className="text-[10px] text-white/60 font-semibold tracking-widest uppercase mb-1.5 flex items-center gap-1.5">
                   <Users size={9} />
                   Peserta
                 </div>
@@ -320,7 +320,7 @@ export default function PetugasEventsPage() {
             </div>
 
             {/* Instruction line */}
-            <p className="mt-4 text-[11px] text-blue-200/70 font-medium leading-relaxed">
+            <p className="mt-4 text-[11px] text-white/60 font-medium leading-relaxed">
               Pilih event lalu tekan <span className="text-white font-semibold">Scan KTP</span> atau <span className="text-white font-semibold">Scan QR</span> untuk absensi
             </p>
           </div>
