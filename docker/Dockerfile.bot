@@ -16,7 +16,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY lib/ lib/
 COPY artifacts/${BOT_PACKAGE}/ artifacts/${BOT_PACKAGE}/
 
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
 RUN pnpm --filter @workspace/${BOT_PACKAGE} run build
 

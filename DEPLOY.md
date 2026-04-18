@@ -1,206 +1,78 @@
-# Panduan Deploy ke VPS (Hostinger)
+# KTP System — VPS Deployment Workflow
 
-## Persyaratan VPS
-- OS: Ubuntu 22.04 / 24.04 LTS
-- RAM: minimal 4 GB (rekomendasi 8 GB)
-- Storage: minimal 20 GB (rekomendasi 100 GB)
-- Docker & Docker Compose terinstall
+> [!CAUTION]
+> **DILARANG KERAS MENGHAPUS VOLUME DATABASE ATAU CONTAINER DATABASE!**
+> Data peserta adalah prioritas nomor satu. Jangan pernah menjalankan `docker compose down` jika tidak benar-benar diperlukan. Gunakan `--no-deps --build api` untuk hanya mengupdate aplikasi. JANGAN jalankan `docker system prune` secara sembarangan.
 
----
+Deploy aplikasi KTP System dari lokal ke VPS.
 
-## 1. Install Docker di VPS
+## Prerequisites
 
-```bash
-# Login ke VPS via SSH
-ssh root@IP_VPS_ANDA
-
-# Install Docker
-curl -fsSL https://get.docker.com | sh
-
-# Tambahkan user ke group docker (opsional, agar tidak perlu sudo)
-usermod -aG docker $USER
-
-# Verifikasi
-docker --version
-docker compose version
-```
+- **VPS IP:** `187.127.111.221`
+- **VPS Dir:** `/opt/ktp-system`
+- **Local Dir:** `D:\project\agungsiste`
 
 ---
 
-## 2. Upload Project ke VPS
+## Quick Deploy
 
-**Opsi A — via Git (direkomendasikan):**
+### 1. Buat Archive
 ```bash
-# Di VPS
-git clone https://github.com/USERNAME/REPO.git /opt/ktp-system
-cd /opt/ktp-system
+cd D:\project\agungsiste
+tar --exclude='node_modules' --exclude='.git' --exclude='dist' --exclude='attached_assets' --exclude='artifacts\*.traineddata' -cvzf ..\ktp-deploy.tar.gz .
 ```
 
-**Opsi B — via SCP dari komputer lokal:**
+### 2. Upload ke VPS
 ```bash
-# Di komputer lokal (Windows: gunakan WinSCP atau Git Bash)
-scp -r /path/ke/project root@IP_VPS:/opt/ktp-system
+scp D:\project\ktp-deploy.tar.gz root@187.127.111.221:/root/
 ```
 
----
-
-## 3. Konfigurasi Environment Variables
-
+### 3. Extract & Rebuild di VPS (SAFE MODE)
 ```bash
-cd /opt/ktp-system
-
-# Salin template .env
-cp .env.example .env
-
-# Edit file .env dengan nilai yang sebenarnya
-nano .env
+# .env dan uploads tetap aman dari deployment sebelumnya
+ssh root@187.127.111.221 "cd /root && rm -rf ktp_old && mv /opt/ktp-system ktp_old 2>/dev/null; mkdir -p /opt/ktp-system && tar -xzf ktp-deploy.tar.gz -C /opt/ktp-system && cp ktp_old/.env /opt/ktp-system/.env 2>/dev/null; cd /opt/ktp-system && docker compose up -d --no-deps --build api telegram-bot report-bot dashboard db-migrate"
 ```
 
-Isi semua nilai di file `.env`:
-```
-DB_PASSWORD=password_database_kuat
-SESSION_SECRET=secret_panjang_acak_minimal_32_karakter
-GROQ_API_KEY=gsk_xxxx...
-TELEGRAM_BOT_TOKEN=1234567890:AAxx...
-TELEGRAM_REPORT_BOT_TOKEN=9876543210:AAxx...
-REPORT_CHAT_ID=-1001234567890
-```
-
-Untuk generate SESSION_SECRET:
+### 4. Cleanup
 ```bash
-openssl rand -base64 32
+ssh root@187.127.111.221 "rm -rf /root/ktp_old /root/ktp-deploy.tar.gz && docker image prune -f && docker builder prune -f"
+del D:\project\ktp-deploy.tar.gz
+```
+
+### 5. Verify
+```bash
+ssh root@187.127.111.221 "cd /opt/ktp-system && docker compose ps"
 ```
 
 ---
 
-## 4. Build dan Jalankan
+## ZERO DATA LOSS POLICY
 
+1. **Database Persistence**: Volume `pgdata` dan `ktp_uploads` HARUS selalu dipertahankan.
+2. **No Cleanup Spree**: Jangan jalankan `docker system prune` atau `docker compose down -v` tanpa backup.
+3. **Backup First**: Sebelum perubahan struktur database:
+   `docker compose exec postgres pg_dump -U ktpuser ktpdb > /root/backup_$(date +%F).sql`
+
+## Important Notes
+
+- **Preserved Files:** `.env` akan dipertahankan dari deployment sebelumnya.
+- **Container Database:** `postgres` TIDAK ikut di-rebuild, hanya app containers.
+
+## Troubleshooting
+
+### Restart hanya API (SAFE)
 ```bash
-cd /opt/ktp-system
-
-# Build semua image (pertama kali butuh 5-15 menit)
-docker compose build
-
-# Jalankan semua service
-docker compose up -d
-
-# Cek status
-docker compose ps
+ssh root@187.127.111.221 "cd /opt/ktp-system && docker compose restart api"
 ```
 
-Jika berhasil, output `docker compose ps` akan menampilkan:
-```
-NAME              STATUS
-ktp-postgres      running (healthy)
-ktp-db-migrate    exited (0)        ← normal, langsung keluar setelah migrasi
-ktp-api           running
-ktp-telegram-bot  running
-ktp-report-bot    running
-ktp-dashboard     running
-```
-
-Dashboard bisa diakses di: `http://IP_VPS`
-
----
-
-## 5. Akun Admin Default
-
-Setelah pertama kali deploy, akun berikut tersedia:
-- **Username:** `admin` / **Password:** `admin123`
-- **Username:** `budi` / **Password:** `petugas123`
-
-**Segera ganti password setelah login pertama.**
-
----
-
-## 6. Perintah Berguna
-
+### Check Logs
 ```bash
-# Lihat log semua service
-docker compose logs -f
-
-# Lihat log service tertentu
-docker compose logs -f api
-docker compose logs -f telegram-bot
-docker compose logs -f report-bot
-
-# Restart service tertentu
-docker compose restart api
-
-# Stop semua
-docker compose down
-
-# Stop dan hapus data (HATI-HATI: database terhapus)
-docker compose down -v
-
-# Update setelah perubahan kode
-git pull
-docker compose build
-docker compose up -d
+ssh root@187.127.111.221 "cd /opt/ktp-system && docker compose logs api --tail 100"
+ssh root@187.127.111.221 "cd /opt/ktp-system && docker compose logs telegram-bot --tail 100"
 ```
 
----
-
-## 7. Setup Domain (Opsional)
-
-Jika punya domain, install Nginx sebagai reverse proxy dengan SSL:
-
+### Forced Rebuild (DANGER)
 ```bash
-# Install Certbot untuk SSL gratis
-apt install certbot python3-certbot-nginx -y
-
-# Konfigurasi domain di /etc/nginx/sites-available/ktp
-nano /etc/nginx/sites-available/ktp
-```
-
-Isi konfigurasi Nginx:
-```nginx
-server {
-    server_name domain-anda.com;
-
-    location / {
-        proxy_pass http://localhost:80;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-Proto https;
-    }
-}
-```
-
-```bash
-# Aktifkan konfigurasi
-ln -s /etc/nginx/sites-available/ktp /etc/nginx/sites-enabled/
-nginx -t && systemctl reload nginx
-
-# Dapatkan SSL certificate
-certbot --nginx -d domain-anda.com
-```
-
----
-
-## 8. Backup Database
-
-```bash
-# Backup manual
-docker compose exec postgres pg_dump -U ktpuser ktpdb > backup_$(date +%Y%m%d).sql
-
-# Restore
-cat backup_20260418.sql | docker compose exec -T postgres psql -U ktpuser ktpdb
-```
-
----
-
-## Arsitektur Container
-
-```
-Internet (port 80)
-       │
-   [Nginx/Dashboard]   ← static React files
-       │
-       ├── /api/*  ──► [API Server :8080]  ──► [PostgreSQL :5432]
-       │                     │
-       │               [Python OCR + Tesseract]
-       │
-   [Telegram Bot]  ──────────────────────────► [PostgreSQL :5432]
-   [Report Bot]    ──────────────────────────► [PostgreSQL :5432]
+# Pikir 1000x sebelum menjalankan ini
+# docker compose down -v
 ```

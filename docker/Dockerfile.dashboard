@@ -5,11 +5,11 @@ RUN corepack enable && corepack prepare pnpm@9 --activate
 
 WORKDIR /workspace
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json ./
 COPY lib/ lib/
 COPY artifacts/dashboard/ artifacts/dashboard/
 
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
 # Build with BASE_PATH=/ so /api/ calls hit the same origin (proxied by Nginx)
 RUN PORT=3000 BASE_PATH=/ pnpm --filter @workspace/dashboard run build

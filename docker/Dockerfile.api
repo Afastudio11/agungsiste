@@ -13,7 +13,7 @@ COPY lib/ lib/
 COPY artifacts/api-server/ artifacts/api-server/
 
 # Install all dependencies (including devDeps needed for building)
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
 # Build the API server (esbuild bundles everything into dist/)
 RUN pnpm --filter @workspace/api-server run build
@@ -62,7 +62,7 @@ ENV PORT=8080
 EXPOSE 8080
 
 COPY docker/entrypoint-api.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["node", "--enable-source-maps", "./dist/index.mjs"]

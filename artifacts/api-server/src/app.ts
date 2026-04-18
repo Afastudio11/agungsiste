@@ -11,6 +11,8 @@ const PgStore = pgSession(session);
 
 const app: Express = express();
 
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
@@ -38,12 +40,16 @@ app.use(
     credentials: true,
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
+      const extraOrigins = process.env.ALLOWED_ORIGINS
+        ? process.env.ALLOWED_ORIGINS.split(",")
+        : [];
       const allowed =
         !isProduction ||
         origin.includes(".replit.dev") ||
         origin.includes(".repl.co") ||
         origin.includes(".replit.app") ||
-        origin.includes("localhost");
+        origin.includes("localhost") ||
+        extraOrigins.some((o) => origin.includes(o.trim()));
       if (allowed) return callback(null, true);
       callback(new Error("Not allowed by CORS"));
     },
