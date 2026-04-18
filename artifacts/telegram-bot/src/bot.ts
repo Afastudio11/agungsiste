@@ -52,20 +52,22 @@ const FIELD_LABELS: Record<KtpField, string> = {
   bloodType: "Gol. Darah",
 };
 
-// Fields that show up as Edit buttons
 const EDIT_BUTTON_FIELDS: KtpField[] = [
   "nik", "fullName", "birthPlace", "birthDate", "gender",
   "city", "kecamatan", "occupation", "religion", "maritalStatus",
 ];
 
+// ─── State machine ─────────────────────────────────────────────────────────────
+// Alur: /daftar → pilih event → pilih petugas → kirim foto KTP → cek data → konfirmasi
+
 type BotState =
   | { step: "idle" }
-  | { step: "await_photo" }
-  | { step: "await_data_confirm"; ktpData: KtpData; imageBase64: string; dataMessageId: number }
-  | { step: "await_edit_field"; ktpData: KtpData; imageBase64: string; field: KtpField; dataMessageId: number }
-  | { step: "await_petugas"; ktpData: KtpData; imageBase64: string }
-  | { step: "await_event"; ktpData: KtpData; imageBase64: string; staffId: number; staffName: string }
-  | { step: "await_confirm"; ktpData: KtpData; imageBase64: string; staffId: number; staffName: string; eventId: number; eventName: string };
+  | { step: "await_event" }
+  | { step: "await_petugas"; eventId: number; eventName: string; eventDate: string | null }
+  | { step: "await_photo"; eventId: number; eventName: string; eventDate: string | null; staffId: number; staffName: string }
+  | { step: "await_data_confirm"; eventId: number; eventName: string; staffId: number; staffName: string; ktpData: KtpData; imageBase64: string; dataMessageId: number }
+  | { step: "await_edit_field"; eventId: number; eventName: string; staffId: number; staffName: string; ktpData: KtpData; imageBase64: string; field: KtpField; dataMessageId: number }
+  | { step: "await_confirm"; eventId: number; eventName: string; staffId: number; staffName: string; ktpData: KtpData };
 
 const sessions = new Map<number, BotState>();
 function getState(id: number): BotState { return sessions.get(id) ?? { step: "idle" }; }
@@ -104,7 +106,9 @@ async function getImageBase64(fileUrl: string): Promise<string> {
 // ─── DB helpers ───────────────────────────────────────────────────────────────
 
 async function getStaff() {
-  return db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).orderBy(usersTable.name);
+  return db.select({ id: usersTable.id, name: usersTable.name })
+    .from(usersTable)
+    .orderBy(asc(usersTable.name));
 }
 
 async function getActiveEvents() {
@@ -143,11 +147,44 @@ async function registerParticipant(d: { ktpData: KtpData; eventId: number; staff
   return { alreadyRegistered: false, isNew, totalEvents: total };
 }
 
-// ─── Message builders ─────────────────────────────────────────────────────────
+// ─── Keyboard builders ────────────────────────────────────────────────────────
 
-function buildDataMessage(ktp: KtpData): string {
+function buildEventKeyboard(events: { id: number; name: string; location: string | null; eventDate: string | null }[]): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  events.forEach((e) => {
+    const label = e.eventDate ? `${e.name} — ${e.eventDate}` : e.name;
+    kb.text(label, `event:${e.id}:${encodeURIComponent(e.name)}:${encodeURIComponent(e.eventDate ?? "")}`).row();
+  });
+  return kb.text("Batal", "cancel");
+}
+
+function buildPetugasKeyboard(staff: { id: number; name: string }[]): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  staff.forEach((s, i) => {
+    kb.text(s.name, `petugas:${s.id}:${encodeURIComponent(s.name)}`);
+    if ((i + 1) % 2 === 0) kb.row();
+  });
+  return kb.row().text("Batal", "cancel");
+}
+
+function buildDataKeyboard(): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  for (let i = 0; i < EDIT_BUTTON_FIELDS.length; i += 2) {
+    const f1 = EDIT_BUTTON_FIELDS[i];
+    const f2 = EDIT_BUTTON_FIELDS[i + 1];
+    kb.text(`Ubah ${FIELD_LABELS[f1]}`, `edit:${f1}`);
+    if (f2) kb.text(`Ubah ${FIELD_LABELS[f2]}`, `edit:${f2}`);
+    kb.row();
+  }
+  kb.text("Data Benar - Lanjut", "data_ok").row();
+  kb.text("Batal", "cancel");
+  return kb;
+}
+
+function buildDataMessage(ktp: KtpData, eventName: string, staffName: string): string {
   return (
-    `<b>Periksa Data KTP</b>\n\n` +
+    `<b>Periksa Data KTP</b>\n` +
+    `Event: <b>${h(eventName)}</b> | Petugas: <b>${h(staffName)}</b>\n\n` +
     `<b>NIK:</b> <code>${h(ktp.nik)}</code>\n` +
     `<b>Nama:</b> ${h(ktp.fullName)}\n` +
     `<b>Tempat Lahir:</b> ${h(ktp.birthPlace)}\n` +
@@ -166,49 +203,27 @@ function buildDataMessage(ktp: KtpData): string {
   );
 }
 
-function buildDataKeyboard(): InlineKeyboard {
-  const kb = new InlineKeyboard();
-  for (let i = 0; i < EDIT_BUTTON_FIELDS.length; i += 2) {
-    const f1 = EDIT_BUTTON_FIELDS[i];
-    const f2 = EDIT_BUTTON_FIELDS[i + 1];
-    kb.text(`Ubah ${FIELD_LABELS[f1]}`, `edit:${f1}`);
-    if (f2) kb.text(`Ubah ${FIELD_LABELS[f2]}`, `edit:${f2}`);
-    kb.row();
-  }
-  kb.text("Data Benar - Lanjut", "data_ok").row();
-  kb.text("Batal", "cancel");
-  return kb;
-}
-
-function buildPetugasKeyboard(staff: { id: number; name: string }[]): InlineKeyboard {
-  const kb = new InlineKeyboard();
-  staff.forEach((s, i) => {
-    kb.text(s.name, `petugas:${s.id}:${encodeURIComponent(s.name)}`);
-    if ((i + 1) % 2 === 0) kb.row();
-  });
-  return kb.row().text("Batal", "cancel");
-}
-
-function buildEventKeyboard(events: { id: number; name: string; location: string | null }[]): InlineKeyboard {
-  const kb = new InlineKeyboard();
-  events.forEach((e) => kb.text(`${e.name}${e.location ? ` (${e.location})` : ""}`, `event:${e.id}:${encodeURIComponent(e.name)}`).row());
-  return kb.text("Batal", "cancel");
-}
-
 // ─── Commands ─────────────────────────────────────────────────────────────────
 
 bot.command("start", async (ctx) => {
   setState(ctx.chat.id, { step: "idle" });
   await ctx.reply(
     "Halo! Saya bot pendaftaran KTP.\n\n" +
-    "Kirim foto KTP untuk mendaftarkan peserta ke event.\n\n" +
     "Perintah:\n/daftar - Mulai pendaftaran\n/batal - Batalkan proses"
   );
 });
 
 bot.command("daftar", async (ctx) => {
-  setState(ctx.chat.id, { step: "await_photo" });
-  await ctx.reply("Silakan kirim foto KTP peserta yang ingin didaftarkan.");
+  const events = await getActiveEvents();
+  if (events.length === 0) {
+    await ctx.reply("Tidak ada event aktif saat ini. Hubungi admin.");
+    return;
+  }
+  setState(ctx.chat.id, { step: "await_event" });
+  await ctx.reply(
+    "<b>Langkah 1 dari 3: Pilih Event</b>\n\nPilih event yang ingin didaftarkan:",
+    { parse_mode: "HTML", reply_markup: buildEventKeyboard(events) }
+  );
 });
 
 bot.command("batal", async (ctx) => {
@@ -216,15 +231,75 @@ bot.command("batal", async (ctx) => {
   await ctx.reply("Proses dibatalkan.");
 });
 
-// ─── Photo handler ─────────────────────────────────────────────────────────
+// ─── Step 1: Event callback ───────────────────────────────────────────────────
+
+bot.callbackQuery(/^event:(\d+):([^:]*):([^:]*)$/, async (ctx) => {
+  const state = getState(ctx.chat.id);
+  if (state.step !== "await_event") { await ctx.answerCallbackQuery("Ketik /daftar untuk memulai."); return; }
+
+  const eventId = parseInt(ctx.match[1]);
+  const eventName = decodeURIComponent(ctx.match[2]);
+  const eventDate = decodeURIComponent(ctx.match[3]) || null;
+
+  const staff = await getStaff();
+  if (staff.length === 0) {
+    await ctx.editMessageText("Tidak ada petugas terdaftar. Hubungi admin.");
+    setState(ctx.chat.id, { step: "idle" });
+    await ctx.answerCallbackQuery();
+    return;
+  }
+
+  setState(ctx.chat.id, { step: "await_petugas", eventId, eventName, eventDate });
+  await ctx.editMessageText(
+    `<b>Langkah 2 dari 3: Pilih Petugas</b>\n\nEvent: <b>${h(eventName)}</b>${eventDate ? ` (${h(eventDate)})` : ""}\n\nPilih nama petugas yang bertugas:`,
+    { parse_mode: "HTML", reply_markup: buildPetugasKeyboard(staff) }
+  );
+  await ctx.answerCallbackQuery();
+});
+
+// ─── Step 2: Petugas callback ──────────────────────────────────────────────────
+
+bot.callbackQuery(/^petugas:(\d+):(.+)$/, async (ctx) => {
+  const state = getState(ctx.chat.id);
+  if (state.step !== "await_petugas") { await ctx.answerCallbackQuery("Ketik /daftar untuk memulai."); return; }
+
+  const staffId = parseInt(ctx.match[1]);
+  const staffName = decodeURIComponent(ctx.match[2]);
+
+  setState(ctx.chat.id, {
+    step: "await_photo",
+    eventId: state.eventId,
+    eventName: state.eventName,
+    eventDate: state.eventDate,
+    staffId,
+    staffName,
+  });
+
+  await ctx.editMessageText(
+    `<b>Langkah 3 dari 3: Scan KTP</b>\n\n` +
+    `Event: <b>${h(state.eventName)}</b>\n` +
+    `Petugas: <b>${h(staffName)}</b>\n\n` +
+    `Silakan kirim foto KTP peserta yang ingin didaftarkan.`,
+    { parse_mode: "HTML" }
+  );
+  await ctx.answerCallbackQuery();
+});
+
+// ─── Step 3: Photo handler ────────────────────────────────────────────────────
 
 bot.on("message:photo", async (ctx) => {
   const state = getState(ctx.chat.id);
-  if (state.step !== "await_photo" && state.step !== "idle") {
+
+  // Allow photo if in await_photo, or if idle (convenience: just send photo to quick-start)
+  if (state.step === "idle") {
+    await ctx.reply("Ketik /daftar untuk memilih event dan petugas terlebih dahulu sebelum scan KTP.");
+    return;
+  }
+  if (state.step !== "await_photo") {
     await ctx.reply("Sedang dalam proses lain. Ketik /batal untuk membatalkan.");
     return;
   }
-  setState(ctx.chat.id, { step: "await_photo" });
+
   const statusMsg = await ctx.reply("Memproses foto KTP...");
   try {
     const photo = ctx.message.photo.at(-1)!;
@@ -237,29 +312,35 @@ bot.on("message:photo", async (ctx) => {
     if (!ktpData.nik || ktpData.nik.length < 10) {
       await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id);
       await ctx.reply("Gagal membaca NIK. Pastikan foto KTP jelas lalu coba lagi.");
-      setState(ctx.chat.id, { step: "await_photo" });
       return;
     }
     if (!ktpData.fullName) {
       await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id);
       await ctx.reply("Gagal membaca nama. Pastikan foto KTP jelas lalu coba lagi.");
-      setState(ctx.chat.id, { step: "await_photo" });
       return;
     }
 
     await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id);
 
-    const dataMsg = await ctx.reply(buildDataMessage(ktpData), {
+    const dataMsg = await ctx.reply(buildDataMessage(ktpData, state.eventName, state.staffName), {
       parse_mode: "HTML",
       reply_markup: buildDataKeyboard(),
     });
 
-    setState(ctx.chat.id, { step: "await_data_confirm", ktpData, imageBase64, dataMessageId: dataMsg.message_id });
+    setState(ctx.chat.id, {
+      step: "await_data_confirm",
+      eventId: state.eventId,
+      eventName: state.eventName,
+      staffId: state.staffId,
+      staffName: state.staffName,
+      ktpData,
+      imageBase64,
+      dataMessageId: dataMsg.message_id,
+    });
   } catch (err) {
     console.error("Photo error:", err);
     try { await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id); } catch {}
-    await ctx.reply("Terjadi kesalahan saat membaca foto. Coba lagi.");
-    setState(ctx.chat.id, { step: "idle" });
+    await ctx.reply("Terjadi kesalahan saat membaca foto. Coba kirim ulang foto KTP.");
   }
 });
 
@@ -275,6 +356,10 @@ bot.callbackQuery(/^edit:(.+)$/, async (ctx) => {
 
   setState(ctx.chat.id, {
     step: "await_edit_field",
+    eventId: state.eventId,
+    eventName: state.eventName,
+    staffId: state.staffId,
+    staffName: state.staffName,
     ktpData: state.ktpData,
     imageBase64: state.imageBase64,
     field,
@@ -283,76 +368,34 @@ bot.callbackQuery(/^edit:(.+)$/, async (ctx) => {
 
   await ctx.answerCallbackQuery();
   await ctx.reply(
-    `Ketik nilai baru untuk <b>${h(label)}</b>:\n` +
-    `Nilai saat ini: <i>${h(currentVal) || "kosong"}</i>`,
+    `Ketik nilai baru untuk <b>${h(label)}</b>:\nNilai saat ini: <i>${h(currentVal) || "kosong"}</i>`,
     { parse_mode: "HTML" }
   );
 });
 
-// ─── Data OK ─────────────────────────────────────────────────────────────────
+// ─── Data OK → Konfirmasi akhir ───────────────────────────────────────────────
 
 bot.callbackQuery("data_ok", async (ctx) => {
   const state = getState(ctx.chat.id);
   if (state.step !== "await_data_confirm") { await ctx.answerCallbackQuery("Sesi sudah berakhir."); return; }
 
-  const staff = await getStaff();
-  if (staff.length === 0) {
-    await ctx.editMessageText("Tidak ada petugas terdaftar. Hubungi admin.");
-    setState(ctx.chat.id, { step: "idle" });
-    await ctx.answerCallbackQuery();
-    return;
-  }
-
-  setState(ctx.chat.id, { step: "await_petugas", ktpData: state.ktpData, imageBase64: state.imageBase64 });
-  await ctx.editMessageText(
-    `<b>Data dikonfirmasi.</b>\n\nPilih petugas yang mendaftarkan:`,
-    { parse_mode: "HTML", reply_markup: buildPetugasKeyboard(staff) }
-  );
-  await ctx.answerCallbackQuery();
-});
-
-// ─── Petugas callback ─────────────────────────────────────────────────────────
-
-bot.callbackQuery(/^petugas:(\d+):(.+)$/, async (ctx) => {
-  const state = getState(ctx.chat.id);
-  if (state.step !== "await_petugas") { await ctx.answerCallbackQuery("Sesi sudah berakhir."); return; }
-
-  const staffId = parseInt(ctx.match[1]);
-  const staffName = decodeURIComponent(ctx.match[2]);
-  const events = await getActiveEvents();
-
-  if (events.length === 0) {
-    await ctx.editMessageText("Tidak ada event aktif saat ini. Hubungi admin.");
-    setState(ctx.chat.id, { step: "idle" });
-    await ctx.answerCallbackQuery();
-    return;
-  }
-
-  setState(ctx.chat.id, { step: "await_event", ktpData: state.ktpData, imageBase64: state.imageBase64, staffId, staffName });
-  await ctx.editMessageText(
-    `Petugas: <b>${h(staffName)}</b>\n\nPilih event untuk pendaftaran:`,
-    { parse_mode: "HTML", reply_markup: buildEventKeyboard(events) }
-  );
-  await ctx.answerCallbackQuery();
-});
-
-// ─── Event callback ───────────────────────────────────────────────────────────
-
-bot.callbackQuery(/^event:(\d+):(.+)$/, async (ctx) => {
-  const state = getState(ctx.chat.id);
-  if (state.step !== "await_event") { await ctx.answerCallbackQuery("Sesi sudah berakhir."); return; }
-
-  const eventId = parseInt(ctx.match[1]);
-  const eventName = decodeURIComponent(ctx.match[2]);
   const ktp = state.ktpData;
-
   const confirmKb = new InlineKeyboard()
-    .text("Daftarkan", "confirm:yes").text("Batal", "cancel");
+    .text("Daftarkan Sekarang", "confirm:yes").row()
+    .text("Batal", "cancel");
 
-  setState(ctx.chat.id, { step: "await_confirm", ktpData: ktp, imageBase64: state.imageBase64, staffId: state.staffId, staffName: state.staffName, eventId, eventName });
+  setState(ctx.chat.id, {
+    step: "await_confirm",
+    eventId: state.eventId,
+    eventName: state.eventName,
+    staffId: state.staffId,
+    staffName: state.staffName,
+    ktpData: ktp,
+  });
+
   await ctx.editMessageText(
-    `<b>Konfirmasi Akhir</b>\n\n` +
-    `<b>Event:</b> ${h(eventName)}\n` +
+    `<b>Konfirmasi Pendaftaran</b>\n\n` +
+    `<b>Event:</b> ${h(state.eventName)}\n` +
     `<b>Petugas:</b> ${h(state.staffName)}\n\n` +
     `<b>NIK:</b> <code>${h(ktp.nik)}</code>\n` +
     `<b>Nama:</b> ${h(ktp.fullName)}\n` +
@@ -379,7 +422,7 @@ bot.callbackQuery("confirm:yes", async (ctx) => {
 
     if (result.alreadyRegistered) {
       await ctx.editMessageText(
-        `<b>${h(state.ktpData.fullName)}</b> sudah terdaftar di event ini sebelumnya.\n\nTotal event diikuti: ${result.totalEvents}`,
+        `<b>${h(state.ktpData.fullName)}</b> sudah terdaftar di event ini sebelumnya.\n\nTotal event diikuti: ${result.totalEvents}\n\nKetik /daftar untuk mendaftarkan peserta lain.`,
         { parse_mode: "HTML" }
       );
     } else {
@@ -390,7 +433,8 @@ bot.callbackQuery("confirm:yes", async (ctx) => {
         `<b>Event:</b> ${h(state.eventName)}\n` +
         `<b>Petugas:</b> ${h(state.staffName)}\n` +
         `<b>Status:</b> ${result.isNew ? "Peserta baru" : "Peserta lama"}\n` +
-        `<b>Total event diikuti:</b> ${result.totalEvents}`,
+        `<b>Total event diikuti:</b> ${result.totalEvents}\n\n` +
+        `Ketik /daftar untuk mendaftarkan peserta berikutnya.`,
         { parse_mode: "HTML" }
       );
     }
@@ -402,19 +446,17 @@ bot.callbackQuery("confirm:yes", async (ctx) => {
   await ctx.answerCallbackQuery();
 });
 
-bot.callbackQuery("confirm:no", async (ctx) => {
-  setState(ctx.chat.id, { step: "idle" });
-  await ctx.editMessageText("Pendaftaran dibatalkan.");
-  await ctx.answerCallbackQuery();
-});
-
 bot.callbackQuery("cancel", async (ctx) => {
   setState(ctx.chat.id, { step: "idle" });
-  await ctx.editMessageText("Dibatalkan.");
+  try {
+    await ctx.editMessageText("Dibatalkan. Ketik /daftar untuk memulai kembali.");
+  } catch {
+    await ctx.reply("Dibatalkan. Ketik /daftar untuk memulai kembali.");
+  }
   await ctx.answerCallbackQuery();
 });
 
-// ─── Text handler — handles edit field input ──────────────────────────────────
+// ─── Text handler — edit field input ─────────────────────────────────────────
 
 bot.on("message:text", async (ctx) => {
   const state = getState(ctx.chat.id);
@@ -423,41 +465,39 @@ bot.on("message:text", async (ctx) => {
     const newValue = ctx.message.text.trim();
     const updatedKtp = { ...state.ktpData, [state.field]: newValue || null };
 
-    // Delete the "Ketik nilai baru" prompt if possible
     try { await ctx.message.delete(); } catch {}
 
-    setState(ctx.chat.id, {
-      step: "await_data_confirm",
+    const newState = {
+      step: "await_data_confirm" as const,
+      eventId: state.eventId,
+      eventName: state.eventName,
+      staffId: state.staffId,
+      staffName: state.staffName,
       ktpData: updatedKtp,
       imageBase64: state.imageBase64,
       dataMessageId: state.dataMessageId,
-    });
+    };
+    setState(ctx.chat.id, newState);
 
-    // Update the original data message
     try {
-      await ctx.api.editMessageText(ctx.chat.id, state.dataMessageId, buildDataMessage(updatedKtp), {
+      await ctx.api.editMessageText(ctx.chat.id, state.dataMessageId, buildDataMessage(updatedKtp, state.eventName, state.staffName), {
         parse_mode: "HTML",
         reply_markup: buildDataKeyboard(),
       });
     } catch {
-      const msg = await ctx.reply(buildDataMessage(updatedKtp), {
+      const msg = await ctx.reply(buildDataMessage(updatedKtp, state.eventName, state.staffName), {
         parse_mode: "HTML",
         reply_markup: buildDataKeyboard(),
       });
-      setState(ctx.chat.id, {
-        step: "await_data_confirm",
-        ktpData: updatedKtp,
-        imageBase64: state.imageBase64,
-        dataMessageId: msg.message_id,
-      });
+      setState(ctx.chat.id, { ...newState, dataMessageId: msg.message_id });
     }
     return;
   }
 
   if (state.step === "await_photo") {
-    await ctx.reply("Tolong kirimkan foto KTP (bukan teks).");
+    await ctx.reply("Tolong kirimkan <b>foto</b> KTP (bukan teks).", { parse_mode: "HTML" });
   } else if (state.step === "idle") {
-    await ctx.reply("Ketik /daftar untuk mulai, atau kirim langsung foto KTP.");
+    await ctx.reply("Ketik /daftar untuk memulai pendaftaran.");
   } else {
     await ctx.reply("Sedang dalam proses. Ketik /batal untuk membatalkan.");
   }
