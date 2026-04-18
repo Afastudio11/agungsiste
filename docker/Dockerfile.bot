@@ -1,0 +1,38 @@
+# Generic Dockerfile for Telegram bots (telegram-bot & report-bot)
+# Usage: --build-arg BOT_PACKAGE=telegram-bot  or  --build-arg BOT_PACKAGE=report-bot
+
+ARG BOT_PACKAGE
+
+# ── Stage 1: Build ──────────────────────────────────────────────────────────
+FROM node:22-slim AS builder
+
+ARG BOT_PACKAGE
+
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+WORKDIR /workspace
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY lib/ lib/
+COPY artifacts/${BOT_PACKAGE}/ artifacts/${BOT_PACKAGE}/
+
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+RUN pnpm --filter @workspace/${BOT_PACKAGE} run build
+
+# Create self-contained deployment with only production node_modules
+RUN pnpm --filter @workspace/${BOT_PACKAGE} --prod deploy /deploy/bot
+
+# ── Stage 2: Runtime ─────────────────────────────────────────────────────────
+FROM node:22-slim AS runner
+
+ARG BOT_PACKAGE
+
+WORKDIR /app
+
+COPY --from=builder /deploy/bot/node_modules ./node_modules
+COPY --from=builder /workspace/artifacts/${BOT_PACKAGE}/dist ./dist
+
+ENV NODE_ENV=production
+
+CMD ["node", "--enable-source-maps", "./dist/index.mjs"]

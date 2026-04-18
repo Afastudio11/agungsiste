@@ -1,0 +1,45 @@
+# Node modules (diinstall ulang di dalam container)
+**/node_modules
+**/.pnpm-store
+
+# Build output (dihasilkan di dalam container)
+**/dist
+artifacts/dashboard/dist
+
+# Development & editor files
+.git
+.gitignore
+.local
+**/.env
+**/.env.*
+!.env.example
+
+# Logs
+**/*.log
+**/logs
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Replit-specific files
+.replit
+replit.nix
+.upm
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+**/tests
+**/test
+
+# Documentation (tidak dibutuhkan di container)
+*.md
+attached_assets
+
+# Expo / mobile (tidak di-deploy ke VPS)
+artifacts/expo-*
+artifacts/mobile-*
+
+# Mockup sandbox (hanya untuk development)
+artifacts/mockup-sandbox

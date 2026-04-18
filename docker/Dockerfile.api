@@ -1,0 +1,68 @@
+# ── Stage 1: Build ──────────────────────────────────────────────────────────
+FROM node:22-slim AS builder
+
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+WORKDIR /workspace
+
+# Copy workspace configuration files first (for better layer caching)
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+
+# Copy only the packages needed by the API server
+COPY lib/ lib/
+COPY artifacts/api-server/ artifacts/api-server/
+
+# Install all dependencies (including devDeps needed for building)
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# Build the API server (esbuild bundles everything into dist/)
+RUN pnpm --filter @workspace/api-server run build
+
+# Create self-contained deployment directory with only prod node_modules
+RUN pnpm --filter @workspace/api-server --prod deploy /deploy/api
+
+# ── Stage 2: Runtime ─────────────────────────────────────────────────────────
+FROM node:22-slim AS runner
+
+# Install system dependencies:
+# - Python3 + pip for ktp_scanner.py
+# - Tesseract OCR binary (Bahasa Indonesia + English)
+# - OpenCV system libs
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    tesseract-ocr \
+    tesseract-ocr-ind \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgomp1 \
+    && pip3 install --no-cache-dir --break-system-packages \
+        numpy \
+        opencv-python-headless \
+        pytesseract \
+        pillow \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy production node_modules from deploy stage
+COPY --from=builder /deploy/api/node_modules ./node_modules
+
+# Copy built server (esbuild output + pino worker files)
+COPY --from=builder /workspace/artifacts/api-server/dist ./dist
+
+# Copy Python OCR scanner script
+COPY --from=builder /workspace/artifacts/api-server/src/ktp_scanner.py ./src/ktp_scanner.py
+
+ENV NODE_ENV=production
+ENV PORT=8080
+
+EXPOSE 8080
+
+COPY docker/entrypoint-api.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["node", "--enable-source-maps", "./dist/index.mjs"]
