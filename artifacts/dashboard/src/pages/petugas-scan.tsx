@@ -373,12 +373,6 @@ export default function PetugasScanPage() {
         {step === "upload" && (
           <div className="space-y-4 pt-2">
 
-            {/* Header */}
-            <div className="space-y-0.5 px-1">
-              <h1 className="text-[1.35rem] font-bold text-slate-900 tracking-tight">Ambil Foto KTP</h1>
-              <p className="text-slate-500 text-sm font-medium">Pastikan seluruh bagian KTP terlihat jelas</p>
-            </div>
-
             {/* Camera Glass Card */}
             <div className="bg-white/70 backdrop-blur-2xl rounded-[1.25rem] shadow-[0_20px_40px_rgba(44,47,49,0.07)] border border-white/60 p-7 flex flex-col items-center text-center space-y-5 relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#0054ca]/5 rounded-full blur-3xl pointer-events-none" />
