@@ -1,7 +1,7 @@
 import { Bot, InputFile } from "grammy";
 import { db } from "@workspace/db";
 import { eventsTable, participantsTable, eventRegistrationsTable, prizeDistributionsTable } from "@workspace/db";
-import { eq, and, ne, gte, lte, count, desc, asc, sql } from "drizzle-orm";
+import { eq, and, ne, gte, lte, count, desc, sql } from "drizzle-orm";
 import cron from "node-cron";
 
 const BOT_TOKEN = process.env.TELEGRAM_REPORT_BOT_TOKEN;
@@ -47,52 +47,67 @@ function delta(today: number, yesterday: number): string {
   return `<b>0</b> →`;
 }
 
+// ─── Regional normalization ────────────────────────────────────────────────────
+// Strip "KABUPATEN"/"KOTA" prefix for display, INITCAP for consistency
+
+const cityExpr = sql<string>`INITCAP(LOWER(COALESCE(${participantsTable.city}, 'Tidak Diketahui')))`;
+const cityGroupExpr = sql`INITCAP(LOWER(COALESCE(${participantsTable.city}, 'Tidak Diketahui')))`;
+
+function cleanCityName(raw: string): string {
+  return raw
+    .replace(/^(Kabupaten|Kab\.|Kota)\s+/i, "")
+    .trim();
+}
+
 // ─── Chart via QuickChart.io ───────────────────────────────────────────────────
 
 interface DayData { label: string; value: number }
+interface RegionData { city: string; cnt: number }
 
 async function fetchLast7Days(): Promise<DayData[]> {
   const wibOffset = 7 * 60 * 60 * 1000;
   const result: DayData[] = [];
-
   for (let i = 6; i >= 0; i--) {
-    const { start, end, dateStr } = wibDayRange(-i);
+    const { start, end } = wibDayRange(-i);
     const nowWib = new Date(Date.now() + wibOffset - i * 86400000);
     const label = `${nowWib.getUTCDate()} ${BULAN[nowWib.getUTCMonth()]}`;
-    const [row] = await db
-      .select({ count: count() })
-      .from(eventRegistrationsTable)
-      .where(and(
-        gte(eventRegistrationsTable.registeredAt, start),
-        lte(eventRegistrationsTable.registeredAt, end),
-        ne(eventRegistrationsTable.registrationType, "attendance"),
-      ));
+    const [row] = await db.select({ count: count() }).from(eventRegistrationsTable)
+      .where(and(gte(eventRegistrationsTable.registeredAt, start), lte(eventRegistrationsTable.registeredAt, end), ne(eventRegistrationsTable.registrationType, "attendance")));
     result.push({ label, value: row.count });
   }
   return result;
 }
 
-async function fetchGenderData(): Promise<{ laki: number; perempuan: number; lainnya: number }> {
+async function fetchTodayRegions(today: { start: Date; end: Date }): Promise<RegionData[]> {
   const rows = await db
-    .select({ gender: participantsTable.gender, count: count() })
-    .from(participantsTable)
-    .groupBy(participantsTable.gender);
-
-  let laki = 0, perempuan = 0, lainnya = 0;
-  for (const r of rows) {
-    const g = (r.gender ?? "").toUpperCase();
-    if (g.includes("LAKI")) laki += r.count;
-    else if (g.includes("PEREMPUAN")) perempuan += r.count;
-    else lainnya += r.count;
-  }
-  return { laki, perempuan, lainnya };
+    .select({ city: cityExpr, cnt: count() })
+    .from(eventRegistrationsTable)
+    .innerJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+    .where(and(
+      gte(eventRegistrationsTable.registeredAt, today.start),
+      lte(eventRegistrationsTable.registeredAt, today.end),
+      ne(eventRegistrationsTable.registrationType, "attendance"),
+    ))
+    .groupBy(cityGroupExpr)
+    .orderBy(desc(count()))
+    .limit(20);
+  return rows.map(r => ({ city: r.city ?? "Tidak Diketahui", cnt: r.cnt }));
 }
 
-function buildBarChartUrl(days: DayData[], title: string): string {
+async function fetchTotalRegions(): Promise<RegionData[]> {
+  const rows = await db
+    .select({ city: cityExpr, cnt: count() })
+    .from(participantsTable)
+    .groupBy(cityGroupExpr)
+    .orderBy(desc(count()))
+    .limit(12);
+  return rows.map(r => ({ city: r.city ?? "Tidak Diketahui", cnt: r.cnt }));
+}
+
+function buildBarChartUrl(days: DayData[]): string {
   const labels = days.map(d => d.label);
   const data   = days.map(d => d.value);
   const maxVal = Math.max(...data, 1);
-
   const config = {
     type: "bar",
     data: {
@@ -100,81 +115,83 @@ function buildBarChartUrl(days: DayData[], title: string): string {
       datasets: [{
         label: "Pendaftaran",
         data,
-        backgroundColor: "rgba(79, 70, 229, 0.85)",
-        borderColor: "rgba(79, 70, 229, 1)",
+        backgroundColor: "rgba(79,70,229,0.85)",
+        borderColor: "rgba(79,70,229,1)",
         borderWidth: 1,
         borderRadius: 6,
       }],
     },
     options: {
       plugins: {
-        title: { display: true, text: title, font: { size: 16, weight: "bold" }, color: "#1e1b4b", padding: { bottom: 16 } },
+        title: { display: true, text: "Pendaftaran 7 Hari Terakhir", font: { size: 16, weight: "bold" }, color: "#1e1b4b", padding: { bottom: 16 } },
         legend: { display: false },
       },
       scales: {
-        y: {
-          beginAtZero: true,
-          suggestedMax: Math.ceil(maxVal * 1.2),
-          ticks: { color: "#374151", stepSize: Math.max(1, Math.ceil(maxVal / 5)) },
-          grid: { color: "rgba(0,0,0,0.06)" },
-        },
+        y: { beginAtZero: true, suggestedMax: Math.ceil(maxVal * 1.2), ticks: { color: "#374151", stepSize: Math.max(1, Math.ceil(maxVal / 5)) }, grid: { color: "rgba(0,0,0,0.06)" } },
         x: { ticks: { color: "#374151" }, grid: { display: false } },
       },
     },
   };
-  const encoded = encodeURIComponent(JSON.stringify(config));
-  return `https://quickchart.io/chart?c=${encoded}&width=800&height=380&backgroundColor=white&devicePixelRatio=2`;
+  return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(config))}&width=800&height=380&backgroundColor=white&devicePixelRatio=2`;
 }
 
-function buildDoughnutChartUrl(laki: number, perempuan: number, lainnya: number): string {
-  const data = lainnya > 0 ? [laki, perempuan, lainnya] : [laki, perempuan];
-  const labels = lainnya > 0 ? ["Laki-laki", "Perempuan", "Lainnya"] : ["Laki-laki", "Perempuan"];
-  const colors = ["rgba(59,130,246,0.85)", "rgba(236,72,153,0.85)", "rgba(156,163,175,0.85)"];
+function buildRegionChartUrl(regions: RegionData[], title: string): string {
+  // Show top 10 for horizontal bar
+  const top = regions.slice(0, 10);
+  const labels = top.map(r => cleanCityName(r.city));
+  const data   = top.map(r => r.cnt);
+  const maxVal = Math.max(...data, 1);
+
+  // Color gradient: darker = higher count
+  const colors = data.map((v, i) => {
+    const alpha = 0.55 + 0.45 * (v / maxVal);
+    return `rgba(79,70,229,${alpha.toFixed(2)})`;
+  });
 
   const config = {
-    type: "doughnut",
+    type: "bar",
     data: {
       labels,
-      datasets: [{ data, backgroundColor: colors.slice(0, data.length), borderWidth: 2, borderColor: "#fff" }],
+      datasets: [{
+        label: "Peserta",
+        data,
+        backgroundColor: colors,
+        borderColor: colors.map(c => c.replace(/[\d.]+\)$/, "1)")),
+        borderWidth: 1,
+        borderRadius: 4,
+      }],
     },
     options: {
+      indexAxis: "y",
       plugins: {
-        title: { display: true, text: "Distribusi Kelamin Peserta", font: { size: 16, weight: "bold" }, color: "#1e1b4b", padding: { bottom: 12 } },
-        legend: { position: "bottom", labels: { color: "#374151", padding: 16 } },
+        title: { display: true, text: title, font: { size: 16, weight: "bold" }, color: "#1e1b4b", padding: { bottom: 16 } },
+        legend: { display: false },
         datalabels: {
-          color: "#fff",
-          font: { weight: "bold", size: 13 },
-          formatter: (val: number) => {
-            const total = data.reduce((a, b) => a + b, 0);
-            return total > 0 ? `${Math.round(val / total * 100)}%` : "";
-          },
+          anchor: "end",
+          align: "right",
+          color: "#374151",
+          font: { weight: "bold", size: 12 },
+          formatter: (v: number) => v.toLocaleString("id-ID"),
         },
+      },
+      scales: {
+        x: { beginAtZero: true, ticks: { color: "#374151" }, grid: { color: "rgba(0,0,0,0.06)" } },
+        y: { ticks: { color: "#374151", font: { size: 12 } }, grid: { display: false } },
       },
     },
   };
-  const encoded = encodeURIComponent(JSON.stringify(config));
-  return `https://quickchart.io/chart?c=${encoded}&width=500&height=380&backgroundColor=white&devicePixelRatio=2`;
+  return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(config))}&width=800&height=480&backgroundColor=white&devicePixelRatio=2`;
 }
 
 async function downloadImage(url: string): Promise<Buffer> {
-  const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  const resp = await fetch(url, { signal: AbortSignal.timeout(20000) });
   if (!resp.ok) throw new Error(`QuickChart error: ${resp.status}`);
   return Buffer.from(await resp.arrayBuffer());
 }
 
-// ─── Build media group (album) with 2 charts ──────────────────────────────────
+// ─── Build full report ─────────────────────────────────────────────────────────
 
-async function fetchChartBuffers(): Promise<{ bar: Buffer; donut: Buffer }> {
-  const [days, gender] = await Promise.all([fetchLast7Days(), fetchGenderData()]);
-  const barUrl   = buildBarChartUrl(days, "Pendaftaran 7 Hari Terakhir");
-  const donutUrl = buildDoughnutChartUrl(gender.laki, gender.perempuan, gender.lainnya);
-  const [bar, donut] = await Promise.all([downloadImage(barUrl), downloadImage(donutUrl)]);
-  return { bar, donut };
-}
-
-// ─── Queries ──────────────────────────────────────────────────────────────────
-
-async function buildReport(): Promise<{ text: string; charts: { bar: Buffer; donut: Buffer } }> {
+async function buildReport(): Promise<{ text: string; regionText: string; charts: { trend: Buffer; region: Buffer } }> {
   const today     = wibDayRange(0);
   const yesterday = wibDayRange(-1);
 
@@ -183,7 +200,8 @@ async function buildReport(): Promise<{ text: string; charts: { bar: Buffer; don
     [eventHariIni], [totalEventAktif],
     [prizeToday], [prizeYesterday],
     topStaff, topStaffYesterday,
-    charts,
+    todayRegions, totalRegions,
+    last7Days,
   ] = await Promise.all([
     db.select({ count: count() }).from(eventRegistrationsTable).where(and(gte(eventRegistrationsTable.registeredAt, today.start), lte(eventRegistrationsTable.registeredAt, today.end), ne(eventRegistrationsTable.registrationType, "attendance"))),
     db.select({ count: count() }).from(eventRegistrationsTable).where(and(gte(eventRegistrationsTable.registeredAt, yesterday.start), lte(eventRegistrationsTable.registeredAt, yesterday.end), ne(eventRegistrationsTable.registrationType, "attendance"))),
@@ -194,23 +212,32 @@ async function buildReport(): Promise<{ text: string; charts: { bar: Buffer; don
     db.select({ count: count() }).from(prizeDistributionsTable).where(and(gte(prizeDistributionsTable.distributedAt, yesterday.start), lte(prizeDistributionsTable.distributedAt, yesterday.end))),
     db.select({ staffName: eventRegistrationsTable.staffName, staffId: eventRegistrationsTable.staffId, jumlah: count() }).from(eventRegistrationsTable).where(and(gte(eventRegistrationsTable.registeredAt, today.start), lte(eventRegistrationsTable.registeredAt, today.end), ne(eventRegistrationsTable.registrationType, "attendance"))).groupBy(eventRegistrationsTable.staffId, eventRegistrationsTable.staffName).orderBy(desc(count())).limit(3),
     db.select({ staffId: eventRegistrationsTable.staffId, jumlah: count() }).from(eventRegistrationsTable).where(and(gte(eventRegistrationsTable.registeredAt, yesterday.start), lte(eventRegistrationsTable.registeredAt, yesterday.end), ne(eventRegistrationsTable.registrationType, "attendance"))).groupBy(eventRegistrationsTable.staffId).orderBy(desc(count())),
-    fetchChartBuffers(),
+    fetchTodayRegions(today),
+    fetchTotalRegions(),
+    fetchLast7Days(),
   ]);
 
+  // Charts
+  const trendUrl  = buildBarChartUrl(last7Days);
+  const regionUrl = buildRegionChartUrl(totalRegions, "Top 10 Daerah — Total Peserta");
+  const [trendBuf, regionBuf] = await Promise.all([downloadImage(trendUrl), downloadImage(regionUrl)]);
+
+  // Top staff
   const yesterdayMap = new Map(topStaffYesterday.map(s => [s.staffId, s.jumlah]));
-  const medals = ["🥇", "🥈", "🥉"];
+  const medals = ["🥇","🥈","🥉"];
   const topStaffLines = topStaff.length > 0
     ? topStaff.map((s, i) => {
         const kem = yesterdayMap.get(s.staffId) ?? 0;
         const diff = s.jumlah - kem;
-        const arrow = diff > 0 ? `(+${diff})` : diff < 0 ? `(${diff})` : "";
-        return `${medals[i]} <b>${h(s.staffName ?? "—")}</b> — ${s.jumlah} pendaftaran ${arrow}`.trim();
+        const arrow = diff > 0 ? ` (+${diff})` : diff < 0 ? ` (${diff})` : "";
+        return `${medals[i]} <b>${h(s.staffName ?? "—")}</b> — ${s.jumlah} pendaftaran${arrow}`;
       }).join("\n")
     : "Belum ada pendaftaran hari ini.";
 
   const rT = regToday.count, rY = regYesterday.count;
   const pzT = prizeToday.count, pzY = prizeYesterday.count;
 
+  // Main report text
   const text =
     `📊 <b>LAPORAN HARIAN KTP</b>\n` +
     `📅 ${h(formatTanggalWIB())}\n` +
@@ -225,28 +252,57 @@ async function buildReport(): Promise<{ text: string; charts: { bar: Buffer; don
     `🏆 <b>TOP 3 PETUGAS HARI INI</b>\n` +
     topStaffLines;
 
-  return { text, charts };
+  // Regional breakdown message (separate message)
+  let regionText = `🗺 <b>PENDAFTARAN HARI INI PER DAERAH</b>\n━━━━━━━━━━━━━━━━━━\n\n`;
+
+  if (todayRegions.length === 0) {
+    regionText += `Belum ada pendaftaran masuk hari ini.\n\n`;
+  } else {
+    const regionLines = todayRegions.map((r, i) => {
+      const name = cleanCityName(r.city);
+      const bar = "█".repeat(Math.min(Math.ceil(r.cnt / Math.max(...todayRegions.map(x => x.cnt)) * 12), 12));
+      return `${String(i + 1).padStart(2)}. <b>${h(name)}</b>\n    ${bar} ${r.cnt} pendaftaran`;
+    });
+    regionText += regionLines.join("\n") + "\n\n";
+  }
+
+  // Add running total per region (top 10 overall, always shown)
+  regionText += `📍 <b>TOTAL PESERTA PER DAERAH (KESELURUHAN)</b>\n`;
+  const totalLines = totalRegions.slice(0, 10).map((r, i) => {
+    const name = cleanCityName(r.city);
+    const bar = "█".repeat(Math.min(Math.ceil(r.cnt / Math.max(...totalRegions.map(x => x.cnt)) * 10), 10));
+    return `${String(i + 1).padStart(2)}. <b>${h(name)}</b>\n    ${bar} ${r.cnt.toLocaleString("id-ID")} peserta`;
+  });
+  regionText += totalLines.join("\n") +
+    `\n\n<i>Laporan otomatis dikirim setiap hari pukul 09.00 WIB</i>`;
+
+  return { text, regionText, charts: { trend: trendBuf, region: regionBuf } };
 }
 
 async function sendReport(chatId: string | number) {
-  const { text, charts } = await buildReport();
+  const { text, regionText, charts } = await buildReport();
 
-  // Send text report
+  // 1. Main summary
   await bot.api.sendMessage(chatId, text, { parse_mode: "HTML" });
 
-  // Send charts as album (2 images)
+  // 2. Charts album (trend + region map)
   await bot.api.sendMediaGroup(chatId, [
     {
       type: "photo",
-      media: new InputFile(charts.bar, "pendaftaran-7hari.png"),
-      caption: "📈 Pendaftaran 7 Hari Terakhir",
+      media: new InputFile(charts.trend, "trend-7hari.png"),
+      caption: "📈 <b>Tren Pendaftaran 7 Hari Terakhir</b>",
+      parse_mode: "HTML",
     },
     {
       type: "photo",
-      media: new InputFile(charts.donut, "distribusi-kelamin.png"),
-      caption: "👥 Distribusi Jenis Kelamin Peserta",
+      media: new InputFile(charts.region, "top-daerah.png"),
+      caption: "🗺 <b>Top 10 Daerah — Total Peserta</b>",
+      parse_mode: "HTML",
     },
   ]);
+
+  // 3. Regional detail text
+  await bot.api.sendMessage(chatId, regionText, { parse_mode: "HTML" });
 }
 
 // ─── Commands ─────────────────────────────────────────────────────────────────
@@ -256,8 +312,8 @@ bot.command("start", async (ctx) => {
     "Bot Laporan Harian KTP aktif.\n\n" +
     "Perintah:\n" +
     "/idgrup - Tampilkan ID chat ini\n" +
-    "/laporansekarang - Kirim laporan + chart sekarang\n\n" +
-    "Laporan otomatis dikirim setiap hari pukul 09.00 WIB."
+    "/laporansekarang - Kirim laporan + chart + detail daerah sekarang\n\n" +
+    "Laporan otomatis dikirim setiap hari pukul 09.00 WIB.",
   );
 });
 
@@ -266,12 +322,12 @@ bot.command("idgrup", async (ctx) => {
   const chatTitle = "title" in chat ? chat.title : "—";
   await ctx.reply(
     `Info Chat:\nID: <code>${chat.id}</code>\nTipe: ${chat.type}\nNama: ${h(chatTitle)}`,
-    { parse_mode: "HTML" }
+    { parse_mode: "HTML" },
   );
 });
 
 bot.command("laporansekarang", async (ctx) => {
-  const statusMsg = await ctx.reply("Menyiapkan laporan dan chart...");
+  const statusMsg = await ctx.reply("Menyiapkan laporan, chart, dan data daerah...");
   try {
     await sendReport(ctx.chat.id);
     await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id);
@@ -281,7 +337,7 @@ bot.command("laporansekarang", async (ctx) => {
   }
 });
 
-// ─── Catch-all for group messages (for getting chat ID) ───────────────────────
+// ─── Catch-all ────────────────────────────────────────────────────────────────
 
 bot.on("message", async (ctx) => {
   const chat = ctx.chat;
@@ -291,7 +347,7 @@ bot.on("message", async (ctx) => {
     const chatTitle = "title" in chat ? chat.title : "—";
     await ctx.reply(
       `Info Chat:\nID: <code>${chat.id}</code>\nTipe: ${chat.type}\nNama: ${h(chatTitle)}`,
-      { parse_mode: "HTML" }
+      { parse_mode: "HTML" },
     );
   }
 });
@@ -315,12 +371,9 @@ cron.schedule("0 2 * * *", async () => {
 bot.catch((err) => console.error("Bot error:", err.error));
 
 console.log("Starting Report Bot...");
-const chatId = process.env.REPORT_CHAT_ID;
-if (chatId) {
-  console.log(`Target group: ${chatId}`);
-} else {
-  console.warn("REPORT_CHAT_ID not set.");
-}
+const reportChatId = process.env.REPORT_CHAT_ID;
+if (reportChatId) console.log(`Target group: ${reportChatId}`);
+else console.warn("REPORT_CHAT_ID not set.");
 
 bot.start({ allowed_updates: ["message", "callback_query"] })
   .then(() => console.log("Bot stopped"))
