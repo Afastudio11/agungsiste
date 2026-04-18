@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, Camera, Upload, CheckCircle2, AlertCircle, AlertTriangle,
   Phone, Mail, Tag, FileText, User, Users, Sun, Eye, Contrast,
-  RotateCcw, ScanLine, ChevronRight
+  RotateCcw, ScanLine, ChevronRight, Home, History, QrCode
 } from "@/lib/icons";
 import { useAuth } from "@/lib/auth";
 import KtpCamera from "@/components/ktp-camera";
@@ -337,120 +337,126 @@ export default function PetugasScanPage() {
   const qw = ocrMeta?.qualityWarning;
 
   return (
-    <div className="min-h-screen bg-[#EEF3FB] pb-12" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="min-h-screen bg-[#f5f7f9]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       {showCamera && (
         <KtpCamera onCapture={handleCameraCapture} onClose={() => setShowCamera(false)} />
       )}
 
-      {/* Top Bar */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10 shadow-[0_1px_12px_rgba(0,0,0,0.05)]">
+      {/* ── Fixed Glassmorphic Top Bar ─────────────────────────────── */}
+      <nav className="fixed top-0 w-full z-50 flex items-center gap-3 px-4 py-3.5 bg-white/80 backdrop-blur-2xl shadow-[0_20px_40px_rgba(44,47,49,0.06)] rounded-b-[1.5rem]">
         <button
           onClick={() => navigate("/petugas")}
-          className="p-2 hover:bg-slate-100 rounded-full transition-colors shrink-0"
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100/60 transition-all active:scale-90"
         >
-          <ArrowLeft className="h-4 w-4 text-slate-500" />
+          <ArrowLeft className="h-5 w-5 text-slate-700" />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-extrabold text-blue-500 tracking-widest uppercase">Scan KTP</div>
+          <div className="text-[10px] font-extrabold text-[#0054ca] tracking-widest uppercase">Scan KTP</div>
           <div className="text-[13px] font-extrabold text-slate-900 truncate leading-tight">
             {event?.name || "Memuat..."}
           </div>
         </div>
         {event && (
-          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 shrink-0 bg-slate-50 border border-slate-100 px-2.5 py-1.5 rounded-xl">
-            <Users className="h-3 w-3 text-blue-400" />
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 shrink-0 bg-white/80 border border-slate-100 px-2.5 py-1.5 rounded-xl">
+            <Users className="h-3 w-3 text-[#0054ca]" />
             {event.participantCount}
           </div>
         )}
-      </div>
+      </nav>
 
-      <div className="max-w-md mx-auto px-4 pt-5 space-y-4">
+      <div className="max-w-md mx-auto px-4 pt-[76px] pb-28 space-y-4">
 
         {/* Step indicator */}
         <StepBar step={step} />
 
         {/* ── STEP 1: Upload ── */}
         {step === "upload" && (
-          <div className="space-y-3">
+          <div className="space-y-4 pt-2">
 
-            {/* Camera Card */}
-            <button
-              onClick={() => !scanning && setShowCamera(true)}
-              disabled={scanning}
-              className={`w-full rounded-2xl border-2 p-7 text-center transition-all duration-200 shadow-sm ${
-                scanning
-                  ? "border-blue-300 bg-white cursor-wait"
-                  : "border-blue-400/60 bg-white hover:border-blue-500 hover:shadow-md active:scale-[0.99] cursor-pointer"
-              }`}
-            >
-              {/* Icon */}
-              <div className="flex justify-center mb-5">
-                <div className={`h-[68px] w-[68px] rounded-[20px] flex items-center justify-center transition-all ${
-                  scanning
-                    ? "bg-blue-100 animate-pulse"
-                    : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30"
-                }`}>
-                  <Camera className="h-8 w-8 text-white" strokeWidth={2} />
-                </div>
+            {/* Header */}
+            <div className="space-y-0.5 px-1">
+              <h1 className="text-[1.35rem] font-bold text-slate-900 tracking-tight">Ambil Foto KTP</h1>
+              <p className="text-slate-500 text-sm font-medium">Pastikan seluruh bagian KTP terlihat jelas</p>
+            </div>
+
+            {/* Camera Glass Card */}
+            <div className="bg-white/70 backdrop-blur-2xl rounded-[1.25rem] shadow-[0_20px_40px_rgba(44,47,49,0.07)] border border-white/60 p-7 flex flex-col items-center text-center space-y-5 relative overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#0054ca]/5 rounded-full blur-3xl pointer-events-none" />
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center ${scanning ? "bg-blue-100 animate-pulse" : "bg-[#0054ca]/10"}`}>
+                <Camera className={`h-9 w-9 ${scanning ? "text-blue-400" : "text-[#0054ca]"}`} strokeWidth={1.8} />
               </div>
 
               {scanning ? (
-                <>
-                  <div className="text-[16px] font-extrabold text-blue-700 mb-1">Membaca KTP...</div>
-                  <div className="text-xs text-blue-400 mb-4">OCR sedang berjalan, mohon tunggu</div>
-                  <div className="mx-auto max-w-[180px] h-1.5 overflow-hidden rounded-full bg-blue-100">
-                    <div className="h-full w-2/3 rounded-full bg-blue-500 animate-[pulse_1s_ease-in-out_infinite]" />
+                <div className="space-y-2 w-full">
+                  <div className="text-[16px] font-bold text-blue-700">Membaca KTP...</div>
+                  <div className="text-xs text-blue-400">OCR sedang berjalan, mohon tunggu</div>
+                  <div className="mx-auto max-w-[180px] h-1.5 overflow-hidden rounded-full bg-blue-100 mt-3">
+                    <div className="h-full w-2/3 rounded-full bg-[#0054ca] animate-pulse" />
                   </div>
-                </>
+                </div>
               ) : (
-                <>
-                  <div className="text-[17px] font-extrabold text-slate-900 mb-1.5">Buka Kamera</div>
-                  <div className="text-[13px] text-slate-400 mb-5 leading-relaxed">
+                <div className="space-y-2">
+                  <h2 className="text-[1.05rem] font-semibold text-slate-900">Ambil Foto KTP</h2>
+                  <p className="text-slate-500 text-sm max-w-[220px] leading-relaxed">
                     Foto KTP dengan panduan bingkai otomatis
-                  </div>
-                  <div className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-2.5 rounded-full shadow-md shadow-blue-500/25 transition-colors">
-                    <Camera className="h-4 w-4" />
-                    Buka Kamera
-                  </div>
-                </>
+                  </p>
+                </div>
               )}
-            </button>
 
-            {/* Upload Row */}
+              <button
+                onClick={() => !scanning && setShowCamera(true)}
+                disabled={scanning}
+                className="w-full py-3.5 px-8 rounded-full text-white font-semibold flex items-center justify-center gap-2.5 shadow-[0_10px_20px_rgba(0,84,202,0.25)] active:scale-95 transition-all duration-200 disabled:opacity-60 disabled:cursor-wait"
+                style={{ background: "linear-gradient(135deg, #0054ca 0%, #769dff 100%)" }}
+              >
+                <Camera className="h-4.5 w-4.5" />
+                <span>Buka Kamera</span>
+              </button>
+            </div>
+
+            {/* Gallery Upload Glass Card */}
             <div
               onDrop={handleDrop}
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
               onClick={() => !scanning && fileInputRef.current?.click()}
-              className={`flex items-center gap-4 bg-white rounded-2xl px-5 py-4 cursor-pointer border transition-all shadow-sm ${
-                isDragging
-                  ? "border-blue-400 bg-blue-50/50"
-                  : "border-slate-100 hover:border-slate-200 hover:shadow-md"
+              className={`bg-white/70 backdrop-blur-2xl rounded-[1.25rem] shadow-[0_20px_40px_rgba(44,47,49,0.07)] border p-5 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all duration-200 ${
+                isDragging ? "border-[#0054ca]/40 bg-blue-50/50" : "border-white/60 hover:border-[#0054ca]/20"
               }`}
             >
-              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                <Upload className="h-4.5 w-4.5 text-slate-500" strokeWidth={2} />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                  <Upload className="h-5 w-5 text-indigo-600" strokeWidth={2} />
+                </div>
+                <div>
+                  <div className="text-[14px] font-semibold text-slate-900">Upload dari galeri</div>
+                  <div className="text-[12px] text-slate-500 font-medium">Pilih file JPG, PNG</div>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-bold text-slate-700">Upload dari galeri</div>
-                <div className="text-[12px] text-slate-400">Drag & drop atau klik untuk pilih file</div>
-              </div>
-              <ChevronRight size={16} className="text-slate-300 shrink-0" />
+              <ChevronRight size={18} className="text-slate-300" />
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} className="hidden" />
 
-            {/* Tips */}
-            <div className="bg-white rounded-2xl border border-slate-100 px-5 py-4 shadow-sm">
-              <p className="text-[10px] font-extrabold text-slate-400 tracking-[0.15em] mb-3.5 uppercase">Tips Foto KTP</p>
-              <div className="space-y-3">
+            {/* Tips Section */}
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-3 px-1">
+                <div className="h-[2px] w-7 bg-[#0054ca] rounded-full" />
+                <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">Tips Foto KTP</h3>
+              </div>
+              <div className="space-y-3.5">
                 {[
-                  { icon: <Sun className="h-3.5 w-3.5 text-amber-500 shrink-0" />, text: "Foto di tempat terang, hindari bayangan di atas KTP" },
-                  { icon: <Eye className="h-3.5 w-3.5 text-blue-500 shrink-0" />, text: "Tahan kamera stabil agar gambar tidak blur" },
-                  { icon: <Camera className="h-3.5 w-3.5 text-slate-400 shrink-0" />, text: "Pastikan seluruh teks KTP terlihat jelas dan terbaca" },
-                ].map(({ icon, text }, i) => (
-                  <div key={i} className="flex items-center gap-3 text-[13px] text-slate-500">
-                    {icon}
-                    <span>{text}</span>
+                  { icon: <CheckCircle2 className="h-4 w-4 text-[#0054ca] shrink-0" />, title: "Pencahayaan yang cukup", desc: "Hindari pantulan cahaya atau bayangan pada kartu." },
+                  { icon: <CheckCircle2 className="h-4 w-4 text-[#0054ca] shrink-0" />, title: "Pastikan KTP terbaca", desc: "Teks dan foto pada KTP harus terlihat fokus dan tajam." },
+                  { icon: <CheckCircle2 className="h-4 w-4 text-[#0054ca] shrink-0" />, title: "Letakkan pada bidang datar", desc: "Gunakan latar belakang gelap dan kontras." },
+                ].map(({ icon, title, desc }, i) => (
+                  <div key={i} className="flex gap-3.5 items-start">
+                    <div className="w-6 h-6 rounded-full bg-white flex-shrink-0 flex items-center justify-center shadow-sm mt-0.5">
+                      {icon}
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-semibold text-slate-800 leading-tight">{title}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -699,6 +705,43 @@ export default function PetugasScanPage() {
           </div>
         )}
       </div>
+
+      {/* ── Fixed Bottom Navigation ───────────────────────────────── */}
+      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 backdrop-blur-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] rounded-t-[2rem]">
+        {/* Home */}
+        <button
+          onClick={() => navigate("/petugas")}
+          className="flex flex-col items-center gap-1 px-4 py-1.5 text-slate-400 hover:text-blue-500 transition-colors"
+        >
+          <Home size={20} />
+          <span className="text-[10px] font-medium">Home</span>
+        </button>
+        {/* Riwayat */}
+        <button
+          onClick={() => navigate("/petugas")}
+          className="flex flex-col items-center gap-1 px-4 py-1.5 text-slate-400 hover:text-blue-500 transition-colors"
+        >
+          <History size={20} />
+          <span className="text-[10px] font-medium">Riwayat</span>
+        </button>
+        {/* Scan KTP - active */}
+        <div className="flex flex-col items-center gap-1 px-4 py-1.5 rounded-full bg-blue-50 text-[#0054ca]">
+          <ScanLine size={20} />
+          <span className="text-[10px] font-bold">Scan KTP</span>
+        </div>
+        {/* QR Scan */}
+        <button
+          onClick={() => navigate(`/petugas/qr-scan/${eventId}`)}
+          className="flex flex-col items-center gap-1 px-4 py-1.5 text-slate-400 hover:text-emerald-500 transition-colors"
+        >
+          <QrCode size={20} />
+          <span className="text-[10px] font-medium">Scan QR</span>
+        </button>
+      </nav>
+
+      {/* Decorative background */}
+      <div className="fixed top-[-10%] right-[-10%] w-[50%] h-[40%] bg-blue-500/5 blur-[120px] rounded-full -z-10 pointer-events-none" />
+      <div className="fixed bottom-[-5%] left-[-10%] w-[40%] h-[30%] bg-indigo-500/5 blur-[100px] rounded-full -z-10 pointer-events-none" />
     </div>
   );
 }

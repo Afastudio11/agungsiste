@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import {
   CalendarDays, MapPin, LogOut, ScanLine, Search,
   ClipboardCheck, Users, QrCode, X,
-  TrendingUp, Zap, History, Clock, ChevronRight
+  TrendingUp, Zap, History, Clock, ChevronRight, Home
 } from "@/lib/icons";
 import { useAuth } from "@/lib/auth";
 
@@ -140,13 +140,13 @@ export default function PetugasEventsPage() {
 
   return (
     <div
-      className="min-h-screen bg-slate-50"
+      className="min-h-screen bg-[#f5f7f9]"
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
     >
-      {/* ── Sticky Top Bar ───────────────────────────────────────── */}
-      <nav className="bg-white border-b border-slate-100 px-5 py-3 flex items-center justify-between sticky top-0 z-20 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+      {/* ── Fixed Glassmorphic Top Bar ───────────────────────────── */}
+      <nav className="fixed top-0 w-full z-50 flex justify-between items-center px-5 py-3.5 bg-white/80 backdrop-blur-2xl shadow-[0_20px_40px_rgba(44,47,49,0.06)] rounded-b-[1.5rem]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-[13px] font-extrabold shrink-0">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0054ca] to-[#769dff] flex items-center justify-center text-white text-[13px] font-extrabold shrink-0 shadow-md shadow-blue-300/40">
             {initials}
           </div>
           <div>
@@ -159,27 +159,6 @@ export default function PetugasEventsPage() {
               </div>
             )}
           </div>
-        </div>
-        <div className="flex items-center gap-1">
-          {/* Riwayat button */}
-          <button
-            onClick={openRiwayat}
-            className="relative flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-blue-600 transition-colors p-2 rounded-xl hover:bg-blue-50"
-          >
-            <History size={16} />
-            {newCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-blue-600 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center px-1">
-                {newCount > 99 ? "99+" : newCount}
-              </span>
-            )}
-          </button>
-          {/* Logout button */}
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors p-2 rounded-xl hover:bg-red-50"
-          >
-            <LogOut size={16} />
-          </button>
         </div>
       </nav>
 
@@ -288,7 +267,7 @@ export default function PetugasEventsPage() {
         </div>
       )}
 
-      <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+      <div className="max-w-2xl mx-auto px-4 pt-[76px] pb-28 space-y-4">
 
         {/* ── Hero Banner ──────────────────────────────────────────── */}
         <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 shadow-lg shadow-blue-500/20">
@@ -531,9 +510,46 @@ export default function PetugasEventsPage() {
           </div>
         </div>
 
-        {/* Bottom spacer */}
-        <div className="h-4" />
       </div>
+
+      {/* ── Fixed Bottom Navigation ───────────────────────────────── */}
+      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 backdrop-blur-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] rounded-t-[2rem]">
+        {/* Home - active */}
+        <div className="flex flex-col items-center gap-1 px-4 py-1.5 rounded-full bg-blue-50 text-[#0054ca]">
+          <Home size={20} />
+          <span className="text-[10px] font-bold">Home</span>
+        </div>
+        {/* Riwayat */}
+        <button
+          onClick={openRiwayat}
+          className="relative flex flex-col items-center gap-1 px-4 py-1.5 text-slate-400 hover:text-blue-500 transition-colors"
+        >
+          <History size={20} />
+          <span className="text-[10px] font-medium">Riwayat</span>
+          {newCount > 0 && (
+            <span className="absolute top-0 right-2 min-w-[16px] h-4 bg-[#0054ca] text-white text-[9px] font-extrabold rounded-full flex items-center justify-center px-1">
+              {newCount > 99 ? "99+" : newCount}
+            </span>
+          )}
+        </button>
+        {/* Scan KTP - navigates to event selection (no event selected yet) */}
+        <div className="flex flex-col items-center gap-1 px-4 py-1.5 text-slate-300 cursor-not-allowed">
+          <ScanLine size={20} />
+          <span className="text-[10px] font-medium">Scan KTP</span>
+        </div>
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          className="flex flex-col items-center gap-1 px-4 py-1.5 text-slate-400 hover:text-red-500 transition-colors"
+        >
+          <LogOut size={20} />
+          <span className="text-[10px] font-medium">Keluar</span>
+        </button>
+      </nav>
+
+      {/* Decorative background */}
+      <div className="fixed top-[-10%] right-[-10%] w-[50%] h-[40%] bg-blue-500/5 blur-[120px] rounded-full -z-10 pointer-events-none" />
+      <div className="fixed bottom-[-5%] left-[-10%] w-[40%] h-[30%] bg-indigo-500/5 blur-[100px] rounded-full -z-10 pointer-events-none" />
     </div>
   );
 }
