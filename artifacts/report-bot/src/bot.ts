@@ -30,8 +30,8 @@ function wibDayRange(daysOffset: number = 0): { start: Date; end: Date; dateStr:
   return { start: startUtc, end: endUtc, dateStr: `${y}-${m}-${d}` };
 }
 
-const HARI  = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-const BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const HARI        = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const BULAN       = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 const BULAN_PANJANG = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 
 function formatTanggalWIB(): string {
@@ -47,22 +47,46 @@ function delta(today: number, yesterday: number): string {
   return `<b>0</b> →`;
 }
 
-// ─── Regional normalization ────────────────────────────────────────────────────
-// Strip "KABUPATEN"/"KOTA" prefix for display, INITCAP for consistency
-
-const cityExpr = sql<string>`INITCAP(LOWER(COALESCE(${participantsTable.city}, 'Tidak Diketahui')))`;
-const cityGroupExpr = sql`INITCAP(LOWER(COALESCE(${participantsTable.city}, 'Tidak Diketahui')))`;
-
 function cleanCityName(raw: string): string {
-  return raw
-    .replace(/^(Kabupaten|Kab\.|Kota)\s+/i, "")
-    .trim();
+  return raw.replace(/^(Kabupaten|Kab\.|Kota)\s+/i, "").trim();
 }
 
-// ─── Chart via QuickChart.io ───────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface DayData { label: string; value: number }
+interface DayData    { label: string; value: number }
 interface RegionData { city: string; cnt: number }
+interface RegionCompare { city: string; today: number; yesterday: number }
+
+// ─── Query helpers ────────────────────────────────────────────────────────────
+
+const cityExpr      = sql<string>`INITCAP(LOWER(COALESCE(${participantsTable.city}, 'Tidak Diketahui')))`;
+const cityGroupExpr = sql`INITCAP(LOWER(COALESCE(${participantsTable.city}, 'Tidak Diketahui')))`;
+
+async function fetchRegionsByRange(range: { start: Date; end: Date }): Promise<Map<string, number>> {
+  const rows = await db
+    .select({ city: cityExpr, cnt: count() })
+    .from(eventRegistrationsTable)
+    .innerJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+    .where(and(
+      gte(eventRegistrationsTable.registeredAt, range.start),
+      lte(eventRegistrationsTable.registeredAt, range.end),
+      ne(eventRegistrationsTable.registrationType, "attendance"),
+    ))
+    .groupBy(cityGroupExpr)
+    .orderBy(desc(count()))
+    .limit(30);
+  return new Map(rows.map(r => [r.city ?? "Tidak Diketahui", r.cnt]));
+}
+
+async function fetchTotalRegions(): Promise<RegionData[]> {
+  const rows = await db
+    .select({ city: cityExpr, cnt: count() })
+    .from(participantsTable)
+    .groupBy(cityGroupExpr)
+    .orderBy(desc(count()))
+    .limit(12);
+  return rows.map(r => ({ city: r.city ?? "Tidak Diketahui", cnt: r.cnt }));
+}
 
 async function fetchLast7Days(): Promise<DayData[]> {
   const wibOffset = 7 * 60 * 60 * 1000;
@@ -78,33 +102,9 @@ async function fetchLast7Days(): Promise<DayData[]> {
   return result;
 }
 
-async function fetchTodayRegions(today: { start: Date; end: Date }): Promise<RegionData[]> {
-  const rows = await db
-    .select({ city: cityExpr, cnt: count() })
-    .from(eventRegistrationsTable)
-    .innerJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
-    .where(and(
-      gte(eventRegistrationsTable.registeredAt, today.start),
-      lte(eventRegistrationsTable.registeredAt, today.end),
-      ne(eventRegistrationsTable.registrationType, "attendance"),
-    ))
-    .groupBy(cityGroupExpr)
-    .orderBy(desc(count()))
-    .limit(20);
-  return rows.map(r => ({ city: r.city ?? "Tidak Diketahui", cnt: r.cnt }));
-}
+// ─── Chart builders ───────────────────────────────────────────────────────────
 
-async function fetchTotalRegions(): Promise<RegionData[]> {
-  const rows = await db
-    .select({ city: cityExpr, cnt: count() })
-    .from(participantsTable)
-    .groupBy(cityGroupExpr)
-    .orderBy(desc(count()))
-    .limit(12);
-  return rows.map(r => ({ city: r.city ?? "Tidak Diketahui", cnt: r.cnt }));
-}
-
-function buildBarChartUrl(days: DayData[]): string {
+function buildTrendChartUrl(days: DayData[]): string {
   const labels = days.map(d => d.label);
   const data   = days.map(d => d.value);
   const maxVal = Math.max(...data, 1);
@@ -135,25 +135,78 @@ function buildBarChartUrl(days: DayData[]): string {
   return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(config))}&width=800&height=380&backgroundColor=white&devicePixelRatio=2`;
 }
 
-function buildRegionChartUrl(regions: RegionData[], title: string): string {
-  // Show top 10 for horizontal bar
-  const top = regions.slice(0, 10);
-  const labels = top.map(r => cleanCityName(r.city));
-  const data   = top.map(r => r.cnt);
-  const maxVal = Math.max(...data, 1);
+/** Grouped horizontal bar: hari ini vs kemarin per kota — top 10 by (today + yesterday) */
+function buildRegionCompareChartUrl(regions: RegionCompare[]): string {
+  // Sort by today+yesterday combined, take top 10
+  const top = [...regions]
+    .sort((a, b) => (b.today + b.yesterday) - (a.today + a.yesterday))
+    .slice(0, 10)
+    .reverse(); // reverse so highest is at top in horizontal bar
 
-  // Color gradient: darker = higher count
-  const colors = data.map((v, i) => {
-    const alpha = 0.55 + 0.45 * (v / maxVal);
-    return `rgba(79,70,229,${alpha.toFixed(2)})`;
-  });
+  const labels    = top.map(r => cleanCityName(r.city));
+  const todayData = top.map(r => r.today);
+  const yestData  = top.map(r => r.yesterday);
 
   const config = {
     type: "bar",
     data: {
       labels,
+      datasets: [
+        {
+          label: "Hari Ini",
+          data: todayData,
+          backgroundColor: "rgba(79,70,229,0.85)",
+          borderColor: "rgba(79,70,229,1)",
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: "Kemarin",
+          data: yestData,
+          backgroundColor: "rgba(156,163,175,0.7)",
+          borderColor: "rgba(107,114,128,0.8)",
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+      ],
+    },
+    options: {
+      indexAxis: "y",
+      plugins: {
+        title: {
+          display: true,
+          text: "Pendaftaran Per Daerah: Hari Ini vs Kemarin",
+          font: { size: 15, weight: "bold" },
+          color: "#1e1b4b",
+          padding: { bottom: 14 },
+        },
+        legend: { position: "top", labels: { color: "#374151", padding: 16 } },
+      },
+      scales: {
+        x: { beginAtZero: true, ticks: { color: "#374151", stepSize: 1 }, grid: { color: "rgba(0,0,0,0.06)" } },
+        y: { ticks: { color: "#374151", font: { size: 12 } }, grid: { display: false } },
+      },
+    },
+  };
+  return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(config))}&width=800&height=520&backgroundColor=white&devicePixelRatio=2`;
+}
+
+/** Single horizontal bar — overall total peserta per daerah */
+function buildTotalRegionChartUrl(regions: RegionData[]): string {
+  const top    = regions.slice(0, 10).reverse();
+  const labels = top.map(r => cleanCityName(r.city));
+  const data   = top.map(r => r.cnt);
+  const maxVal = Math.max(...data, 1);
+  const colors = data.map(v => {
+    const a = (0.55 + 0.45 * (v / maxVal)).toFixed(2);
+    return `rgba(79,70,229,${a})`;
+  });
+  const config = {
+    type: "bar",
+    data: {
+      labels,
       datasets: [{
-        label: "Peserta",
+        label: "Total Peserta",
         data,
         backgroundColor: colors,
         borderColor: colors.map(c => c.replace(/[\d.]+\)$/, "1)")),
@@ -164,15 +217,8 @@ function buildRegionChartUrl(regions: RegionData[], title: string): string {
     options: {
       indexAxis: "y",
       plugins: {
-        title: { display: true, text: title, font: { size: 16, weight: "bold" }, color: "#1e1b4b", padding: { bottom: 16 } },
+        title: { display: true, text: "Top 10 Daerah — Total Peserta Keseluruhan", font: { size: 15, weight: "bold" }, color: "#1e1b4b", padding: { bottom: 14 } },
         legend: { display: false },
-        datalabels: {
-          anchor: "end",
-          align: "right",
-          color: "#374151",
-          font: { weight: "bold", size: 12 },
-          formatter: (v: number) => v.toLocaleString("id-ID"),
-        },
       },
       scales: {
         x: { beginAtZero: true, ticks: { color: "#374151" }, grid: { color: "rgba(0,0,0,0.06)" } },
@@ -191,7 +237,7 @@ async function downloadImage(url: string): Promise<Buffer> {
 
 // ─── Build full report ─────────────────────────────────────────────────────────
 
-async function buildReport(): Promise<{ text: string; regionText: string; charts: { trend: Buffer; region: Buffer } }> {
+async function buildReport(): Promise<{ text: string; regionText: string; charts: { trend: Buffer; compare: Buffer; total: Buffer } }> {
   const today     = wibDayRange(0);
   const yesterday = wibDayRange(-1);
 
@@ -200,8 +246,8 @@ async function buildReport(): Promise<{ text: string; regionText: string; charts
     [eventHariIni], [totalEventAktif],
     [prizeToday], [prizeYesterday],
     topStaff, topStaffYesterday,
-    todayRegions, totalRegions,
-    last7Days,
+    todayRegionMap, yesterdayRegionMap,
+    totalRegions, last7Days,
   ] = await Promise.all([
     db.select({ count: count() }).from(eventRegistrationsTable).where(and(gte(eventRegistrationsTable.registeredAt, today.start), lte(eventRegistrationsTable.registeredAt, today.end), ne(eventRegistrationsTable.registrationType, "attendance"))),
     db.select({ count: count() }).from(eventRegistrationsTable).where(and(gte(eventRegistrationsTable.registeredAt, yesterday.start), lte(eventRegistrationsTable.registeredAt, yesterday.end), ne(eventRegistrationsTable.registrationType, "attendance"))),
@@ -212,22 +258,36 @@ async function buildReport(): Promise<{ text: string; regionText: string; charts
     db.select({ count: count() }).from(prizeDistributionsTable).where(and(gte(prizeDistributionsTable.distributedAt, yesterday.start), lte(prizeDistributionsTable.distributedAt, yesterday.end))),
     db.select({ staffName: eventRegistrationsTable.staffName, staffId: eventRegistrationsTable.staffId, jumlah: count() }).from(eventRegistrationsTable).where(and(gte(eventRegistrationsTable.registeredAt, today.start), lte(eventRegistrationsTable.registeredAt, today.end), ne(eventRegistrationsTable.registrationType, "attendance"))).groupBy(eventRegistrationsTable.staffId, eventRegistrationsTable.staffName).orderBy(desc(count())).limit(3),
     db.select({ staffId: eventRegistrationsTable.staffId, jumlah: count() }).from(eventRegistrationsTable).where(and(gte(eventRegistrationsTable.registeredAt, yesterday.start), lte(eventRegistrationsTable.registeredAt, yesterday.end), ne(eventRegistrationsTable.registrationType, "attendance"))).groupBy(eventRegistrationsTable.staffId).orderBy(desc(count())),
-    fetchTodayRegions(today),
+    fetchRegionsByRange(today),
+    fetchRegionsByRange(yesterday),
     fetchTotalRegions(),
     fetchLast7Days(),
   ]);
 
-  // Charts
-  const trendUrl  = buildBarChartUrl(last7Days);
-  const regionUrl = buildRegionChartUrl(totalRegions, "Top 10 Daerah — Total Peserta");
-  const [trendBuf, regionBuf] = await Promise.all([downloadImage(trendUrl), downloadImage(regionUrl)]);
+  // Merge today + yesterday regions into unified list sorted by today desc
+  const allCities = new Set([...todayRegionMap.keys(), ...yesterdayRegionMap.keys()]);
+  const regionCompare: RegionCompare[] = Array.from(allCities).map(city => ({
+    city,
+    today:     todayRegionMap.get(city)     ?? 0,
+    yesterday: yesterdayRegionMap.get(city) ?? 0,
+  })).sort((a, b) => b.today - a.today || b.yesterday - a.yesterday);
 
-  // Top staff
+  // Charts
+  const trendUrl   = buildTrendChartUrl(last7Days);
+  const compareUrl = buildRegionCompareChartUrl(regionCompare);
+  const totalUrl   = buildTotalRegionChartUrl(totalRegions);
+  const [trendBuf, compareBuf, totalBuf] = await Promise.all([
+    downloadImage(trendUrl),
+    downloadImage(compareUrl),
+    downloadImage(totalUrl),
+  ]);
+
+  // Top staff text
   const yesterdayMap = new Map(topStaffYesterday.map(s => [s.staffId, s.jumlah]));
   const medals = ["🥇","🥈","🥉"];
   const topStaffLines = topStaff.length > 0
     ? topStaff.map((s, i) => {
-        const kem = yesterdayMap.get(s.staffId) ?? 0;
+        const kem  = yesterdayMap.get(s.staffId) ?? 0;
         const diff = s.jumlah - kem;
         const arrow = diff > 0 ? ` (+${diff})` : diff < 0 ? ` (${diff})` : "";
         return `${medals[i]} <b>${h(s.staffName ?? "—")}</b> — ${s.jumlah} pendaftaran${arrow}`;
@@ -237,7 +297,7 @@ async function buildReport(): Promise<{ text: string; regionText: string; charts
   const rT = regToday.count, rY = regYesterday.count;
   const pzT = prizeToday.count, pzY = prizeYesterday.count;
 
-  // Main report text
+  // ── Pesan 1: Ringkasan harian ──
   const text =
     `📊 <b>LAPORAN HARIAN KTP</b>\n` +
     `📅 ${h(formatTanggalWIB())}\n` +
@@ -252,40 +312,52 @@ async function buildReport(): Promise<{ text: string; regionText: string; charts
     `🏆 <b>TOP 3 PETUGAS HARI INI</b>\n` +
     topStaffLines;
 
-  // Regional breakdown message (separate message)
-  let regionText = `🗺 <b>PENDAFTARAN HARI INI PER DAERAH</b>\n━━━━━━━━━━━━━━━━━━\n\n`;
+  // ── Pesan 3: Detail per daerah ──
+  const maxTod = Math.max(...regionCompare.map(r => r.today), 1);
+  const maxTot = Math.max(...totalRegions.map(r => r.cnt), 1);
 
-  if (todayRegions.length === 0) {
-    regionText += `Belum ada pendaftaran masuk hari ini.\n\n`;
-  } else {
-    const regionLines = todayRegions.map((r, i) => {
-      const name = cleanCityName(r.city);
-      const bar = "█".repeat(Math.min(Math.ceil(r.cnt / Math.max(...todayRegions.map(x => x.cnt)) * 12), 12));
-      return `${String(i + 1).padStart(2)}. <b>${h(name)}</b>\n    ${bar} ${r.cnt} pendaftaran`;
-    });
-    regionText += regionLines.join("\n") + "\n\n";
-  }
+  // Today vs yesterday per city (show all cities that have activity either day)
+  const compareLines = regionCompare.slice(0, 15).map((r, i) => {
+    const name  = cleanCityName(r.city);
+    const diff  = r.today - r.yesterday;
+    const arrow = diff > 0 ? `↑ +${diff}` : diff < 0 ? `↓ ${diff}` : `→`;
+    const bar   = r.today > 0 ? "█".repeat(Math.min(Math.ceil(r.today / maxTod * 10), 10)) : "░".repeat(3);
+    return (
+      `${String(i + 1).padStart(2)}. <b>${h(name)}</b>\n` +
+      `    Hari ini: <b>${r.today}</b> | Kemarin: ${r.yesterday} | <b>${arrow}</b>\n` +
+      `    ${bar}`
+    );
+  });
 
-  // Add running total per region (top 10 overall, always shown)
-  regionText += `📍 <b>TOTAL PESERTA PER DAERAH (KESELURUHAN)</b>\n`;
+  // All-time total per city
   const totalLines = totalRegions.slice(0, 10).map((r, i) => {
     const name = cleanCityName(r.city);
-    const bar = "█".repeat(Math.min(Math.ceil(r.cnt / Math.max(...totalRegions.map(x => x.cnt)) * 10), 10));
-    return `${String(i + 1).padStart(2)}. <b>${h(name)}</b>\n    ${bar} ${r.cnt.toLocaleString("id-ID")} peserta`;
+    const bar  = "█".repeat(Math.min(Math.ceil(r.cnt / maxTot * 10), 10));
+    return `${String(i + 1).padStart(2)}. <b>${h(name)}</b>  ${bar}  <b>${r.cnt.toLocaleString("id-ID")}</b> peserta`;
   });
-  regionText += totalLines.join("\n") +
+
+  const regionText =
+    `🗺 <b>LAPORAN PER DAERAH (KABUPATEN/KOTA)</b>\n` +
+    `━━━━━━━━━━━━━━━━━━\n\n` +
+    `📅 <b>Hari Ini vs Kemarin</b>\n` +
+    (regionCompare.length === 0
+      ? `Belum ada data.\n`
+      : compareLines.join("\n\n") + "\n") +
+    `\n━━━━━━━━━━━━━━━━━━\n` +
+    `📍 <b>Total Peserta Keseluruhan</b>\n` +
+    totalLines.join("\n") +
     `\n\n<i>Laporan otomatis dikirim setiap hari pukul 09.00 WIB</i>`;
 
-  return { text, regionText, charts: { trend: trendBuf, region: regionBuf } };
+  return { text, regionText, charts: { trend: trendBuf, compare: compareBuf, total: totalBuf } };
 }
 
 async function sendReport(chatId: string | number) {
   const { text, regionText, charts } = await buildReport();
 
-  // 1. Main summary
+  // 1. Ringkasan harian
   await bot.api.sendMessage(chatId, text, { parse_mode: "HTML" });
 
-  // 2. Charts album (trend + region map)
+  // 2. Chart album: tren 7 hari + compare per daerah + total per daerah (max 10 per album)
   await bot.api.sendMediaGroup(chatId, [
     {
       type: "photo",
@@ -295,13 +367,19 @@ async function sendReport(chatId: string | number) {
     },
     {
       type: "photo",
-      media: new InputFile(charts.region, "top-daerah.png"),
-      caption: "🗺 <b>Top 10 Daerah — Total Peserta</b>",
+      media: new InputFile(charts.compare, "compare-daerah.png"),
+      caption: "📊 <b>Pendaftaran Per Daerah — Hari Ini vs Kemarin</b>",
+      parse_mode: "HTML",
+    },
+    {
+      type: "photo",
+      media: new InputFile(charts.total, "total-daerah.png"),
+      caption: "🗺 <b>Top 10 Daerah — Total Peserta Keseluruhan</b>",
       parse_mode: "HTML",
     },
   ]);
 
-  // 3. Regional detail text
+  // 3. Detail teks per daerah
   await bot.api.sendMessage(chatId, regionText, { parse_mode: "HTML" });
 }
 
@@ -312,7 +390,7 @@ bot.command("start", async (ctx) => {
     "Bot Laporan Harian KTP aktif.\n\n" +
     "Perintah:\n" +
     "/idgrup - Tampilkan ID chat ini\n" +
-    "/laporansekarang - Kirim laporan + chart + detail daerah sekarang\n\n" +
+    "/laporansekarang - Kirim laporan lengkap sekarang\n\n" +
     "Laporan otomatis dikirim setiap hari pukul 09.00 WIB.",
   );
 });
@@ -336,8 +414,6 @@ bot.command("laporansekarang", async (ctx) => {
     await ctx.api.editMessageText(ctx.chat.id, statusMsg.message_id, "Gagal membuat laporan. Cek log untuk detail.");
   }
 });
-
-// ─── Catch-all ────────────────────────────────────────────────────────────────
 
 bot.on("message", async (ctx) => {
   const chat = ctx.chat;
