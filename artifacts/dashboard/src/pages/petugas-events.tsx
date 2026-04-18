@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
   CalendarDays, MapPin, LogOut, ScanLine, Search,
-  ClipboardCheck, Users, QrCode, X,
-  TrendingUp, History, Clock, ChevronRight, Home
+  Users, QrCode, X,
+  History, Clock, ChevronRight, Home
 } from "@/lib/icons";
 import { useAuth } from "@/lib/auth";
 
@@ -277,12 +277,6 @@ export default function PetugasEventsPage() {
           <div className="absolute top-6 right-16 w-10 h-10 rounded-full bg-white/8 pointer-events-none" />
 
           <div className="relative px-6 pt-5 pb-6">
-            {/* Status badge */}
-            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white/90 text-[10px] font-bold tracking-[0.15em] px-3 py-1.5 rounded-full mb-4 border border-white/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              AKTIF BERTUGAS
-            </div>
-
             {/* Greeting + role */}
             <div className="mb-5">
               <h1 className="text-[26px] font-extrabold text-white leading-none tracking-tight mb-1.5">
@@ -415,19 +409,8 @@ export default function PetugasEventsPage() {
                   className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all duration-200 overflow-hidden"
                 >
                   <div className="p-5">
-                    {/* Top row: icon + title + badge */}
+                    {/* Top row: title + badge */}
                     <div className="flex items-start gap-3 mb-3">
-                      <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                          ev.isRsvp ? "bg-blue-50" : "bg-indigo-50"
-                        }`}
-                      >
-                        {ev.isRsvp ? (
-                          <ClipboardCheck size={19} className="text-blue-600" />
-                        ) : (
-                          <ScanLine size={19} className="text-indigo-500" />
-                        )}
-                      </div>
                       <div className="flex-1 min-w-0">
                         <h3
                           className="text-[15px] font-extrabold text-slate-900 leading-snug"
@@ -466,10 +449,7 @@ export default function PetugasEventsPage() {
                     {/* Participant count + progress */}
                     <div className="mb-4">
                       <div className="flex items-baseline justify-between mb-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <TrendingUp size={12} className="text-slate-400" />
-                          <span className="text-[11px] text-slate-400 font-medium">Peserta</span>
-                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium">Peserta</span>
                         <div className="flex items-baseline gap-1">
                           <span
                             className="text-[20px] font-extrabold text-slate-900"
