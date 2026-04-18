@@ -1,7 +1,7 @@
 import { Bot, InlineKeyboard } from "grammy";
 import { db } from "@workspace/db";
 import { usersTable, eventsTable, participantsTable, eventRegistrationsTable } from "@workspace/db";
-import { eq, and, ne, sql } from "drizzle-orm";
+import { eq, and, ne, asc } from "drizzle-orm";
 import Groq from "groq-sdk";
 import sharp from "sharp";
 
@@ -108,11 +108,10 @@ async function getStaff() {
 }
 
 async function getActiveEvents() {
-  const now = new Date();
-  return db.select({ id: eventsTable.id, name: eventsTable.name, location: eventsTable.location })
+  return db.select({ id: eventsTable.id, name: eventsTable.name, location: eventsTable.location, eventDate: eventsTable.eventDate })
     .from(eventsTable)
-    .where(and(eq(eventsTable.status, "active"), sql`${eventsTable.endDate} >= ${now}`))
-    .orderBy(eventsTable.startDate);
+    .where(eq(eventsTable.status, "active"))
+    .orderBy(asc(eventsTable.eventDate));
 }
 
 async function registerParticipant(d: { ktpData: KtpData; eventId: number; staffId: number; staffName: string }) {
