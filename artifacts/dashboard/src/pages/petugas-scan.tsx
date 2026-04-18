@@ -98,6 +98,29 @@ function FieldInput({ label, value, onChange, placeholder, textarea }: {
   );
 }
 
+function FieldSelect({ label, value, onChange, options }: {
+  label: string; value: string; onChange: (v: string) => void; options: string[];
+}) {
+  return (
+    <div>
+      <label className="block text-[11px] font-bold text-slate-400 mb-1.5 tracking-wide uppercase">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition font-medium text-slate-800"
+      >
+        <option value="">— Pilih —</option>
+        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </div>
+  );
+}
+
+const GENDER_OPTIONS = ["LAKI-LAKI", "PEREMPUAN"];
+const AGAMA_OPTIONS = ["ISLAM", "KRISTEN", "KATOLIK", "HINDU", "BUDDHA", "KONGHUCU", "PENGHAYAT"];
+const GOL_DARAH_OPTIONS = ["A", "B", "AB", "O", "A+", "B+", "AB+", "O+", "A-", "B-", "AB-", "O-"];
+const STATUS_KAWIN_OPTIONS = ["BELUM KAWIN", "KAWIN", "CERAI HIDUP", "CERAI MATI"];
+
 export default function PetugasScanPage() {
   const { id } = useParams();
   const eventId = parseInt(id || "0");
@@ -404,6 +427,28 @@ export default function PetugasScanPage() {
                 <FieldInput label="NIK *" value={ktp.nik || ""} onChange={(v) => setKtp({ ...ktp, nik: v })} placeholder="16 digit NIK" />
                 <FieldInput label="Nama Lengkap *" value={ktp.fullName || ""} onChange={(v) => setKtp({ ...ktp, fullName: v })} placeholder="Sesuai KTP" />
 
+                <div className="grid grid-cols-2 gap-3">
+                  <FieldInput label="Tempat Lahir" value={ktp.birthPlace || ""} onChange={(v) => setKtp({ ...ktp, birthPlace: v })} placeholder="Kota kelahiran" />
+                  <FieldInput label="Tanggal Lahir" value={ktp.birthDate || ""} onChange={(v) => setKtp({ ...ktp, birthDate: v })} placeholder="DD-MM-YYYY" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FieldSelect label="Jenis Kelamin" value={ktp.gender || ""} onChange={(v) => setKtp({ ...ktp, gender: v })} options={GENDER_OPTIONS} />
+                  <FieldSelect label="Agama" value={ktp.religion || ""} onChange={(v) => setKtp({ ...ktp, religion: v })} options={AGAMA_OPTIONS} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FieldSelect label="Gol. Darah" value={ktp.bloodType || ""} onChange={(v) => setKtp({ ...ktp, bloodType: v })} options={GOL_DARAH_OPTIONS} />
+                  <FieldSelect label="Status Kawin" value={ktp.maritalStatus || ""} onChange={(v) => setKtp({ ...ktp, maritalStatus: v })} options={STATUS_KAWIN_OPTIONS} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FieldInput label="Kewarganegaraan" value={ktp.nationality || "WNI"} onChange={(v) => setKtp({ ...ktp, nationality: v })} placeholder="WNI" />
+                  <FieldInput label="RT/RW" value={ktp.rtRw || ""} onChange={(v) => setKtp({ ...ktp, rtRw: v })} placeholder="000/000" />
+                </div>
+
+                <FieldInput label="Alamat" value={ktp.address || ""} onChange={(v) => setKtp({ ...ktp, address: v })} placeholder="Alamat sesuai KTP" textarea />
+
                 {/* Wilayah cascading */}
                 <div className="space-y-2">
                   {[
@@ -447,7 +492,7 @@ export default function PetugasScanPage() {
                   ))}
                 </div>
 
-                <FieldInput label="Pekerjaan" value={ktp.occupation || ""} onChange={(v) => setKtp({ ...ktp, occupation: v })} />
+                <FieldInput label="Pekerjaan" value={ktp.occupation || ""} onChange={(v) => setKtp({ ...ktp, occupation: v })} placeholder="Pekerjaan sesuai KTP" />
               </div>
             </div>
 
