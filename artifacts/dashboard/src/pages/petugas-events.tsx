@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
@@ -69,6 +69,9 @@ export default function PetugasEventsPage() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [showRiwayat, setShowRiwayat] = useState(false);
+  const [seenCount, setSeenCount] = useState<number>(() => {
+    return parseInt(localStorage.getItem("riwayatSeenCount") ?? "0", 10);
+  });
 
   const { data: events = [], isLoading } = useQuery<Event[]>({
     queryKey: ["events-active"],
@@ -89,6 +92,22 @@ export default function PetugasEventsPage() {
       fetch(`${BASE}/api/petugas/my-stats`, { credentials: "include" }).then((r) => r.json()),
     refetchInterval: 30000,
   });
+
+  const newCount = Math.max(0, scanHistory.length - seenCount);
+
+  const openRiwayat = () => {
+    setShowRiwayat(true);
+    const count = scanHistory.length;
+    setSeenCount(count);
+    localStorage.setItem("riwayatSeenCount", String(count));
+  };
+
+  useEffect(() => {
+    if (showRiwayat && scanHistory.length > seenCount) {
+      setSeenCount(scanHistory.length);
+      localStorage.setItem("riwayatSeenCount", String(scanHistory.length));
+    }
+  }, [scanHistory.length, showRiwayat]);
 
   const active = events.filter((e) => !e.status || e.status === "active");
   const filtered = active.filter(
@@ -144,13 +163,13 @@ export default function PetugasEventsPage() {
         <div className="flex items-center gap-1">
           {/* Riwayat button */}
           <button
-            onClick={() => setShowRiwayat(true)}
+            onClick={openRiwayat}
             className="relative flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-blue-600 transition-colors p-2 rounded-xl hover:bg-blue-50"
           >
             <History size={16} />
-            {scanHistory.length > 0 && (
+            {newCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-blue-600 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center px-1">
-                {scanHistory.length > 99 ? "99+" : scanHistory.length}
+                {newCount > 99 ? "99+" : newCount}
               </span>
             )}
           </button>
