@@ -27,6 +27,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 - **KTP Dashboard** (`artifacts/dashboard`) — React + Vite frontend at `/dashboard`
 - **API Server** (`artifacts/api-server`) — Express 5 backend at `/api`
+- **Telegram Bot** (`artifacts/telegram-bot`) — Standalone grammY bot for KTP registration via Telegram (requires `TELEGRAM_BOT_TOKEN` and `GROQ_API_KEY` secrets)
 
 ## Features
 
