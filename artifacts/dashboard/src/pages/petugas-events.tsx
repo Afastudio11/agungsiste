@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import {
   CalendarDays, MapPin, LogOut, ScanLine, Search,
   ClipboardCheck, Users, QrCode, X,
-  TrendingUp, Zap, History, Clock, ChevronRight, Home
+  TrendingUp, History, Clock, ChevronRight, Home
 } from "@/lib/icons";
 import { useAuth } from "@/lib/auth";
 
@@ -270,51 +270,59 @@ export default function PetugasEventsPage() {
       <div className="max-w-2xl mx-auto px-4 pt-[76px] pb-28 space-y-4">
 
         {/* ── Hero Banner ──────────────────────────────────────────── */}
-        <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 shadow-lg shadow-blue-500/20">
-          <div className="px-6 pt-6 pb-5">
-            <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white/90 text-[10px] font-extrabold tracking-widest px-3 py-1 rounded-full mb-3">
+        <div className="rounded-3xl overflow-hidden relative" style={{ background: "linear-gradient(135deg, #0a41b5 0%, #1a5fd4 45%, #3b5bdb 100%)" }}>
+          {/* Decorative circles */}
+          <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5 pointer-events-none" />
+          <div className="absolute -bottom-10 -right-4 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
+          <div className="absolute top-6 right-16 w-10 h-10 rounded-full bg-white/8 pointer-events-none" />
+
+          <div className="relative px-6 pt-5 pb-6">
+            {/* Status badge */}
+            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white/90 text-[10px] font-bold tracking-[0.15em] px-3 py-1.5 rounded-full mb-4 border border-white/10">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               AKTIF BERTUGAS
             </div>
-            <h1 className="text-[22px] font-extrabold text-white leading-tight mb-1" style={{ letterSpacing: "-0.03em" }}>
-              Halo, {user?.name?.split(" ")[0] ?? "Petugas"} 👋
-            </h1>
-            {(user?.jabatan || user?.wilayah) && (
-              <div className="flex items-center gap-1.5 text-blue-200 text-xs font-medium">
-                <MapPin size={11} />
-                {[user.jabatan, user.wilayah].filter(Boolean).join(" · ")}
-              </div>
-            )}
 
-            {/* Mini stats */}
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3">
-                <div className="text-[10px] text-blue-200 font-bold tracking-wider mb-1 flex items-center gap-1">
-                  <CalendarDays size={10} />
-                  Event Saya
+            {/* Greeting + role */}
+            <div className="mb-5">
+              <h1 className="text-[26px] font-extrabold text-white leading-none tracking-tight mb-1.5">
+                {user?.name?.split(" ")[0] ?? "Petugas"}
+              </h1>
+              {(user?.jabatan || user?.wilayah) && (
+                <div className="flex items-center gap-1.5 text-blue-200/80 text-[12px] font-medium">
+                  <MapPin size={12} />
+                  {[user.jabatan, user.wilayah].filter(Boolean).join(" · ")}
                 </div>
-                <div className="text-2xl font-extrabold text-white leading-none" style={{ letterSpacing: "-0.04em" }}>
+              )}
+            </div>
+
+            {/* Stats row — horizontal divider style */}
+            <div className="flex items-stretch bg-white/10 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
+              <div className="flex-1 px-5 py-4">
+                <div className="text-[10px] text-blue-200/70 font-semibold tracking-widest uppercase mb-1.5 flex items-center gap-1.5">
+                  <CalendarDays size={9} />
+                  Event
+                </div>
+                <div className="text-[32px] font-extrabold text-white leading-none" style={{ letterSpacing: "-0.05em" }}>
                   {myStats == null ? "—" : myStats.totalEvents.toLocaleString("id-ID")}
                 </div>
               </div>
-              <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3">
-                <div className="text-[10px] text-blue-200 font-bold tracking-wider mb-1 flex items-center gap-1">
-                  <Users size={10} />
-                  Peserta Saya
+              <div className="w-px bg-white/10 my-3" />
+              <div className="flex-1 px-5 py-4">
+                <div className="text-[10px] text-blue-200/70 font-semibold tracking-widest uppercase mb-1.5 flex items-center gap-1.5">
+                  <Users size={9} />
+                  Peserta
                 </div>
-                <div className="text-2xl font-extrabold text-white leading-none" style={{ letterSpacing: "-0.04em" }}>
+                <div className="text-[32px] font-extrabold text-white leading-none" style={{ letterSpacing: "-0.05em" }}>
                   {myStats == null ? "—" : myStats.totalRegistered.toLocaleString("id-ID")}
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Instruction strip */}
-          <div className="bg-white/10 px-6 py-3 flex items-center gap-2">
-            <Zap size={13} className="text-amber-300 shrink-0" />
-            <span className="text-[11px] text-blue-100 font-medium">
-              Pilih event lalu tekan <strong className="text-white">Scan KTP</strong> atau <strong className="text-white">Scan QR</strong> untuk absensi
-            </span>
+            {/* Instruction line */}
+            <p className="mt-4 text-[11px] text-blue-200/70 font-medium leading-relaxed">
+              Pilih event lalu tekan <span className="text-white font-semibold">Scan KTP</span> atau <span className="text-white font-semibold">Scan QR</span> untuk absensi
+            </p>
           </div>
         </div>
 
