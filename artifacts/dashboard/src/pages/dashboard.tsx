@@ -288,17 +288,30 @@ export default function DashboardPage() {
         const target = document.getElementById("dashboard-content");
         if (!target) return;
 
-        const inlineComputedColors = (originalRoot: Element, clonedRoot: Element) => {
-          const origEls = Array.from(originalRoot.querySelectorAll("*")) as HTMLElement[];
-          const clonedEls = Array.from(clonedRoot.querySelectorAll("*")) as HTMLElement[];
-          const PROPS = ["color", "backgroundColor", "borderColor", "borderTopColor", "borderBottomColor", "borderLeftColor", "borderRightColor", "fill", "stroke"] as const;
+        const prepareClone = (clonedDoc: Document, clonedEl: Element, originalEl: Element) => {
+          // 1. Patch all <style> elements: replace oklch() with a transparent placeholder
+          //    so html2canvas doesn't throw when parsing stylesheets.
+          //    Inline styles (step 2) will override these anyway.
+          clonedDoc.querySelectorAll("style").forEach((s) => {
+            if (s.textContent) {
+              s.textContent = s.textContent.replace(/oklch\([^)]*\)/g, "transparent");
+            }
+          });
+
+          // 2. Inline computed RGB colors from the original element tree into the clone,
+          //    overriding the patched stylesheets with correct colours.
+          const origEls = Array.from(originalEl.querySelectorAll("*")) as HTMLElement[];
+          const clonedEls = Array.from(clonedEl.querySelectorAll("*")) as HTMLElement[];
+          const PROPS = ["color", "backgroundColor", "borderTopColor", "borderBottomColor", "borderLeftColor", "borderRightColor"] as const;
           origEls.forEach((origEl, i) => {
-            const clonedEl = clonedEls[i] as HTMLElement | undefined;
-            if (!clonedEl) return;
+            const cel = clonedEls[i] as HTMLElement | undefined;
+            if (!cel) return;
             const cs = window.getComputedStyle(origEl);
             PROPS.forEach((p) => {
               const val = cs[p as keyof CSSStyleDeclaration] as string;
-              if (val && val !== "none" && val !== "transparent") clonedEl.style[p as any] = val;
+              if (val && val !== "" && val !== "transparent" && !val.includes("oklch")) {
+                cel.style[p as any] = val;
+              }
             });
           });
         };
@@ -310,8 +323,8 @@ export default function DashboardPage() {
               useCORS: true,
               backgroundColor: "#f8fafc",
               logging: false,
-              onclone: (_clonedDoc, clonedEl) => {
-                inlineComputedColors(target, clonedEl);
+              onclone: (clonedDoc, clonedEl) => {
+                prepareClone(clonedDoc, clonedEl, target);
               },
             }).then((canvas) => {
               const imgData = canvas.toDataURL("image/png");

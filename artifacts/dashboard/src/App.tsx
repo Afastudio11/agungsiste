@@ -23,6 +23,7 @@ import PetugasScanPage from "@/pages/petugas-scan";
 import PetugasRsvpPage from "@/pages/petugas-rsvp";
 import PetugasQrScanPage from "@/pages/petugas-qr-scan";
 import EventRsvpPage from "@/pages/event-rsvp";
+import EventEditPage from "@/pages/event-edit";
 import PrizesPage from "@/pages/prizes";
 import ProgramDetailPage from "@/pages/program-detail";
 import PetugasScanProgramPage from "@/pages/petugas-scan-program";
@@ -94,6 +95,7 @@ function AppRoutes() {
 
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/events" component={EventsPage} />
+      <Route path="/events/:id/edit" component={EventEditPage} />
       <Route path="/events/:id" component={EventDetailPage} />
       <Route path="/events/:id/rsvp" component={EventRsvpPage} />
       <Route path="/participants" component={ParticipantsPage} />
