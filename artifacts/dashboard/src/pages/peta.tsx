@@ -203,25 +203,30 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
     const count = countByKec[name.toLowerCase()] || 0;
     const events = eventByKec[name.toLowerCase()] || 0;
     const isSelected = name === selectedKec;
+    const isDimmed = !!selectedKec && !isSelected;
     (layer as L.Path).setStyle({
-      fillColor: getColor(count, maxKec),
+      fillColor: isDimmed ? "#cbd5e1" : getColor(count, maxKec),
       weight: isSelected ? 2.5 : 1.5,
-      opacity: 1, color: isSelected ? "#2563eb" : "white",
-      fillOpacity: isSelected ? 0.90 : 0.78,
+      opacity: 1,
+      color: isSelected ? "#1d4ed8" : "white",
+      fillOpacity: isDimmed ? 0.55 : isSelected ? 0.92 : 0.78,
     });
     layer.bindTooltip(
-      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;line-height:1.5">
-        <b style="font-size:14px">${name}</b><br/>
-        <span style="color:#3b82f6">👥 ${count.toLocaleString()} peserta</span><br/>
-        <span style="color:#64748b">📅 ${events} event</span><br/>
-        <span style="color:#94a3b8;font-size:11px">Klik untuk lihat desa</span>
+      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;line-height:1.8;min-width:140px">
+        <b style="font-size:13px;display:block;margin-bottom:4px;color:#0f172a">${name}</b>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total KTP</span><span style="font-weight:700;color:#1e293b">${count.toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total Kegiatan</span><span style="font-weight:700;color:#1e293b">${events}</span></div>
+        <div style="color:#94a3b8;font-size:10px;margin-top:4px">Klik untuk lihat desa</div>
       </div>`,
       { sticky: true, className: "ktp-tooltip" }
     );
     layer.on({
       click: () => setSelectedKec(name),
       mouseover: (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.95, weight: 2.5 }),
-      mouseout: (e) => (e.target as L.Path).setStyle({ fillOpacity: isSelected ? 0.90 : 0.78, weight: isSelected ? 2.5 : 1.5 }),
+      mouseout: (e) => (e.target as L.Path).setStyle({
+        fillOpacity: isDimmed ? 0.55 : isSelected ? 0.92 : 0.78,
+        weight: isSelected ? 2.5 : 1.5,
+      }),
     });
   }
 
