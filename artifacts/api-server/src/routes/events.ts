@@ -730,7 +730,7 @@ router.post("/public/register/:token", async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: isAttendance ? "Absensi berhasil dicatat" : "Reservasi berhasil",
+      message: isAttendance ? "Absensi berhasil dicatat" : "Registrasi berhasil",
       nik,
       eventId: event.id,
       registrationToken: event.registrationToken,

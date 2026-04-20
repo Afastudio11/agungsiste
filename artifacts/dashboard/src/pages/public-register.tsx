@@ -264,12 +264,12 @@ export default function PublicRegisterPage() {
     ctx.fillStyle = "#f8fafc";
     ctx.fillRect(0, 0, W, headerH);
 
-    /* ── "TIKET RESERVASI" label ── */
+    /* ── "TIKET REGISTRASI" label ── */
     ctx.fillStyle = "#94a3b8";
     ctx.font = "700 10px 'Plus Jakarta Sans', Arial, sans-serif";
     ctx.letterSpacing = "2px";
     ctx.textAlign = "center";
-    ctx.fillText("TIKET RESERVASI", W / 2, 38);
+    ctx.fillText("TIKET REGISTRASI", W / 2, 38);
     ctx.letterSpacing = "0px";
 
     /* ── Participant name (word-wrapped) ── */
@@ -466,7 +466,7 @@ export default function PublicRegisterPage() {
 
             {/* Name section */}
             <div className="px-6 pt-6 pb-5 text-center border-b border-dashed border-slate-200">
-              <p className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2">TIKET RESERVASI</p>
+              <p className="text-[10px] font-extrabold text-slate-400 tracking-widest mb-2">TIKET REGISTRASI</p>
               {loadingQr ? (
                 <div className="py-4 flex flex-col items-center gap-2">
                   <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center animate-pulse">
@@ -571,7 +571,7 @@ export default function PublicRegisterPage() {
               ? "bg-orange-100 text-orange-700 border border-orange-200"
               : "bg-blue-100 text-blue-700 border border-blue-200"
           }`}>
-            {isAttendance ? "ABSENSI EVENT" : "RESERVASI EVENT"}
+            {isAttendance ? "ABSENSI EVENT" : "REGISTRASI EVENT"}
           </div>
           <h1 className="text-[22px] font-extrabold text-slate-900 leading-tight mb-3" style={{ letterSpacing: "-0.03em" }}>
             {event?.name}
@@ -872,7 +872,7 @@ export default function PublicRegisterPage() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  {isAttendance ? "Konfirmasi Absensi" : "Reservasi Sekarang"}
+                  {isAttendance ? "Konfirmasi Absensi" : "Registrasi Sekarang"}
                   <ChevronRight className="h-4 w-4" />
                 </>
               )}
@@ -966,7 +966,7 @@ export default function PublicRegisterPage() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  {isAttendance ? "Konfirmasi Absensi" : "Reservasi Sekarang"}
+                  {isAttendance ? "Konfirmasi Absensi" : "Registrasi Sekarang"}
                   <ChevronRight className="h-4 w-4" />
                 </>
               )}

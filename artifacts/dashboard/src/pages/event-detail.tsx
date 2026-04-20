@@ -187,13 +187,13 @@ function QRLinksCard({ eventId, event }: { eventId: number; event: any }) {
         {!hasTokens ? (
           <div className="py-6 text-center">
             <QrCode className="h-8 w-8 mx-auto mb-2 text-slate-200" />
-            <p className="text-sm text-slate-400">Klik "Generate Link" untuk membuat link reservasi</p>
+            <p className="text-sm text-slate-400">Klik "Generate Link" untuk membuat link registrasi</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
             {event.registrationToken && (
               <LinkCard
-                label="Reservasi Online"
+                label="Registrasi Online"
                 type="registration"
                 token={event.registrationToken}
                 qr={qrData.registration}
@@ -305,7 +305,7 @@ export default function EventDetailPage() {
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode; count: number }[] = [
     { key: "onsite", label: "Absen Hari-H", icon: <ClipboardCheck className="h-3.5 w-3.5" />, count: hadirTotal },
-    { key: "rsvp", label: "Reservasi", icon: <ClipboardList className="h-3.5 w-3.5" />, count: rsvpTotal },
+    { key: "rsvp", label: "Registrasi", icon: <ClipboardList className="h-3.5 w-3.5" />, count: rsvpTotal },
   ];
 
   return (
@@ -436,7 +436,7 @@ export default function EventDetailPage() {
                     Daftar Peserta
                   </p>
                   <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                    {rsvpTotal} reservasi · {hadirTotal} hadir
+                    {rsvpTotal} registrasi · {hadirTotal} hadir
                     {rsvpNoShow > 0 ? ` · ${rsvpNoShow} tidak hadir` : ""}
                   </p>
                 </div>
@@ -630,7 +630,7 @@ export default function EventDetailPage() {
                         {activeTab === "rsvp" ? (
                           <>
                             <ClipboardList className="h-8 w-8 mx-auto mb-2 text-slate-200" />
-                            <p className="text-sm text-slate-400">Belum ada peserta yang reservasi pra-acara</p>
+                            <p className="text-sm text-slate-400">Belum ada peserta yang registrasi pra-acara</p>
                             {(event as any).isRsvp && (
                               <Link href={`/events/${id}/rsvp`}>
                                 <span className="mt-2 inline-block text-xs font-bold text-indigo-600 hover:underline cursor-pointer">
