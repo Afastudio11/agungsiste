@@ -119,16 +119,18 @@ export default function Layout({ children }: LayoutProps) {
       <div className="px-3 pb-4 space-y-2">
         <div className="h-px bg-slate-100 mb-3" />
 
-        {/* New Scan CTA */}
-        <Link href="/scan">
-          <div
-            onClick={onNav}
-            className="flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2.5 text-[13px] font-bold text-white shadow-sm shadow-blue-300/50 hover:bg-blue-700 transition-colors cursor-pointer mt-1"
-          >
-            <PlusCircle size={18} weight="bold" className="text-white" />
-            New Scan
-          </div>
-        </Link>
+        {/* New Scan CTA — only for petugas */}
+        {user?.role !== "admin" && (
+          <Link href="/scan">
+            <div
+              onClick={onNav}
+              className="flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2.5 text-[13px] font-bold text-white shadow-sm shadow-blue-300/50 hover:bg-blue-700 transition-colors cursor-pointer mt-1"
+            >
+              <PlusCircle size={18} weight="bold" className="text-white" />
+              New Scan
+            </div>
+          </Link>
+        )}
 
         {/* User profile */}
         {user && (
