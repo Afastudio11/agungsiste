@@ -22,12 +22,12 @@ function SectionHeader({ icon: Icon, title, desc }: { icon: any; title: string; 
 
 const menuItems: { key: keyof MenuLabels; Icon: ElementType; defaultLabel: string }[] = [
   { key: "dashboard",    Icon: LayoutDashboard,      defaultLabel: defaultMenuLabels.dashboard },
+  { key: "pemetaan",     Icon: MapTrifold,           defaultLabel: defaultMenuLabels.pemetaan },
   { key: "events",       Icon: Calendar,             defaultLabel: defaultMenuLabels.events },
+  { key: "prizes",       Icon: Gift,                 defaultLabel: defaultMenuLabels.prizes },
   { key: "participants", Icon: Users,                defaultLabel: defaultMenuLabels.participants },
   { key: "officers",     Icon: IdentificationBadge,  defaultLabel: defaultMenuLabels.officers },
   { key: "scan",         Icon: Scan,                 defaultLabel: defaultMenuLabels.scan },
-  { key: "prizes",       Icon: Gift,                 defaultLabel: defaultMenuLabels.prizes },
-  { key: "pemetaan",     Icon: MapTrifold,           defaultLabel: defaultMenuLabels.pemetaan },
   { key: "settings",     Icon: Settings,             defaultLabel: defaultMenuLabels.settings },
 ];
 

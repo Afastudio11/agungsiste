@@ -392,7 +392,7 @@ export default function DashboardPage() {
           iconColor="text-blue-400"
         />
         <StatCard
-          label="Total Event"
+          label="Total Kegiatan"
           value={stats?.totalEvents ?? 0}
           Icon={Calendar}
           circleColor="bg-violet-500"
@@ -556,7 +556,7 @@ export default function DashboardPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-50 bg-slate-50/60">
-                  {["#", "Nama Event", "Tanggal", "Peserta", "Porsi"].map((h, i) => (
+                  {["#", "Nama Kegiatan", "Tanggal", "Peserta", "Porsi"].map((h, i) => (
                     <th
                       key={h}
                       className={`px-5 py-3 text-[10px] font-bold tracking-[0.08em] text-slate-400 ${i >= 3 ? "text-right" : "text-left"}`}

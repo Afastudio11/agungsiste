@@ -105,7 +105,7 @@ const emptyForm = {
 
 function exportExcelEvents(events: any[]) {
   import("@/lib/exportUtils").then(({ exportExcel }) => {
-    const headers = ["ID", "Nama Event", "Tanggal", "Lokasi", "Kategori", "Peserta", "Status"];
+    const headers = ["ID", "Nama Kegiatan", "Tanggal", "Lokasi", "Kategori", "Peserta", "Status"];
     const rows = [headers, ...events.map((e) => [
       e.id, e.name, e.eventDate, e.location ?? "", e.category ?? "", e.participantCount, e.status ?? "active",
     ])];
@@ -158,9 +158,9 @@ export default function EventsPage() {
       });
       if (!res.ok) throw new Error("Gagal mengubah status");
       qc.invalidateQueries({ queryKey: getListEventsQueryKey(params) });
-      toast({ title: newStatus === "active" ? "Event diaktifkan" : "Event dinonaktifkan" });
+      toast({ title: newStatus === "active" ? "Kegiatan diaktifkan" : "Kegiatan dinonaktifkan" });
     } catch {
-      toast({ title: "Gagal mengubah status event", variant: "destructive" });
+      toast({ title: "Gagal mengubah status kegiatan", variant: "destructive" });
     } finally {
       setTogglingId(null);
     }
@@ -207,7 +207,7 @@ export default function EventsPage() {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListEventsQueryKey({}) });
         closeForm();
-        toast({ title: "Event berhasil dibuat" });
+        toast({ title: "Kegiatan berhasil dibuat" });
       },
     },
   });
@@ -217,7 +217,7 @@ export default function EventsPage() {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListEventsQueryKey({}) });
         closeForm();
-        toast({ title: "Event berhasil diperbarui" });
+        toast({ title: "Kegiatan berhasil diperbarui" });
       },
     },
   });
@@ -226,7 +226,7 @@ export default function EventsPage() {
     mutation: {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getListEventsQueryKey({}) });
-        toast({ title: "Event dihapus" });
+        toast({ title: "Kegiatan dihapus" });
       },
     },
   });
@@ -291,7 +291,7 @@ export default function EventsPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Cari nama event..."
+                placeholder="Cari nama kegiatan..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400 text-sm text-slate-700 placeholder:text-slate-400 transition-colors"
@@ -349,7 +349,7 @@ export default function EventsPage() {
                 className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm"
               >
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Tambah Event</span>
+                <span className="hidden sm:inline">Tambah Kegiatan</span>
               </button>
             </div>
           </div>
@@ -510,7 +510,7 @@ export default function EventsPage() {
                       <button
                         onClick={(e) => toggleStatus(e, event.id, (event as any).status ?? "active")}
                         disabled={togglingId === event.id}
-                        title={(event as any).status === "inactive" ? "Aktifkan event" : "Nonaktifkan event"}
+                        title={(event as any).status === "inactive" ? "Aktifkan kegiatan" : "Nonaktifkan kegiatan"}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all bg-slate-50 hover:bg-slate-100 disabled:opacity-50"
                       >
                         <span
@@ -535,7 +535,7 @@ export default function EventsPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm(`Hapus event "${event.name}"?`)) {
+                          if (confirm(`Hapus kegiatan "${event.name}"?`)) {
                             deleteEvent.mutate({ id: event.id });
                           }
                         }}
@@ -551,7 +551,7 @@ export default function EventsPage() {
             ) : (
               <div className="py-20 text-center bg-white border border-slate-100 rounded-[1.75rem]">
                 <CalendarDays className="h-10 w-10 mx-auto mb-3 text-slate-200" />
-                <p className="text-sm font-semibold text-slate-400">Belum ada event</p>
+                <p className="text-sm font-semibold text-slate-400">Belum ada kegiatan</p>
                 <button
                   onClick={openCreate}
                   className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-full hover:bg-indigo-700 transition-colors"
@@ -571,7 +571,7 @@ export default function EventsPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
             <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100">
               <div className="font-extrabold text-slate-900 text-[15px]" style={{ letterSpacing: "-0.02em" }}>
-                {editingId ? "Edit Event" : "Tambah Event Baru"}
+                {editingId ? "Edit Kegiatan" : "Tambah Kegiatan Baru"}
               </div>
               <button
                 onClick={closeForm}
@@ -591,7 +591,7 @@ export default function EventsPage() {
                     required
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="Nama event"
+                    placeholder="Nama kegiatan"
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                   />
                 </div>
@@ -678,7 +678,7 @@ export default function EventsPage() {
                   disabled={isPending}
                   className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-md shadow-indigo-100"
                 >
-                  {isPending ? "Menyimpan..." : editingId ? "Simpan Perubahan" : "Buat Event"}
+                  {isPending ? "Menyimpan..." : editingId ? "Simpan Perubahan" : "Buat Kegiatan"}
                 </button>
               </div>
             </form>

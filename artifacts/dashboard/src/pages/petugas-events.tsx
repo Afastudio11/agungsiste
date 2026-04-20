@@ -350,7 +350,7 @@ export default function PetugasEventsPage() {
           <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder={activeTab === "event" ? "Cari event..." : "Cari program..."}
+            placeholder={activeTab === "event" ? "Cari kegiatan..." : "Cari program..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-10 py-3 text-sm bg-white border border-slate-200 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 placeholder:text-slate-300 transition"
@@ -376,7 +376,7 @@ export default function PetugasEventsPage() {
             }`}
           >
             <CalendarDays size={14} />
-            Event
+            Kegiatan
           </button>
           <button
             onClick={() => { setActiveTab("program"); setSearch(""); }}
@@ -496,10 +496,10 @@ export default function PetugasEventsPage() {
         {activeTab === "event" && <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[13px] font-extrabold text-slate-700 tracking-wide">
-              EVENT AKTIF
+              KEGIATAN AKTIF
             </h2>
             <div className="text-xs font-bold text-slate-400">
-              {isLoading ? "Memuat..." : `${filtered.length} event`}
+              {isLoading ? "Memuat..." : `${filtered.length} kegiatan`}
             </div>
           </div>
 
@@ -533,7 +533,7 @@ export default function PetugasEventsPage() {
                 <CalendarDays size={28} className="text-slate-300" />
               </div>
               <div className="text-sm font-bold text-slate-400">
-                {search ? "Tidak ada event yang cocok" : "Tidak ada event aktif saat ini"}
+                {search ? "Tidak ada kegiatan yang cocok" : "Tidak ada kegiatan aktif saat ini"}
               </div>
               {search && (
                 <button

@@ -285,7 +285,7 @@ async function generateParticipantPDF(profile: any, nik: string) {
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 23, 42);
-    doc.text(`Riwayat Event (${profile.events.length})`, margin, y);
+    doc.text(`Riwayat Kegiatan (${profile.events.length})`, margin, y);
     y += 6;
 
     profile.events.forEach((event: any, i: number) => {
@@ -564,7 +564,7 @@ export default function ParticipantDetailPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-white rounded-2xl border border-slate-100 p-4">
-                <div className="text-xs font-bold text-slate-400 tracking-wider mb-1">Total Event</div>
+                <div className="text-xs font-bold text-slate-400 tracking-wider mb-1">Total Kegiatan</div>
                 <div
                   className="text-3xl font-extrabold text-slate-900"
                   style={{ letterSpacing: "-0.04em" }}
@@ -591,7 +591,7 @@ export default function ParticipantDetailPage() {
             {/* Event history */}
             <div className="bg-white rounded-2xl border border-slate-100 p-5">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-bold text-slate-400 tracking-wider">Riwayat Event</h2>
+                <h2 className="text-xs font-bold text-slate-400 tracking-wider">Riwayat Kegiatan</h2>
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
                     (profile.events?.length ?? 0) > 1

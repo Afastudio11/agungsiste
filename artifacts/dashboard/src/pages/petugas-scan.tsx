@@ -298,7 +298,7 @@ export default function PetugasScanPage() {
       if (!r.ok) {
         setError(
           r.status === 409
-            ? "Peserta ini sudah terdaftar di event ini."
+            ? "Peserta ini sudah terdaftar di kegiatan ini."
             : data.error || "Gagal mendaftarkan"
         );
         return;

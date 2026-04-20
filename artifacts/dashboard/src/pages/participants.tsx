@@ -60,7 +60,7 @@ function SortTh({ col, label, sortKey, sortDir, onSort, className = "" }: {
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function doExportExcel(participants: any[]) {
-  const headers = ["NIK", "Nama", "Kelamin", "Kota", "Provinsi", "Kelurahan", "Kecamatan", "Pekerjaan", "Pertama Daftar", "Total Event", "Didaftarkan Oleh"];
+  const headers = ["NIK", "Nama", "Kelamin", "Kota", "Provinsi", "Kelurahan", "Kecamatan", "Pekerjaan", "Pertama Daftar", "Total Kegiatan", "Didaftarkan Oleh"];
   const rows = [headers, ...participants.map((p) => [
     p.nik, p.fullName, p.gender ?? "", p.city ?? "", p.province ?? "",
     p.kelurahan ?? "", p.kecamatan ?? "", p.occupation ?? "",
@@ -376,7 +376,7 @@ export default function ParticipantsPage() {
 
           <div className="bg-white rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)] relative overflow-hidden group">
             <div className="relative z-10">
-              <p className="text-slate-400 text-sm font-semibold mb-1">Event</p>
+              <p className="text-slate-400 text-sm font-semibold mb-1">Kegiatan</p>
               <h3 className="text-4xl font-extrabold text-slate-900">{isLoading ? "—" : stats.totalEvents.toLocaleString("id-ID")}</h3>
               <p className="text-amber-600 text-xs font-bold mt-2 flex items-center gap-1">
                 <CalendarCheck2 className="h-3.5 w-3.5" />
@@ -421,7 +421,7 @@ export default function ParticipantsPage() {
                   <SortTh col="gender" label="Kelamin" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="hidden sm:table-cell" />
                   <SortTh col="city" label="Domisili" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
                   <SortTh col="firstRegisteredAt" label="Terdaftar" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="hidden md:table-cell" />
-                  <SortTh col="eventCount" label="Total Event" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
+                  <SortTh col="eventCount" label="Total Kegiatan" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
                   <th className="px-6 py-4 text-right" />
                 </tr>
               </thead>

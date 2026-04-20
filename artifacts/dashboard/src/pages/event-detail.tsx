@@ -35,7 +35,7 @@ type TabType = "rsvp" | "onsite";
 
 function exportExcel(participants: any[], eventName: string, label: string) {
   import("@/lib/exportUtils").then(({ exportExcel: doExport }) => {
-    const headers = ["NIK", "Nama", "Kelamin", "Pekerjaan", "Kota", "Waktu Daftar", "Waktu Check-in", "Staf", "Tag", "Total Event"];
+    const headers = ["NIK", "Nama", "Kelamin", "Pekerjaan", "Kota", "Waktu Daftar", "Waktu Check-in", "Staf", "Tag", "Total Kegiatan"];
     const rows = [headers, ...participants.map((p) => [
       p.nik, p.fullName, p.gender ?? "", p.occupation ?? "", p.city ?? "",
       new Date(p.registeredAt).toLocaleString("id-ID"),

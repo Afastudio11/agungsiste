@@ -180,7 +180,7 @@ export default function ScanPage() {
   };
 
   const handleRegister = async () => {
-    if (!selectedEventId) return alert("Pilih event terlebih dahulu");
+    if (!selectedEventId) return alert("Pilih kegiatan terlebih dahulu");
     if (!editedData.nik) return alert("NIK tidak boleh kosong");
     if (!editedData.fullName) return alert("Nama lengkap tidak boleh kosong");
     setResult(null); setIsDuplicate(false);
@@ -384,13 +384,13 @@ export default function ScanPage() {
               {/* Event selection — only after scan */}
               {ktpData !== null && (
                 <GlassCard className="p-6">
-                  <p className="text-[10px] font-bold text-slate-500 tracking-widest mb-4">Pilih Event & Daftarkan</p>
+                  <p className="text-[10px] font-bold text-slate-500 tracking-widest mb-4">Pilih Kegiatan & Daftarkan</p>
                   <select
                     value={selectedEventId ?? ""}
                     onChange={(e) => setSelectedEventId(e.target.value ? Number(e.target.value) : null)}
                     className="w-full rounded-xl border-0 bg-slate-50 shadow-sm px-4 py-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition mb-4"
                   >
-                    <option value="">— Pilih Event —</option>
+                    <option value="">— Pilih Kegiatan —</option>
                     {events?.map((ev) => (
                       <option key={ev.id} value={ev.id}>{ev.name} ({ev.eventDate})</option>
                     ))}
