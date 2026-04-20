@@ -34,11 +34,6 @@ interface EventInfo {
   eventDate: string; participantCount: number;
 }
 
-const profesiList = [
-  "Karyawan Swasta", "PNS", "Wiraswasta", "Petani", "Pedagang",
-  "Guru", "Dokter", "Mahasiswa", "TNI/Polri", "Ibu Rumah Tangga",
-];
-
 const qualityMessages: Record<string, { icon: React.ReactNode; text: string }> = {
   dark: { icon: <Sun className="h-3.5 w-3.5 shrink-0" />, text: "Gambar terlalu gelap — coba di tempat lebih terang" },
   overexposed: { icon: <Sun className="h-3.5 w-3.5 shrink-0" />, text: "Gambar terlalu terang — hindari cahaya langsung" },
@@ -275,7 +270,7 @@ export default function PetugasScanPage() {
 
   const handleSubmit = async () => {
     if (!ktp.nik || !ktp.fullName) { setError("NIK dan nama lengkap wajib diisi"); return; }
-    if (!phone.trim()) { setError("Nomor telepon wajib diisi"); return; }
+    if (phone.trim() && !/^08\d{7,12}$/.test(phone.trim().replace(/\s/g, ""))) { setError("Format nomor HP tidak valid, gunakan format 08xxxxxxxxxx"); return; }
     setSubmitting(true);
     setError("");
     try {
@@ -557,43 +552,23 @@ export default function PetugasScanPage() {
                   <Phone size={14} className="text-emerald-600" />
                 </div>
                 <span className="text-[13px] font-extrabold text-slate-900">Kontak</span>
-                <span className="text-[10px] text-red-400 font-bold ml-0.5">— No. HP wajib</span>
+                <span className="text-[10px] text-slate-400 font-semibold ml-0.5">— opsional</span>
               </div>
               <div className="p-5 space-y-3">
-                <FieldInput label="Nomor HP *" value={phone} onChange={setPhone} placeholder="+62 8xx xxxx xxxx" />
+                <FieldInput label="Nomor HP" value={phone} onChange={setPhone} placeholder="08xx xxxx xxxx" />
                 <FieldInput label="Email" value={email} onChange={setEmail} placeholder="nama@email.com" />
               </div>
             </div>
 
-            {/* Tags & Catatan */}
+            {/* Status Sosial & Catatan */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-50">
                 <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
                   <Tag size={14} className="text-violet-600" />
                 </div>
-                <span className="text-[13px] font-extrabold text-slate-900">Kategori & Catatan</span>
+                <span className="text-[13px] font-extrabold text-slate-900">Status Sosial</span>
               </div>
               <div className="p-5 space-y-4">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-2 tracking-wide uppercase">Profesi / Kategori</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {profesiList.map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => { if (tags.includes(p)) removeTag(p); else addTag(p); }}
-                        className={`text-[11px] px-2.5 py-1 rounded-full border font-semibold transition-all ${
-                          tags.includes(p)
-                            ? "bg-blue-600 border-blue-600 text-white shadow-sm"
-                            : "border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600 bg-white"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 <div>
                   <label className="block text-[11px] font-bold text-slate-400 mb-1.5 tracking-wide uppercase">Tag Tambahan</label>
                   <div className="flex gap-2">
