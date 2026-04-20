@@ -81,6 +81,7 @@ router.get("/", requireAuth, async (req, res) => {
         kelurahan: participantsTable.kelurahan,
         province: participantsTable.province,
         eventCount: sql<number>`cast(count(${eventRegistrationsTable.id}) as integer)`,
+        programCount: sql<number>`(select cast(count(*) as integer) from program_registrations where participant_id = ${participantsTable.id})`,
         firstRegisteredAt: sql<string>`min(${eventRegistrationsTable.registeredAt})`,
         lastRegisteredAt: sql<string>`max(${eventRegistrationsTable.registeredAt})`,
         registeredBy: sql<string>`(select staff_name from event_registrations where participant_id = ${participantsTable.id} order by registered_at desc limit 1)`,

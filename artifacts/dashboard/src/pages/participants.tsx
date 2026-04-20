@@ -9,7 +9,7 @@ import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Eye
 import { useQuery } from "@tanstack/react-query";
 import { exportExcel, exportParticipantsPDF } from "@/lib/exportUtils";
 
-type SortKey = "nik" | "fullName" | "gender" | "city" | "province" | "firstRegisteredAt" | "eventCount";
+type SortKey = "nik" | "fullName" | "gender" | "city" | "province" | "firstRegisteredAt" | "eventCount" | "programCount";
 type SortDir = "asc" | "desc";
 
 const PAGE_SIZE = 50;
@@ -357,14 +357,15 @@ export default function ParticipantsPage() {
                   <SortTh col="gender" label="Kelamin" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="hidden sm:table-cell" />
                   <SortTh col="city" label="Domisili" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
                   <SortTh col="firstRegisteredAt" label="Terdaftar" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="hidden md:table-cell" />
-                  <SortTh col="eventCount" label="Total Kegiatan" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
+                  <SortTh col="eventCount" label="Kegiatan" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right hidden lg:table-cell" />
+                  <SortTh col="programCount" label="Program" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right hidden lg:table-cell" />
                   <th className="px-6 py-4 text-right" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-400">Memuat data...</td>
+                    <td colSpan={8} className="px-6 py-12 text-center text-sm text-slate-400">Memuat data...</td>
                   </tr>
                 ) : paginatedParticipants.length > 0 ? (
                   paginatedParticipants.map((p) => {
@@ -428,8 +429,8 @@ export default function ParticipantsPage() {
                           )}
                         </td>
 
-                        {/* Total Event */}
-                        <td className="px-6 py-4 text-right">
+                        {/* Total Kegiatan */}
+                        <td className="px-6 py-4 text-right hidden lg:table-cell">
                           <div className="flex items-center justify-end gap-2">
                             <span className="text-sm font-bold text-slate-900">
                               {String(p.eventCount).padStart(2, "0")}
@@ -441,6 +442,24 @@ export default function ParticipantsPage() {
                             }`}>
                               {isMulti ? "Multi" : "Single"}
                             </span>
+                          </div>
+                        </td>
+
+                        {/* Total Program */}
+                        <td className="px-6 py-4 text-right hidden lg:table-cell">
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="text-sm font-bold text-slate-900">
+                              {String((p as any).programCount ?? 0).padStart(2, "0")}
+                            </span>
+                            {((p as any).programCount ?? 0) > 0 ? (
+                              <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-indigo-50 text-indigo-600">
+                                Aktif
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-slate-100 text-slate-400">
+                                —
+                              </span>
+                            )}
                           </div>
                         </td>
 
@@ -458,7 +477,7 @@ export default function ParticipantsPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-16 text-center">
+                    <td colSpan={8} className="px-6 py-16 text-center">
                       <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-3">
                         <Users className="h-6 w-6 text-slate-300" />
                       </div>
