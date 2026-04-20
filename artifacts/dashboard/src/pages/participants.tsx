@@ -83,6 +83,10 @@ export default function ParticipantsPage() {
   const [filterKecamatan, setFilterKecamatan] = useState("");
   const [filterKelurahan, setFilterKelurahan] = useState("");
   const [pdfProgress, setPdfProgress] = useState<{ current: number; total: number } | null>(null);
+  const [filterEventCount, setFilterEventCount] = useState<number | null>(null);
+  const [filterProgramCount, setFilterProgramCount] = useState<number | null>(null);
+  const [showEventCountFilter, setShowEventCountFilter] = useState(false);
+  const [showProgramCountFilter, setShowProgramCountFilter] = useState(false);
 
   const params: Record<string, string> = {
     ...(search ? { search } : {}),
@@ -122,19 +126,43 @@ export default function ParticipantsPage() {
     enabled: showDomisili && !!(filterKabupaten || filterKecamatan),
   });
 
+  // Count distributions for filter chips — computed from unfiltered data
+  const eventCountDist = useMemo(() => {
+    if (!rawParticipants) return [];
+    const map = new Map<number, number>();
+    rawParticipants.forEach((p) => {
+      const c = p.eventCount ?? 0;
+      map.set(c, (map.get(c) ?? 0) + 1);
+    });
+    return [...map.entries()].sort((a, b) => a[0] - b[0]);
+  }, [rawParticipants]);
+
+  const programCountDist = useMemo(() => {
+    if (!rawParticipants) return [];
+    const map = new Map<number, number>();
+    rawParticipants.forEach((p) => {
+      const c = (p as any).programCount ?? 0;
+      map.set(c, (map.get(c) ?? 0) + 1);
+    });
+    return [...map.entries()].sort((a, b) => a[0] - b[0]);
+  }, [rawParticipants]);
+
   const participants = useMemo(() => {
     if (!rawParticipants) return rawParticipants;
-    return [...rawParticipants].sort((a, b) => {
+    let list = [...rawParticipants];
+    if (filterEventCount !== null) list = list.filter((p) => (p.eventCount ?? 0) === filterEventCount);
+    if (filterProgramCount !== null) list = list.filter((p) => ((p as any).programCount ?? 0) === filterProgramCount);
+    return list.sort((a, b) => {
       let av: any = (a as any)[sortKey] ?? "";
       let bv: any = (b as any)[sortKey] ?? "";
-      if (sortKey === "eventCount") { av = Number(av); bv = Number(bv); }
+      if (sortKey === "eventCount" || sortKey === "programCount") { av = Number(av); bv = Number(bv); }
       else if (sortKey === "firstRegisteredAt") { av = new Date(av).getTime(); bv = new Date(bv).getTime(); }
       else { av = String(av).toLowerCase(); bv = String(bv).toLowerCase(); }
       if (av < bv) return sortDir === "asc" ? -1 : 1;
       if (av > bv) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
-  }, [rawParticipants, sortKey, sortDir]);
+  }, [rawParticipants, sortKey, sortDir, filterEventCount, filterProgramCount]);
 
   const totalPages = Math.max(1, Math.ceil((participants?.length ?? 0) / PAGE_SIZE));
   const paginatedParticipants = useMemo(() => {
@@ -149,10 +177,12 @@ export default function ParticipantsPage() {
   };
 
   const hasDomisiliFilter = filterKabupaten || filterKecamatan || filterKelurahan;
-  const hasFilter = search || startDate || endDate || hasDomisiliFilter;
+  const hasFilter = search || startDate || endDate || hasDomisiliFilter || filterEventCount !== null || filterProgramCount !== null;
   const resetAll = () => {
     setSearch(""); setStartDate(""); setEndDate("");
     setFilterKabupaten(""); setFilterKecamatan(""); setFilterKelurahan("");
+    setFilterEventCount(null); setFilterProgramCount(null);
+    setShowEventCountFilter(false); setShowProgramCountFilter(false);
     setCurrentPage(1);
   };
 
@@ -225,6 +255,34 @@ export default function ParticipantsPage() {
               {hasDomisiliFilter
                 ? filterKelurahan || filterKecamatan || filterKabupaten
                 : "Domisili"}
+            </button>
+
+            {/* Kegiatan count filter */}
+            <button
+              onClick={() => { setShowEventCountFilter((v) => !v); setShowProgramCountFilter(false); setShowDomisili(false); }}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[12px] font-bold transition-all ${
+                filterEventCount !== null
+                  ? "bg-amber-500 text-white shadow-sm"
+                  : showEventCountFilter
+                  ? "bg-amber-50 text-amber-600 border border-amber-200"
+                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+              }`}
+            >
+              Kegiatan{filterEventCount !== null ? `: ${filterEventCount}` : ""}
+            </button>
+
+            {/* Program count filter */}
+            <button
+              onClick={() => { setShowProgramCountFilter((v) => !v); setShowEventCountFilter(false); setShowDomisili(false); }}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[12px] font-bold transition-all ${
+                filterProgramCount !== null
+                  ? "bg-indigo-500 text-white shadow-sm"
+                  : showProgramCountFilter
+                  ? "bg-indigo-50 text-indigo-600 border border-indigo-200"
+                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+              }`}
+            >
+              Program{filterProgramCount !== null ? `: ${filterProgramCount}` : ""}
             </button>
 
             {hasFilter && (
@@ -339,6 +397,54 @@ export default function ParticipantsPage() {
           )}
         </div>
 
+        {/* Kegiatan count filter panel */}
+        {showEventCountFilter && (
+          <div className="flex flex-wrap items-center gap-2 bg-white border border-amber-100 rounded-2xl px-4 py-3 shadow-sm">
+            <span className="text-[11px] font-bold text-slate-400 tracking-widest shrink-0">Kegiatan</span>
+            {eventCountDist.map(([count, total]) => (
+              <button
+                key={count}
+                onClick={() => { setFilterEventCount(filterEventCount === count ? null : count); setCurrentPage(1); }}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold border transition-all ${
+                  filterEventCount === count
+                    ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                    : "bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100"
+                }`}
+              >
+                <span>{count}</span>
+                <span className={`text-[10px] font-medium ${filterEventCount === count ? "text-amber-100" : "text-amber-400"}`}>
+                  ({total.toLocaleString("id-ID")})
+                </span>
+              </button>
+            ))}
+            <button onClick={() => setShowEventCountFilter(false)} className="ml-auto text-[11px] text-slate-400 hover:text-slate-600 transition-colors">Tutup</button>
+          </div>
+        )}
+
+        {/* Program count filter panel */}
+        {showProgramCountFilter && (
+          <div className="flex flex-wrap items-center gap-2 bg-white border border-indigo-100 rounded-2xl px-4 py-3 shadow-sm">
+            <span className="text-[11px] font-bold text-slate-400 tracking-widest shrink-0">Program</span>
+            {programCountDist.map(([count, total]) => (
+              <button
+                key={count}
+                onClick={() => { setFilterProgramCount(filterProgramCount === count ? null : count); setCurrentPage(1); }}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold border transition-all ${
+                  filterProgramCount === count
+                    ? "bg-indigo-500 text-white border-indigo-500 shadow-sm"
+                    : "bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-indigo-100"
+                }`}
+              >
+                <span>{count}</span>
+                <span className={`text-[10px] font-medium ${filterProgramCount === count ? "text-indigo-200" : "text-indigo-400"}`}>
+                  ({total.toLocaleString("id-ID")})
+                </span>
+              </button>
+            ))}
+            <button onClick={() => setShowProgramCountFilter(false)} className="ml-auto text-[11px] text-slate-400 hover:text-slate-600 transition-colors">Tutup</button>
+          </div>
+        )}
+
         {/* ── Table ── */}
         <div className="bg-white rounded-2xl shadow-[0_2px_16px_rgba(0,0,0,0.06)] overflow-hidden border border-white/60">
           <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
@@ -371,7 +477,6 @@ export default function ParticipantsPage() {
                   paginatedParticipants.map((p) => {
                     const initials = getInitials(p.fullName ?? "?");
                     const palette = getPalette(p.fullName ?? "");
-                    const isMulti = p.eventCount > 1;
                     return (
                       <tr key={p.nik} className="group hover:bg-slate-50/50 transition-colors">
                         {/* NIK */}
@@ -431,18 +536,9 @@ export default function ParticipantsPage() {
 
                         {/* Total Kegiatan */}
                         <td className="px-6 py-4 text-right hidden lg:table-cell">
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="text-sm font-bold text-slate-900">
-                              {String(p.eventCount).padStart(2, "0")}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${
-                              isMulti
-                                ? "bg-amber-50 text-amber-700"
-                                : "bg-slate-100 text-slate-500"
-                            }`}>
-                              {isMulti ? "Multi" : "Single"}
-                            </span>
-                          </div>
+                          <span className="text-sm font-bold text-slate-900 tabular-nums">
+                            {String(p.eventCount).padStart(2, "0")}
+                          </span>
                         </td>
 
                         {/* Total Program */}
