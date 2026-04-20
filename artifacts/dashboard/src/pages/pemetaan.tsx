@@ -522,16 +522,18 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
         </div>
       </div>
 
-      {/* Stats row */}
+      {/* Stats row — same style as kabupaten detail */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: <Users className="h-3.5 w-3.5 text-indigo-500" />, bg: "bg-indigo-50", label: "Total KTP", value: Number(kecInfo?.totalInput ?? 0).toLocaleString() },
-          { icon: <CalendarDays className="h-3.5 w-3.5 text-blue-500" />, bg: "bg-blue-50", label: "Kegiatan", value: kecInfo?.totalKegiatan ?? 0 },
-          { icon: <Globe className="h-3.5 w-3.5 text-violet-500" />, bg: "bg-violet-50", label: "Program", value: kecInfo?.totalProgram ?? 0 },
-        ].map(({ icon, bg, label, value }) => (
+          { icon: Users, color: "text-blue-500", bg: "bg-blue-50", label: "Total KTP", value: Number(kecInfo?.totalInput ?? 0).toLocaleString() },
+          { icon: CalendarDays, color: "text-indigo-500", bg: "bg-indigo-50", label: "Total Kegiatan", value: kecInfo?.totalKegiatan ?? 0 },
+          { icon: Globe, color: "text-violet-500", bg: "bg-violet-50", label: "Total Program", value: kecInfo?.totalProgram ?? 0 },
+        ].map(({ icon: Icon, color, bg, label, value }) => (
           <div key={label} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
             <div className="flex items-center gap-2 mb-2">
-              <div className={`h-6 w-6 rounded-lg ${bg} flex items-center justify-center shrink-0`}>{icon}</div>
+              <div className={`h-6 w-6 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
+                <Icon className={`h-3 w-3 ${color}`} />
+              </div>
               <span className="text-[10px] font-bold text-slate-400 tracking-wide">{label}</span>
             </div>
             <div className="text-xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{value}</div>
