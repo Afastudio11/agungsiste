@@ -27,7 +27,6 @@ import {
   Filter,
   Edit2,
   UserCheck,
-  UserX,
   Activity,
 } from "@/lib/icons";
 
@@ -256,7 +255,7 @@ export default function EventDetailPage() {
   const params = useParams();
   const id = parseInt(params.id as string);
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState<TabType>("rsvp");
+  const [activeTab, setActiveTab] = useState<TabType>("onsite");
 
   const { data: event, isLoading: eventLoading } = useGetEvent(id, {
     query: { enabled: !!id, queryKey: getGetEventQueryKey(id) },
@@ -305,8 +304,8 @@ export default function EventDetailPage() {
     : null;
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode; count: number }[] = [
-    { key: "rsvp", label: "Reservasi", icon: <ClipboardList className="h-3.5 w-3.5" />, count: rsvpTotal },
     { key: "onsite", label: "Absen Hari-H", icon: <ClipboardCheck className="h-3.5 w-3.5" />, count: hadirTotal },
+    { key: "rsvp", label: "Reservasi", icon: <ClipboardList className="h-3.5 w-3.5" />, count: rsvpTotal },
   ];
 
   return (
@@ -406,18 +405,9 @@ export default function EventDetailPage() {
         </div>
 
         {/* ── Stat Cards (full width) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <StatCard
-            label="Reservasi"
-            value={participantsLoading ? "—" : rsvpTotal}
-            sub={participantsLoading ? undefined : rsvpCheckedIn > 0 ? `${rsvpCheckedIn} sudah hadir` : "Belum ada check-in"}
-            icon={<Users className="h-5 w-5 text-indigo-600" />}
-            iconBg="bg-indigo-100"
-            numberColor="text-indigo-700"
-            accentColor="bg-indigo-500"
-          />
-          <StatCard
-            label="Absen"
+            label="Jumlah Peserta"
             value={participantsLoading ? "—" : hadirTotal}
             sub={participantsLoading ? undefined : walkinCount > 0 ? `${walkinCount} walk-in` : "Semua via RSVP"}
             icon={<UserCheck className="h-5 w-5 text-emerald-600" />}
@@ -426,13 +416,13 @@ export default function EventDetailPage() {
             accentColor="bg-emerald-500"
           />
           <StatCard
-            label="Tidak Hadir"
-            value={participantsLoading ? "—" : rsvpNoShow}
-            sub={participantsLoading ? undefined : rsvpTotal > 0 ? `dari ${rsvpTotal} reservasi` : "Tidak ada reservasi"}
-            icon={<UserX className="h-5 w-5 text-rose-500" />}
-            iconBg="bg-rose-100"
-            numberColor="text-rose-600"
-            accentColor="bg-rose-400"
+            label="Jumlah Registrasi"
+            value={participantsLoading ? "—" : rsvpTotal}
+            sub={participantsLoading ? undefined : rsvpCheckedIn > 0 ? `${rsvpCheckedIn} sudah hadir` : "Belum ada check-in"}
+            icon={<Users className="h-5 w-5 text-indigo-600" />}
+            iconBg="bg-indigo-100"
+            numberColor="text-indigo-700"
+            accentColor="bg-indigo-500"
           />
         </div>
 
