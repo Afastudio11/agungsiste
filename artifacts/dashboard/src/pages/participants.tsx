@@ -5,7 +5,7 @@ import {
   useListParticipants,
   getListParticipantsQueryKey,
 } from "@workspace/api-client-react";
-import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Gift, CalendarCheck2, Eye, MapPin, ChevronRight, FileText, FileSpreadsheet, Loader2, RefreshCw } from "@/lib/icons";
+import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Eye, MapPin, ChevronRight, FileText, FileSpreadsheet, Loader2, RefreshCw } from "@/lib/icons";
 import { useQuery } from "@tanstack/react-query";
 import { exportExcel, exportParticipantsPDF } from "@/lib/exportUtils";
 
@@ -135,25 +135,6 @@ export default function ParticipantsPage() {
       return 0;
     });
   }, [rawParticipants, sortKey, sortDir]);
-
-  const stats = useMemo(() => {
-    if (!rawParticipants) return { total: 0, totalEvents: 0 };
-    return {
-      total: rawParticipants.length,
-      totalEvents: rawParticipants.reduce((s, p) => s + (p.eventCount ?? 0), 0),
-    };
-  }, [rawParticipants]);
-
-  const { data: totalHadiah } = useQuery({
-    queryKey: ["participants-total-hadiah"],
-    queryFn: async () => {
-      const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-      const res = await fetch(`${BASE}/api/prizes`, { credentials: "include" });
-      const data: { distributedCount: number }[] = await res.json();
-      return data.reduce((s, p) => s + (p.distributedCount ?? 0), 0);
-    },
-    staleTime: 60_000,
-  });
 
   const totalPages = Math.max(1, Math.ceil((participants?.length ?? 0) / PAGE_SIZE));
   const paginatedParticipants = useMemo(() => {
@@ -356,36 +337,6 @@ export default function ParticipantsPage() {
               )}
             </div>
           )}
-        </div>
-
-        {/* ── Stats Bento ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
-            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-blue-500" />
-            <div className="flex items-start justify-between mb-3 relative">
-              <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Teregister</p>
-              <Users className="h-5 w-5 text-blue-400" />
-            </div>
-            <p className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>{isLoading ? "—" : stats.total.toLocaleString("id-ID")}</p>
-          </div>
-
-          <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
-            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-amber-500" />
-            <div className="flex items-start justify-between mb-3 relative">
-              <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Kegiatan</p>
-              <CalendarCheck2 className="h-5 w-5 text-amber-400" />
-            </div>
-            <p className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>{isLoading ? "—" : stats.totalEvents.toLocaleString("id-ID")}</p>
-          </div>
-
-          <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
-            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-violet-500" />
-            <div className="flex items-start justify-between mb-3 relative">
-              <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Hadiah</p>
-              <Gift className="h-5 w-5 text-violet-400" />
-            </div>
-            <p className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>{totalHadiah?.toLocaleString("id-ID") ?? "—"}</p>
-          </div>
         </div>
 
         {/* ── Table ── */}
