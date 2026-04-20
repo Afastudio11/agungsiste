@@ -19,6 +19,7 @@ type Program = {
   kabupatenPenerima: string[];
   totalKtpPenerima: number | null;
   registeredCount: number;
+  status: string;
   createdAt: string;
 };
 
@@ -65,6 +66,7 @@ export default function ProgramsPage() {
   const [formData, setFormData] = useState<FormData>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const fetchPrograms = useCallback(async () => {
     setLoading(true);
@@ -137,6 +139,21 @@ export default function ProgramsPage() {
         fetchPrograms();
       }
     } catch { } finally { setSaving(false); }
+  };
+
+  const toggleStatus = async (id: number, currentStatus: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+    setTogglingId(id);
+    try {
+      await fetch(`${BASE}/api/programs/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      setPrograms((prev) => prev.map((p) => p.id === id ? { ...p, status: newStatus } : p));
+    } catch { } finally { setTogglingId(null); }
   };
 
   const deleteProgram = async (id: number, e: React.MouseEvent) => {
@@ -380,13 +397,24 @@ export default function ProgramsPage() {
                   <div
                     key={prog.id}
                     onClick={() => navigate(`/programs/${prog.id}`)}
-                    className="group bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] rounded-[1.75rem] px-7 py-5 flex flex-col lg:flex-row items-start lg:items-center gap-5 transition-all cursor-pointer hover:border-indigo-100 hover:shadow-[0_8px_32px_rgba(79,70,229,0.08)]"
+                    className={`group bg-white border shadow-[0_4px_20px_rgba(0,0,0,0.04)] rounded-[1.75rem] px-7 py-5 flex flex-col lg:flex-row items-start lg:items-center gap-5 transition-all cursor-pointer ${
+                      prog.status === "inactive"
+                        ? "border-slate-100 opacity-60 hover:opacity-80"
+                        : "border-slate-100 hover:border-indigo-100 hover:shadow-[0_8px_32px_rgba(79,70,229,0.08)]"
+                    }`}
                   >
                     {/* Main info */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate mb-1.5">
-                        {prog.name}
-                      </h4>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <h4 className={`text-xl font-bold truncate ${prog.status === "inactive" ? "text-slate-400" : "text-slate-900 group-hover:text-indigo-600"} transition-colors`}>
+                          {prog.name}
+                        </h4>
+                        {prog.status === "inactive" && (
+                          <span className="shrink-0 inline-block text-[10px] font-bold bg-slate-100 text-slate-400 px-2 py-0.5 rounded-lg border border-slate-200">
+                            Nonaktif
+                          </span>
+                        )}
+                      </div>
 
                       {/* Badges row */}
                       <div className="flex flex-wrap items-center gap-1.5 mb-2">
@@ -450,6 +478,24 @@ export default function ProgramsPage() {
 
                       {/* Action buttons */}
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => toggleStatus(prog.id, prog.status, e)}
+                          disabled={togglingId === prog.id}
+                          title={prog.status === "inactive" ? "Aktifkan program" : "Nonaktifkan program"}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all bg-slate-50 hover:bg-slate-100 disabled:opacity-50"
+                        >
+                          <span
+                            className={`relative inline-block w-8 h-4 rounded-full transition-colors duration-200 ${
+                              prog.status === "inactive" ? "bg-slate-300" : "bg-emerald-500"
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+                                prog.status === "inactive" ? "translate-x-0.5" : "translate-x-[1.125rem]"
+                              }`}
+                            />
+                          </span>
+                        </button>
                         <button
                           onClick={(e) => openEdit(prog, e)}
                           title="Edit"

@@ -105,6 +105,7 @@ export const programsTable = pgTable("programs", {
   kabupatenPenerima: text("kabupaten_penerima"),
   totalKtpPenerima: integer("total_ktp_penerima"),
   registeredCount: integer("registered_count").notNull().default(0),
+  status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

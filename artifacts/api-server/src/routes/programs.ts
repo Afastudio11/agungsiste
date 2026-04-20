@@ -76,6 +76,20 @@ router.put("/:id", requireAdmin, async (req, res) => {
   }
 });
 
+router.patch("/:id/status", requireAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { status } = req.body;
+    if (status !== "active" && status !== "inactive") return res.status(400).json({ error: "status must be active or inactive" });
+    const [prog] = await db.update(programsTable).set({ status }).where(eq(programsTable.id, id)).returning();
+    if (!prog) return res.status(404).json({ error: "Program not found" });
+    res.json({ ...prog, kabupatenPenerima: parseKabupaten(prog.kabupatenPenerima) });
+  } catch (err) {
+    req.log.error({ err }, "Error updating program status");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
