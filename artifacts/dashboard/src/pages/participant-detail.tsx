@@ -4,6 +4,8 @@ import Layout from "@/components/layout";
 import {
   useGetParticipantByNik,
   getGetParticipantByNikQueryKey,
+  useListEvents,
+  getListEventsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Calendar, Tag, MapPin, ImageIcon, Download, FileText, Loader2, Pencil, X, Check, Trash2, AlertTriangle } from "@/lib/icons";
@@ -411,11 +413,49 @@ export default function ParticipantDetailPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [addEventId, setAddEventId] = useState("");
+  const [addingEvent, setAddingEvent] = useState(false);
+  const [addEventError, setAddEventError] = useState<string | null>(null);
+  const [removingEventIds, setRemovingEventIds] = useState<Set<number>>(new Set());
   const queryClient = useQueryClient();
 
   const { data: profile, isLoading } = useGetParticipantByNik(nik, {
     query: { enabled: !!nik, queryKey: getGetParticipantByNikQueryKey(nik) },
   });
+
+  const { data: allEvents } = useListEvents({}, { query: { queryKey: getListEventsQueryKey({}) } });
+
+  const handleAddEvent = async () => {
+    if (!addEventId || addingEvent) return;
+    setAddingEvent(true);
+    setAddEventError(null);
+    try {
+      const res = await fetch(`${BASE_URL}/api/participants/${encodeURIComponent(nik)}/registrations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ eventId: Number(addEventId) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setAddEventError(data.error ?? "Gagal menambahkan kegiatan"); return; }
+      setAddEventId("");
+      await queryClient.invalidateQueries({ queryKey: getGetParticipantByNikQueryKey(nik) });
+    } catch { setAddEventError("Terjadi kesalahan, coba lagi"); }
+    finally { setAddingEvent(false); }
+  };
+
+  const handleRemoveEvent = async (eventId: number) => {
+    setRemovingEventIds((prev) => new Set(prev).add(eventId));
+    try {
+      await fetch(`${BASE_URL}/api/participants/${encodeURIComponent(nik)}/registrations/${eventId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      await queryClient.invalidateQueries({ queryKey: getGetParticipantByNikQueryKey(nik) });
+    } finally {
+      setRemovingEventIds((prev) => { const n = new Set(prev); n.delete(eventId); return n; });
+    }
+  };
 
   const handleOpenEdit = () => {
     if (!profile) return;
@@ -826,6 +866,66 @@ export default function ParticipantDetailPage() {
               />
               <FormRow label="Provinsi" name="province" value={form.province} onChange={handleFieldChange} />
               <FormRow label="Alamat Lengkap" name="address" value={form.address} onChange={handleFieldChange} />
+
+              {/* ── Riwayat Kegiatan ── */}
+              <div className="text-[10px] font-bold text-slate-400 tracking-wider pt-4 pb-1">Riwayat Kegiatan</div>
+
+              {/* Current registrations */}
+              <div className="space-y-1.5">
+                {profile.events && profile.events.length > 0 ? profile.events.map((event) => (
+                  <div key={event.id} className="flex items-center justify-between gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-800 truncate">{event.name}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{event.eventDate}</p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveEvent(event.id)}
+                      disabled={removingEventIds.has(event.id)}
+                      className="shrink-0 p-1 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition disabled:opacity-50"
+                      title="Hapus dari kegiatan ini"
+                    >
+                      {removingEventIds.has(event.id)
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <X className="h-3.5 w-3.5" />
+                      }
+                    </button>
+                  </div>
+                )) : (
+                  <p className="text-xs text-slate-400 py-1">Belum ada kegiatan terdaftar.</p>
+                )}
+              </div>
+
+              {/* Add new event */}
+              <div className="pt-1 space-y-1.5">
+                <div className="flex gap-2">
+                  <select
+                    value={addEventId}
+                    onChange={(e) => { setAddEventId(e.target.value); setAddEventError(null); }}
+                    className="flex-1 text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                  >
+                    <option value="">— Pilih Kegiatan —</option>
+                    {(allEvents as any[] ?? [])
+                      .filter((e) => !profile.events?.some((pe) => pe.id === e.id))
+                      .map((e: any) => (
+                        <option key={e.id} value={e.id}>
+                          {e.name}{e.eventDate ? ` (${e.eventDate})` : ""}
+                        </option>
+                      ))
+                    }
+                  </select>
+                  <button
+                    onClick={handleAddEvent}
+                    disabled={!addEventId || addingEvent}
+                    className="shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 disabled:opacity-50 transition"
+                  >
+                    {addingEvent ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    Tambah
+                  </button>
+                </div>
+                {addEventError && (
+                  <p className="text-[11px] font-semibold text-red-600 bg-red-50 px-3 py-1.5 rounded-xl border border-red-100">{addEventError}</p>
+                )}
+              </div>
             </div>
 
             {/* Footer */}

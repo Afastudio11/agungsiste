@@ -220,6 +220,63 @@ router.delete("/:nik", requireAdmin, async (req, res) => {
   }
 });
 
+// Manually add an event registration for a participant
+router.post("/:nik/registrations", requireAdmin, async (req, res) => {
+  try {
+    const { nik } = GetParticipantByNikParams.parse({ nik: req.params.nik });
+    const { eventId, notes } = req.body as { eventId?: number; notes?: string };
+    if (!eventId) return res.status(400).json({ error: "eventId diperlukan" });
+
+    const [participant] = await db.select({ id: participantsTable.id, fullName: participantsTable.fullName })
+      .from(participantsTable).where(eq(participantsTable.nik, nik));
+    if (!participant) return res.status(404).json({ error: "Peserta tidak ditemukan" });
+
+    const [event] = await db.select({ id: eventsTable.id, name: eventsTable.name })
+      .from(eventsTable).where(eq(eventsTable.id, Number(eventId)));
+    if (!event) return res.status(404).json({ error: "Kegiatan tidak ditemukan" });
+
+    const [existing] = await db.select({ id: eventRegistrationsTable.id })
+      .from(eventRegistrationsTable)
+      .where(and(eq(eventRegistrationsTable.eventId, event.id), eq(eventRegistrationsTable.participantId, participant.id)));
+    if (existing) return res.status(409).json({ error: "Peserta sudah terdaftar di kegiatan ini" });
+
+    await db.insert(eventRegistrationsTable).values({
+      eventId: event.id,
+      participantId: participant.id,
+      registrationType: "manual",
+      notes: notes || null,
+    });
+
+    await logAdminAction(req.session?.userId as number | undefined, "ADD_REGISTRATION", nik, participant.fullName ?? "", { eventId: event.id, eventName: event.name });
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "Error adding registration");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Manually remove an event registration for a participant
+router.delete("/:nik/registrations/:eventId", requireAdmin, async (req, res) => {
+  try {
+    const { nik } = GetParticipantByNikParams.parse({ nik: req.params.nik });
+    const eventId = Number(req.params.eventId);
+
+    const [participant] = await db.select({ id: participantsTable.id, fullName: participantsTable.fullName })
+      .from(participantsTable).where(eq(participantsTable.nik, nik));
+    if (!participant) return res.status(404).json({ error: "Peserta tidak ditemukan" });
+
+    await db.delete(eventRegistrationsTable).where(
+      and(eq(eventRegistrationsTable.eventId, eventId), eq(eventRegistrationsTable.participantId, participant.id))
+    );
+
+    await logAdminAction(req.session?.userId as number | undefined, "REMOVE_REGISTRATION", nik, participant.fullName ?? "", { eventId });
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "Error removing registration");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:nik", requireAuth, async (req, res) => {
   try {
     const { nik } = GetParticipantByNikParams.parse({ nik: req.params.nik });
