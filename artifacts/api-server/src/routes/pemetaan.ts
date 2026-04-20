@@ -13,15 +13,9 @@ router.get("/summary", async (_req, res) => {
         totalDesa: countDistinct(participantsTable.kelurahan),
         totalKecamatan: countDistinct(participantsTable.kecamatan),
         totalKabupaten: countDistinct(participantsTable.city),
+        totalKTP: countDistinct(participantsTable.id),
       })
       .from(participantsTable);
-
-    const desaWithEvents = await db
-      .select({ kelurahan: participantsTable.kelurahan })
-      .from(participantsTable)
-      .innerJoin(eventRegistrationsTable, sql`${eventRegistrationsTable.participantId} = ${participantsTable.id}`)
-      .groupBy(participantsTable.kelurahan)
-      .having(sql`count(distinct ${eventRegistrationsTable.eventId}) > 0`);
 
     const [eventCount] = await db
       .select({ totalEvent: count(eventsTable.id) })
@@ -31,13 +25,32 @@ router.get("/summary", async (_req, res) => {
       .select({ totalHadiah: count(prizeDistributionsTable.id) })
       .from(prizeDistributionsTable);
 
+    const [programCount] = await db
+      .select({ totalProgram: countDistinct(programRegistrationsTable.programId) })
+      .from(programRegistrationsTable);
+
+    const terjangkauRows = await db.execute(sql`
+      SELECT
+        count(distinct p.kelurahan) as desa_terjangkau,
+        count(distinct p.kecamatan) as kecamatan_terjangkau
+      FROM participants p
+      WHERE (
+        EXISTS (SELECT 1 FROM event_registrations er WHERE er.participant_id = p.id)
+        OR EXISTS (SELECT 1 FROM program_registrations pr WHERE pr.participant_id = p.id)
+      )
+    `);
+    const tj = (terjangkauRows.rows?.[0] ?? terjangkauRows[0] ?? {}) as Record<string, unknown>;
+
     return res.json({
       totalDesa: totals.totalDesa || 0,
       totalKecamatan: totals.totalKecamatan || 0,
       totalKabupaten: totals.totalKabupaten || 0,
-      desaWithEvents: desaWithEvents.length,
+      totalKTP: totals.totalKTP || 0,
+      desaTerjangkau: Number(tj.desa_terjangkau ?? 0),
+      kecamatanTerjangkau: Number(tj.kecamatan_terjangkau ?? 0),
       totalEvent: eventCount?.totalEvent || 0,
       totalHadiah: hadiahCount?.totalHadiah || 0,
+      totalProgram: Number(programCount?.totalProgram ?? 0),
     });
   } catch (e) {
     console.error(e);
@@ -72,16 +85,45 @@ router.get("/kabupaten", async (req, res) => {
 
     const kabMap = new Map(data.map((d) => [d.kabupaten?.toLowerCase() ?? "", d]));
 
+    const terjangkauRows = await db.execute(sql`
+      SELECT
+        p.city as kabupaten,
+        count(distinct p.kelurahan) as desa_terjangkau,
+        count(distinct p.kecamatan) as kecamatan_terjangkau
+      FROM participants p
+      WHERE p.city IS NOT NULL AND (
+        EXISTS (SELECT 1 FROM event_registrations er WHERE er.participant_id = p.id)
+        OR EXISTS (SELECT 1 FROM program_registrations pr WHERE pr.participant_id = p.id)
+      )
+      GROUP BY p.city
+    `);
+    const terjRows = (terjangkauRows.rows ?? terjangkauRows) as Record<string, unknown>[];
+    const terjMap = new Map(terjRows.map((r) => [(r.kabupaten as string)?.toLowerCase() ?? "", r]));
+
+    const progRows = await db.execute(sql`
+      SELECT p.city as kabupaten, count(distinct pr.program_id) as total_program
+      FROM participants p
+      INNER JOIN program_registrations pr ON pr.participant_id = p.id
+      WHERE p.city IS NOT NULL
+      GROUP BY p.city
+    `);
+    const progArr = (progRows.rows ?? progRows) as Record<string, unknown>[];
+    const progMap = new Map(progArr.map((r) => [(r.kabupaten as string)?.toLowerCase() ?? "", Number(r.total_program ?? 0)]));
+
     const result = Object.keys(jatimWilayah).map((kab) => {
-      const db = kabMap.get(kab.toLowerCase());
+      const dbRow = kabMap.get(kab.toLowerCase());
+      const tj = terjMap.get(kab.toLowerCase());
       const totalDesaRef = Object.values(jatimWilayah[kab]).flat().length;
       const totalKecRef = getKecamatanList(kab).length;
       return {
         kabupaten: kab,
-        totalInput: db?.totalInput ?? 0,
+        totalInput: dbRow?.totalInput ?? 0,
         totalDesa: totalDesaRef,
         totalKecamatan: totalKecRef,
-        totalEvent: db?.totalEvent ?? 0,
+        totalEvent: dbRow?.totalEvent ?? 0,
+        desaTerjangkau: Number(tj?.desa_terjangkau ?? 0),
+        kecamatanTerjangkau: Number(tj?.kecamatan_terjangkau ?? 0),
+        totalProgram: progMap.get(kab.toLowerCase()) ?? 0,
       };
     });
 
