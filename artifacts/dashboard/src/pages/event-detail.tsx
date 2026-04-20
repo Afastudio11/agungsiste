@@ -487,20 +487,31 @@ export default function EventDetailPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-50 bg-slate-50/60">
-                    {["NIK", "Nama", "Jenis Kelamin", "Kabupaten", "Nomor HP", "Status Sosial"].map((h) => (
-                      <th
-                        key={h}
-                        className="px-5 py-3 text-[10px] font-bold tracking-[0.08em] text-slate-400 text-left"
-                      >
-                        {h}
-                      </th>
-                    ))}
+                    {activeTab === "onsite" ? (
+                      ["NIK", "Nama", "Jenis Kelamin", "Wilayah & Kontak", "Waktu Hadir", "Tipe", "Total"].map((h, i) => (
+                        <th
+                          key={h}
+                          className={`px-5 py-3 text-[10px] font-bold tracking-[0.08em] text-slate-400 ${i >= 5 ? "text-right" : "text-left"}`}
+                        >
+                          {h}
+                        </th>
+                      ))
+                    ) : (
+                      ["NIK", "Nama", "Jenis Kelamin", "Kabupaten", "Nomor HP", "Status Sosial"].map((h) => (
+                        <th
+                          key={h}
+                          className="px-5 py-3 text-[10px] font-bold tracking-[0.08em] text-slate-400 text-left"
+                        >
+                          {h}
+                        </th>
+                      ))
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {participantsLoading ? (
                     <tr>
-                      <td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-400">
+                      <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">
                         Memuat...
                       </td>
                     </tr>
@@ -514,16 +525,79 @@ export default function EventDetailPage() {
                               {p.fullName}
                             </span>
                           </Link>
+                          {p.staffName && (
+                            <div className="text-[10px] text-slate-400 mt-0.5">via {p.staffName}</div>
+                          )}
                         </td>
                         <td className="px-5 py-3 text-sm text-slate-600">{p.gender ?? "—"}</td>
-                        <td className="px-5 py-3 text-sm text-slate-600">{p.city ?? "—"}</td>
-                        <td className="px-5 py-3 text-sm text-slate-600">{(p as any).phone ?? "—"}</td>
-                        <td className="px-5 py-3 text-sm text-slate-600">{(p as any).socialStatus ?? "—"}</td>
+
+                        {activeTab === "onsite" ? (
+                          <>
+                            <td className="px-5 py-3">
+                              <div className="text-sm text-slate-700 font-medium">{p.city ?? "—"}</div>
+                              {((p as any).kecamatan || (p as any).kelurahan) && (
+                                <div className="text-[11px] text-slate-400 mt-0.5">
+                                  {[(p as any).kecamatan, (p as any).kelurahan].filter(Boolean).join(" · ")}
+                                </div>
+                              )}
+                              {(p as any).phone && (
+                                <div className="text-[11px] text-slate-400 mt-0.5">{(p as any).phone}</div>
+                              )}
+                            </td>
+                            <td className="px-5 py-3 text-[11px] text-slate-400 whitespace-nowrap">
+                              {p.checkedInAt
+                                ? new Date(p.checkedInAt).toLocaleString("id-ID", {
+                                    day: "numeric",
+                                    month: "numeric",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })
+                                : new Date(p.registeredAt).toLocaleString("id-ID", {
+                                    day: "numeric",
+                                    month: "numeric",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })}
+                            </td>
+                            <td className="px-5 py-3 text-right">
+                              {p.registrationType === "rsvp" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-700">
+                                  <ClipboardList className="h-3 w-3" />
+                                  RSVP
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600">
+                                  <ScanLine className="h-3 w-3" />
+                                  Walk-in
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3 text-right">
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                                  p.eventCount > 1 ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"
+                                }`}
+                              >
+                                {p.eventCount} event
+                              </span>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-5 py-3 text-sm text-slate-600">{p.city ?? "—"}</td>
+                            <td className="px-5 py-3 text-sm text-slate-600">{(p as any).phone ?? "—"}</td>
+                            <td className="px-5 py-3 text-sm text-slate-600">{(p as any).socialStatus ?? "—"}</td>
+                          </>
+                        )}
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-5 py-12 text-center">
+                      <td colSpan={7} className="px-5 py-12 text-center">
                         {activeTab === "rsvp" ? (
                           <>
                             <ClipboardList className="h-8 w-8 mx-auto mb-2 text-slate-200" />
