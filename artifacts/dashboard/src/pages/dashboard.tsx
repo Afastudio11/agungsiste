@@ -1,4 +1,4 @@
-import { useMemo, ElementType } from "react";
+import { useMemo, useState, useEffect, ElementType } from "react";
 import { Link } from "wouter";
 import Layout from "@/components/layout";
 import {
@@ -7,6 +7,7 @@ import {
 } from "@/lib/icons";
 import { useQuery } from "@tanstack/react-query";
 import DashboardMap from "@/components/dashboard-map";
+import { useHeaderContext } from "@/lib/header-context";
 
 function fmt(n: number) {
   return n.toLocaleString("id-ID");
@@ -183,16 +184,47 @@ function AgeCard({ data }: { data: { ageGroup: string; count: number }[] }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const { startDate, endDate, setStartDate, setEndDate, setOnExport } = useHeaderContext();
+  const [activePeriod, setActivePeriod] = useState<"hari" | "minggu" | "bulan" | "tahun" | "custom" | null>(null);
+  const [filterKabupaten, setFilterKabupaten] = useState("");
+  const [filterKecamatan, setFilterKecamatan] = useState("");
+  const [filterKelurahan, setFilterKelurahan] = useState("");
+  const [showDaerahFilter, setShowDaerahFilter] = useState(false);
+
+  const setPeriod = (p: typeof activePeriod) => {
+    const today = new Date();
+    const f = (d: Date) => d.toISOString().slice(0, 10);
+    if (p === "hari") { setStartDate(f(today)); setEndDate(f(today)); }
+    else if (p === "minggu") { const d = new Date(today); d.setDate(d.getDate() - 7); setStartDate(f(d)); setEndDate(f(today)); }
+    else if (p === "bulan") { const d = new Date(today); d.setDate(d.getDate() - 30); setStartDate(f(d)); setEndDate(f(today)); }
+    else if (p === "tahun") { setStartDate(`${today.getFullYear()}-01-01`); setEndDate(f(today)); }
+    else { setStartDate(""); setEndDate(""); }
+    setActivePeriod(p);
+  };
+
+  const statsQs = new URLSearchParams({
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+    ...(filterKabupaten ? { kabupaten: filterKabupaten } : {}),
+    ...(filterKecamatan ? { kecamatan: filterKecamatan } : {}),
+    ...(filterKelurahan ? { kelurahan: filterKelurahan } : {}),
+  }).toString();
+
+  const dateQs = new URLSearchParams({
+    ...(startDate ? { startDate } : {}),
+    ...(endDate ? { endDate } : {}),
+  }).toString();
+
   const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats"],
-    queryFn: () => fetch("/api/dashboard/stats").then((r) => r.json()),
+    queryKey: ["dashboard-stats", statsQs],
+    queryFn: () => fetch(`/api/dashboard/stats${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
 
   const { data: segments } = useQuery({
-    queryKey: ["dashboard-segments"],
-    queryFn: () => fetch("/api/dashboard/segments").then((r) => r.json()),
+    queryKey: ["dashboard-segments", statsQs],
+    queryFn: () => fetch(`/api/dashboard/segments${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -208,10 +240,45 @@ export default function DashboardPage() {
   });
 
   const { data: kabupatenData } = useQuery<{ kabupaten: string; totalInput: number }[]>({
-    queryKey: ["pemetaan-kabupaten"],
-    queryFn: () => fetch("/api/pemetaan/kabupaten").then((r) => r.json()),
+    queryKey: ["pemetaan-kabupaten", dateQs],
+    queryFn: () => fetch(`/api/pemetaan/kabupaten${dateQs ? `?${dateQs}` : ""}`).then((r) => r.json()),
     staleTime: 30_000,
   });
+
+  const { data: kecamatanData } = useQuery<{ kecamatan: string }[]>({
+    queryKey: ["pemetaan-kecamatan", filterKabupaten],
+    queryFn: () => fetch(`/api/pemetaan/kecamatan${filterKabupaten ? `?kabupaten=${encodeURIComponent(filterKabupaten)}` : ""}`).then((r) => r.json()),
+    enabled: showDaerahFilter,
+    staleTime: 60_000,
+  });
+
+  const { data: desaData } = useQuery<{ kelurahan: string }[]>({
+    queryKey: ["pemetaan-desa-filter", filterKabupaten, filterKecamatan],
+    queryFn: () => {
+      const q = new URLSearchParams();
+      if (filterKabupaten) q.set("kabupaten", filterKabupaten);
+      if (filterKecamatan) q.set("kecamatan", filterKecamatan);
+      return fetch(`/api/pemetaan/desa?${q.toString()}`).then((r) => r.json());
+    },
+    enabled: showDaerahFilter && !!(filterKabupaten || filterKecamatan),
+    staleTime: 60_000,
+  });
+
+  // ── Export handler ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    setOnExport((type) => {
+      if (type === "pdf") {
+        window.print();
+      } else {
+        const qs = statsQs ? `?${statsQs}` : "";
+        const a = document.createElement("a");
+        a.href = `/api/dashboard/export${qs}`;
+        a.download = `dashboard-export.csv`;
+        a.click();
+      }
+    });
+    return () => setOnExport(null);
+  }, [statsQs]);
 
   // ── Derived data ────────────────────────────────────────────────────────────
 
@@ -244,9 +311,129 @@ export default function DashboardPage() {
     [kabupatenData]
   );
   const maxDaerah = daerahData[0]?.count ?? 1;
+  const hasFilter = !!(startDate || endDate || filterKabupaten || filterKecamatan || filterKelurahan || activePeriod);
 
   return (
     <Layout>
+      {/* ── Filter Bar ───────────────────────────────────────────────── */}
+      <div className="mb-5 space-y-2 print:hidden">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-bold tracking-widest text-slate-400 mr-1">Periode</span>
+          {([
+            { key: "hari", label: "Hari Ini" },
+            { key: "minggu", label: "7 Hari" },
+            { key: "bulan", label: "30 Hari" },
+            { key: "tahun", label: "Tahun Ini" },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setPeriod(activePeriod === key ? null : key)}
+              className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all ${
+                activePeriod === key
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <button
+            onClick={() => {
+              if (activePeriod === "custom") { setActivePeriod(null); setStartDate(""); setEndDate(""); }
+              else setActivePeriod("custom");
+            }}
+            className={`px-3 py-1.5 rounded-full text-[12px] font-bold transition-all flex items-center gap-1.5 ${
+              activePeriod === "custom"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"
+            }`}
+          >
+            <Calendar size={13} weight="bold" />
+            Custom
+          </button>
+          {activePeriod === "custom" && (
+            <div className="flex items-center gap-1.5 bg-white border border-blue-300 rounded-full px-3 py-1 shadow-sm">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="border-0 bg-transparent text-[11px] text-slate-700 focus:outline-none w-[108px]"
+              />
+              <span className="text-slate-300 text-xs">—</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="border-0 bg-transparent text-[11px] text-slate-700 focus:outline-none w-[108px]"
+              />
+            </div>
+          )}
+          <div className="h-4 w-px bg-slate-200 mx-1" />
+          <button
+            onClick={() => setShowDaerahFilter((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-bold transition-all ${
+              (filterKabupaten || filterKecamatan || filterKelurahan)
+                ? "bg-emerald-600 text-white"
+                : showDaerahFilter
+                ? "bg-slate-800 text-white"
+                : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"
+            }`}
+          >
+            <MapPin size={14} weight="bold" />
+            Daerah
+            {(filterKabupaten || filterKecamatan || filterKelurahan) && (
+              <span className="ml-0.5 truncate max-w-[80px]">: {filterKelurahan || filterKecamatan || filterKabupaten}</span>
+            )}
+          </button>
+          {hasFilter && (
+            <button
+              onClick={() => { setPeriod(null); setFilterKabupaten(""); setFilterKecamatan(""); setFilterKelurahan(""); }}
+              className="px-3 py-1.5 rounded-full text-[12px] font-medium text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 transition"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        {showDaerahFilter && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            <select
+              value={filterKabupaten}
+              onChange={(e) => { setFilterKabupaten(e.target.value); setFilterKecamatan(""); setFilterKelurahan(""); }}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="">— Semua Kabupaten —</option>
+              {(kabupatenData ?? []).map((k) => (
+                <option key={k.kabupaten} value={k.kabupaten}>{k.kabupaten}</option>
+              ))}
+            </select>
+            {filterKabupaten && (
+              <select
+                value={filterKecamatan}
+                onChange={(e) => { setFilterKecamatan(e.target.value); setFilterKelurahan(""); }}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="">— Semua Kecamatan —</option>
+                {(kecamatanData ?? []).map((k) => (
+                  <option key={k.kecamatan} value={k.kecamatan}>{k.kecamatan}</option>
+                ))}
+              </select>
+            )}
+            {filterKecamatan && (
+              <select
+                value={filterKelurahan}
+                onChange={(e) => setFilterKelurahan(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="">— Semua Desa/Kel. —</option>
+                {(desaData ?? []).map((d) => (
+                  <option key={d.kelurahan} value={d.kelurahan}>{d.kelurahan}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* ── Row 1: 3 Stat Cards ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         <StatCard

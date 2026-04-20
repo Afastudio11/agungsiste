@@ -434,6 +434,56 @@ router.get("/segments", requireAdmin, async (req, res) => {
   }
 });
 
+router.get("/export", requireAdmin, async (req, res) => {
+  try {
+    const { startDate, endDate, kabupaten, kecamatan, kelurahan } = req.query as Record<string, string>;
+
+    const participantConds: any[] = [];
+    if (kabupaten) participantConds.push(ilike(participantsTable.city, `%${kabupaten}%`));
+    if (kecamatan) participantConds.push(ilike(participantsTable.kecamatan, `%${kecamatan}%`));
+    if (kelurahan) participantConds.push(ilike(participantsTable.kelurahan, `%${kelurahan}%`));
+
+    const regConds: any[] = [...participantConds];
+    if (startDate) regConds.push(gte(eventRegistrationsTable.registeredAt, new Date(startDate)));
+    if (endDate) regConds.push(lte(eventRegistrationsTable.registeredAt, new Date(endDate)));
+
+    const rows = await db
+      .select({
+        nik: participantsTable.nik,
+        nama: participantsTable.fullName,
+        gender: participantsTable.gender,
+        tgl_lahir: participantsTable.birthDate,
+        kota: participantsTable.city,
+        kecamatan: participantsTable.kecamatan,
+        kelurahan: participantsTable.kelurahan,
+        provinsi: participantsTable.province,
+      })
+      .from(participantsTable)
+      .where(participantConds.length > 0 ? and(...participantConds) : undefined)
+      .orderBy(participantsTable.fullName);
+
+    const escape = (v: string | null | undefined) => {
+      if (v == null) return "";
+      const s = String(v);
+      return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    const header = ["NIK", "Nama", "Jenis Kelamin", "Tanggal Lahir", "Kota/Kabupaten", "Kecamatan", "Kelurahan", "Provinsi"].join(",");
+    const lines = rows.map((r) =>
+      [r.nik, r.nama, r.gender, r.tgl_lahir, r.kota, r.kecamatan, r.kelurahan, r.provinsi].map(escape).join(",")
+    );
+    const csv = [header, ...lines].join("\n");
+
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="dashboard-ktp-${date}.csv"`);
+    res.send("\uFEFF" + csv);
+  } catch (err) {
+    req.log.error({ err }, "Error exporting CSV");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/recent", requireAdmin, async (req, res) => {
   try {
     const recentEvents = await db
