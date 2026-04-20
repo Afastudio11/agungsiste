@@ -110,6 +110,7 @@ interface PetaMapProps {
 export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMapProps = {}) {
   const [view, setView] = useState<"kabupaten" | "kecamatan">("kabupaten");
   const [selectedKab, setSelectedKab] = useState<string | null>(null);
+  const [hoveredKab, setHoveredKab] = useState<string | null>(null);
   const [selectedKec, setSelectedKec] = useState<string | null>(null);
   const [selectedDesa, setSelectedDesa] = useState<string | null>(null);
   const [allDesaGeo, setAllDesaGeo] = useState<any | null>(null);
@@ -176,25 +177,39 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
     const name = feature.properties?.name || "";
     const count = countByKab[name] || 0;
     const isSelected = name === selectedKab;
+    const isDimmed = view === "kabupaten" && !!hoveredKab && hoveredKab !== name;
     const path = layer as L.Path;
-    const opacity = view === "kecamatan" ? (isSelected ? 0.1 : 0.15) : 0.82;
+    const fillOpacity = view === "kecamatan"
+      ? (isSelected ? 0.1 : 0.15)
+      : isDimmed ? 0.35 : 0.82;
     path.setStyle({
-      fillColor: getColor(count, maxKab),
+      fillColor: isDimmed ? "#cbd5e1" : getColor(count, maxKab),
       weight: view === "kecamatan" ? 1 : 2,
-      opacity: 1, color: "white", fillOpacity: opacity,
+      opacity: 1,
+      color: "white",
+      fillOpacity,
     });
     layer.bindTooltip(
-      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px"><b>${name}</b><br/><span style="color:#64748b">${count.toLocaleString()} peserta</span></div>`,
+      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;line-height:1.8;min-width:140px">
+        <b style="font-size:13px;display:block;margin-bottom:4px;color:#0f172a">${name}</b>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total KTP</span><span style="font-weight:700;color:#1e293b">${count.toLocaleString()}</span></div>
+        ${view === "kabupaten" ? `<div style="color:#94a3b8;font-size:10px;margin-top:4px">Klik untuk lihat kecamatan</div>` : ""}
+      </div>`,
       { sticky: true, className: "ktp-tooltip" }
     );
     layer.on({
       click: () => {
+        setHoveredKab(null);
         setSelectedKab(name);
         setView("kecamatan");
         onKabupatenClick?.(name);
       },
-      mouseover: (e) => view === "kabupaten" && (e.target as L.Path).setStyle({ weight: 3, fillOpacity: 0.94 }),
-      mouseout: (e) => view === "kabupaten" && (e.target as L.Path).setStyle({ weight: 2, fillOpacity: 0.82 }),
+      mouseover: () => {
+        if (view === "kabupaten") setHoveredKab(name);
+      },
+      mouseout: () => {
+        if (view === "kabupaten") setHoveredKab(null);
+      },
     });
   }
 
@@ -329,7 +344,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
 
           {/* Kabupaten layer — always visible */}
           <GeoJSON
-            key={`kab-${view}-${JSON.stringify(countByKab)}`}
+            key={`kab-${view}-${hoveredKab ?? ""}-${JSON.stringify(countByKab)}`}
             data={jatimKabupatenGeo as any}
             onEachFeature={onEachKab}
           />
@@ -347,7 +362,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
           {view === "kecamatan" && kecFeatures.length > 0 && (
             <>
               <GeoJSON
-                key={`kec-${selectedKab}-${JSON.stringify(countByKec)}`}
+                key={`kec-${selectedKab}-${selectedKec ?? ""}-${JSON.stringify(countByKec)}`}
                 data={kecGeoFiltered as any}
                 onEachFeature={onEachKec}
               />
