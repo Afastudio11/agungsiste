@@ -1,6 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { runSeedIfEmpty } from "@workspace/db/autoSeed";
+import { runSeedIfEmpty, seedProgramsIfEmpty } from "@workspace/db/autoSeed";
 import { seedUsersIfEmpty } from "./seedUsers";
 
 const rawPort = process.env["PORT"];
@@ -18,6 +18,7 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 runSeedIfEmpty()
+  .then(() => seedProgramsIfEmpty())
   .then(() => seedUsersIfEmpty())
   .then(() => {
     app.listen(port, (err) => {

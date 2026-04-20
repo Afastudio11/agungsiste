@@ -1,14 +1,29 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import Layout from "@/components/layout";
 import {
   ClipboardList, Plus, Trash2, ChevronRight, Users, Calendar,
-  MapPin, Search, X, Pencil,
+  MapPin, Search, X, Pencil, CalendarDays, ChevronUp, ChevronDown, Download,
 } from "@/lib/icons";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const KABUPATEN_LIST = ["Pacitan", "Trenggalek", "Magetan", "Ponorogo", "Ngawi"];
+
+type SortKey = "name" | "tahun" | "registeredCount";
+type SortDir = "asc" | "desc";
+
+function exportExcelPrograms(programs: Program[]) {
+  import("@/lib/exportUtils").then(({ exportExcel }) => {
+    const headers = ["ID", "Nama Program", "Komisi", "Mitra", "Tahun", "Kabupaten Penerima", "Total KTP", "Terdaftar", "Status"];
+    const rows = [headers, ...programs.map((p) => [
+      p.id, p.name, p.komisi ?? "", p.mitra ?? "", p.tahun ?? "",
+      (p.kabupatenPenerima ?? []).join(", "),
+      p.totalKtpPenerima ?? "", p.registeredCount, p.status,
+    ])];
+    exportExcel(rows, `programs_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  });
+}
 
 type Program = {
   id: number;
@@ -66,7 +81,19 @@ export default function ProgramsPage() {
   const [formData, setFormData] = useState<FormData>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
+  const [filterKabupaten, setFilterKabupaten] = useState("");
+  const [showKabupatenFilter, setShowKabupatenFilter] = useState(false);
+  const [filterTahun, setFilterTahun] = useState("");
+  const [showTahunFilter, setShowTahunFilter] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  };
 
   const fetchPrograms = useCallback(async () => {
     setLoading(true);
@@ -165,12 +192,36 @@ export default function ProgramsPage() {
     } catch { }
   };
 
-  const filtered = programs.filter((p) =>
-    !search ||
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.komisi ?? "").toLowerCase().includes(search.toLowerCase()) ||
-    (p.mitra ?? "").toLowerCase().includes(search.toLowerCase())
+  const tahunList = useMemo(
+    () => [...new Set(programs.map((p) => p.tahun).filter(Boolean))].sort().reverse() as string[],
+    [programs]
   );
+
+  const hasFilter = !!(search || filterStatus !== "all" || filterKabupaten || filterTahun);
+
+  const filtered = useMemo(() => {
+    let result = [...programs];
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.komisi ?? "").toLowerCase().includes(q) ||
+        (p.mitra ?? "").toLowerCase().includes(q)
+      );
+    }
+    if (filterStatus !== "all") result = result.filter((p) => p.status === filterStatus);
+    if (filterKabupaten) result = result.filter((p) => (p.kabupatenPenerima ?? []).includes(filterKabupaten));
+    if (filterTahun) result = result.filter((p) => p.tahun === filterTahun);
+    return result.sort((a, b) => {
+      let av: any = (a as any)[sortKey] ?? "";
+      let bv: any = (b as any)[sortKey] ?? "";
+      if (sortKey === "registeredCount") { av = Number(av); bv = Number(bv); }
+      else { av = String(av).toLowerCase(); bv = String(bv).toLowerCase(); }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [programs, search, filterStatus, filterKabupaten, filterTahun, sortKey, sortDir]);
 
   const totalTarget = programs.reduce((a, p) => a + (p.totalKtpPenerima ?? 0), 0);
   const totalRegistered = programs.reduce((a, p) => a + p.registeredCount, 0);
@@ -203,34 +254,125 @@ export default function ProgramsPage() {
         </div>
 
         {/* ── Toolbar ── */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari nama program, komisi, atau mitra..."
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400 text-sm text-slate-700 placeholder:text-slate-400 transition-colors"
-            />
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {search && (
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari nama program, komisi, atau mitra..."
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400 text-sm text-slate-700 placeholder:text-slate-400 transition-colors"
+              />
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() => setSearch("")}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm border bg-white text-red-400 border-red-100 hover:bg-red-50 transition-all"
+                onClick={() => { setShowTahunFilter((v) => !v); setShowKabupatenFilter(false); }}
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                  filterTahun
+                    ? "bg-indigo-50 text-indigo-600 border-indigo-200"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                }`}
               >
-                <X className="h-4 w-4" />
+                <CalendarDays className="h-4 w-4" />
+                <span className="hidden sm:inline">{filterTahun || "Tahun"}</span>
               </button>
-            )}
-            <button
-              onClick={openCreate}
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Tambah Program</span>
-            </button>
+
+              <button
+                onClick={() => handleSort("tahun")}
+                className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                  sortKey === "tahun"
+                    ? "bg-slate-100 text-slate-700 border-slate-200"
+                    : "bg-white text-slate-500 border-slate-200 hover:text-slate-700"
+                }`}
+                title="Urutkan tahun"
+              >
+                {sortKey === "tahun" && sortDir === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                <span className="hidden sm:inline">Tahun</span>
+              </button>
+
+              <button
+                onClick={() => { setShowKabupatenFilter((v) => !v); setShowTahunFilter(false); }}
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                  filterKabupaten
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700"
+                }`}
+              >
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">{filterKabupaten || "Wilayah"}</span>
+              </button>
+
+              {hasFilter && (
+                <button
+                  onClick={() => { setSearch(""); setFilterStatus("all"); setFilterKabupaten(""); setFilterTahun(""); setShowTahunFilter(false); setShowKabupatenFilter(false); }}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm border bg-white text-red-400 border-red-100 hover:bg-red-50 transition-all"
+                  title="Reset filter"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+
+              <div className="h-6 w-px bg-slate-200" />
+
+              <button
+                onClick={() => exportExcelPrograms(filtered)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-600 font-bold rounded-xl border border-slate-200 hover:bg-slate-50 transition-all text-sm"
+              >
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Export</span>
+              </button>
+
+              <button
+                onClick={openCreate}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Tambah Program</span>
+              </button>
+            </div>
           </div>
+
+          {/* Tahun filter row */}
+          {showTahunFilter && (
+            <div className="flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3">
+              <CalendarDays className="h-4 w-4 text-slate-400 shrink-0" />
+              <span className="text-xs font-medium text-slate-500">Tahun Program</span>
+              <select
+                value={filterTahun}
+                onChange={(e) => setFilterTahun(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-indigo-400 transition-colors"
+              >
+                <option value="">— Semua tahun —</option>
+                {tahunList.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              {filterTahun && (
+                <button onClick={() => setFilterTahun("")} className="text-xs text-red-400 hover:text-red-600 transition-colors">Reset</button>
+              )}
+              <button onClick={() => setShowTahunFilter(false)} className="ml-auto text-xs text-slate-400 hover:text-slate-600 transition-colors">Tutup</button>
+            </div>
+          )}
+
+          {/* Kabupaten filter row */}
+          {showKabupatenFilter && (
+            <div className="flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3">
+              <MapPin className="h-4 w-4 text-emerald-500 shrink-0" />
+              <span className="text-xs font-medium text-slate-500">Kabupaten Penerima</span>
+              <select
+                value={filterKabupaten}
+                onChange={(e) => setFilterKabupaten(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-emerald-400 transition-colors"
+              >
+                <option value="">— Semua wilayah —</option>
+                {KABUPATEN_LIST.map((k) => <option key={k} value={k}>{k}</option>)}
+              </select>
+              {filterKabupaten && (
+                <button onClick={() => setFilterKabupaten("")} className="text-xs text-red-400 hover:text-red-600 transition-colors">Reset</button>
+              )}
+              <button onClick={() => setShowKabupatenFilter(false)} className="ml-auto text-xs text-slate-400 hover:text-slate-600 transition-colors">Tutup</button>
+            </div>
+          )}
         </div>
 
         {/* ── Add/Edit Program Form ── */}
@@ -348,13 +490,58 @@ export default function ProgramsPage() {
 
         {/* ── Program List ── */}
         <div className="space-y-5">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-sm font-bold text-slate-900 tracking-widest flex items-center gap-2">
-              Daftar Program
-              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px]">
-                {filtered.length}
-              </span>
-            </h3>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-bold text-slate-900 tracking-widest flex items-center gap-2">
+                Daftar Program
+                <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px]">
+                  {filtered.length}
+                </span>
+              </h3>
+              <div className="flex items-center gap-1">
+                {(["all", "active", "inactive"] as const).map((s) => {
+                  const labels = { all: "Semua", active: "Aktif", inactive: "Nonaktif" };
+                  const active = filterStatus === s;
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setFilterStatus(s)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border ${
+                        active
+                          ? s === "active"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : s === "inactive"
+                              ? "bg-slate-100 text-slate-500 border-slate-200"
+                              : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                          : "bg-white text-slate-400 border-slate-200 hover:text-slate-600"
+                      }`}
+                    >
+                      {labels[s]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs">
+              {(["name", "tahun", "registeredCount"] as SortKey[]).map((key) => {
+                const labels: Record<SortKey, string> = { name: "Nama", tahun: "Tahun", registeredCount: "Penerima" };
+                const active = sortKey === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleSort(key)}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold transition-colors ${
+                      active
+                        ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                        : "text-slate-400 hover:text-slate-600"
+                    }`}
+                  >
+                    {labels[key]}
+                    {active && (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {loading ? (

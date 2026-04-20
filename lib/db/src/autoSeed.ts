@@ -1,4 +1,4 @@
-import { db, eventsTable, participantsTable, eventRegistrationsTable } from "./index";
+import { db, eventsTable, participantsTable, eventRegistrationsTable, programsTable, programRegistrationsTable } from "./index";
 import { sql, count } from "drizzle-orm";
 import { jatimWilayah } from "./jatimWilayah";
 
@@ -249,4 +249,134 @@ export async function runSeedIfEmpty(): Promise<void> {
   }
 
   console.log(`[autoSeed] Done! ${insertedEvents.length} events, ${participantIds.length} participants, ${regValues.length} registrations.`);
+  await seedProgramsIfEmpty();
+}
+
+const programTemplates = [
+  {
+    name: "Bedah Rumah Tidak Layak Huni 2023",
+    komisi: "Komisi V",
+    mitra: "Kementerian PUPR",
+    tahun: "2023",
+    kabupatenPenerima: ["Pacitan", "Ponorogo"],
+    totalKtpPenerima: 350,
+  },
+  {
+    name: "Bantuan Sosial Tunai Keluarga Miskin",
+    komisi: "Komisi VIII",
+    mitra: "Kemensos RI",
+    tahun: "2023",
+    kabupatenPenerima: ["Trenggalek", "Ngawi", "Magetan"],
+    totalKtpPenerima: 800,
+  },
+  {
+    name: "Program KIP Kuliah Jawa Timur 2024",
+    komisi: "Komisi X",
+    mitra: "Kemendikbudristek",
+    tahun: "2024",
+    kabupatenPenerima: ["Ponorogo", "Pacitan", "Magetan"],
+    totalKtpPenerima: 500,
+  },
+  {
+    name: "Subsidi Pupuk Petani Daerah Pelosok",
+    komisi: "Komisi IV",
+    mitra: "Kementerian Pertanian",
+    tahun: "2024",
+    kabupatenPenerima: ["Ngawi", "Magetan", "Trenggalek"],
+    totalKtpPenerima: 1200,
+  },
+  {
+    name: "Bantuan Alat Tangkap Nelayan 2024",
+    komisi: "Komisi IV",
+    mitra: "KKP RI",
+    tahun: "2024",
+    kabupatenPenerima: ["Pacitan", "Trenggalek"],
+    totalKtpPenerima: 220,
+  },
+  {
+    name: "Pelatihan UMKM Digital Jawa Timur",
+    komisi: "Komisi VI",
+    mitra: "Kemendag RI",
+    tahun: "2025",
+    kabupatenPenerima: ["Ponorogo", "Ngawi"],
+    totalKtpPenerima: 600,
+  },
+  {
+    name: "Renovasi Sarana Air Bersih Desa",
+    komisi: "Komisi V",
+    mitra: "BSPS Kemenpera",
+    tahun: "2025",
+    kabupatenPenerima: ["Pacitan", "Trenggalek", "Magetan"],
+    totalKtpPenerima: 900,
+  },
+  {
+    name: "Distribusi KTP-el Daerah Terpencil",
+    komisi: "Komisi II",
+    mitra: "Ditjen Dukcapil Kemendagri",
+    tahun: "2025",
+    kabupatenPenerima: ["Pacitan", "Ponorogo", "Ngawi", "Trenggalek", "Magetan"],
+    totalKtpPenerima: 2500,
+  },
+];
+
+export async function seedProgramsIfEmpty(): Promise<void> {
+  const [progRow] = await db.select({ cnt: count() }).from(programsTable);
+  if (progRow && progRow.cnt > 0) {
+    console.log(`[autoSeed] Programs already seeded (${progRow.cnt}). Skipping.`);
+    return;
+  }
+
+  console.log("[autoSeed] Seeding programs...");
+
+  const [participantRow] = await db.select({ cnt: count() }).from(participantsTable);
+  const totalParticipants = participantRow?.cnt ?? 0;
+
+  const insertedPrograms = await db.insert(programsTable).values(
+    programTemplates.map((p) => ({
+      name: p.name,
+      komisi: p.komisi,
+      mitra: p.mitra,
+      tahun: p.tahun,
+      kabupatenPenerima: JSON.stringify(p.kabupatenPenerima),
+      totalKtpPenerima: p.totalKtpPenerima,
+      status: "active",
+    }))
+  ).returning();
+
+  if (totalParticipants === 0) {
+    console.log("[autoSeed] No participants found — skipping program registrations.");
+    return;
+  }
+
+  // For each program, assign a realistic number of registered participants
+  const allParticipantIds = await db.select({ id: participantsTable.id }).from(participantsTable);
+  const pidList = allParticipantIds.map((r) => r.id);
+
+  for (const prog of insertedPrograms) {
+    const template = programTemplates.find((t) => t.name === prog.name)!;
+    const target = template.totalKtpPenerima;
+    // Register ~60-80% of target
+    const regCount = Math.min(pidList.length, Math.floor(target * (0.6 + Math.random() * 0.2)));
+    const shuffled = [...pidList].sort(() => Math.random() - 0.5).slice(0, regCount);
+
+    const regValues = shuffled.map((pid) => ({
+      programId: prog.id,
+      participantId: pid,
+      staffName: rand(staffNames),
+    }));
+
+    const REG_BATCH = 200;
+    for (let i = 0; i < regValues.length; i += REG_BATCH) {
+      await db.insert(programRegistrationsTable).values(regValues.slice(i, i + REG_BATCH));
+    }
+
+    // Update registeredCount
+    await db.execute(
+      sql`UPDATE programs SET registered_count = ${regCount} WHERE id = ${prog.id}`
+    );
+
+    console.log(`[autoSeed] Program "${prog.name}": ${regCount} registrations`);
+  }
+
+  console.log(`[autoSeed] Programs seeded: ${insertedPrograms.length}`);
 }
