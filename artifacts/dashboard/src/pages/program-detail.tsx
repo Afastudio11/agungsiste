@@ -96,62 +96,76 @@ export default function ProgramDetailPage() {
           </div>
         ) : (
           <>
-            {/* Program Info Card */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_1px_4px_rgba(0,0,0,0.05)] p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center shrink-0">
-                  <ClipboardList className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-xl font-extrabold text-slate-900 leading-tight">{program.name}</h1>
-                  <div className="flex flex-wrap items-center gap-2 mt-2">
-                    {program.komisi && (
-                      <span className="text-[11px] font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full border border-blue-100">{program.komisi}</span>
-                    )}
-                    {program.mitra && (
-                      <span className="text-[11px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">{program.mitra}</span>
-                    )}
-                    {program.tahun && (
-                      <span className="text-[11px] font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full border border-amber-100 flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />{program.tahun}
-                      </span>
+            {/* Program Info Card + Stat */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Info card */}
+              <div className="sm:col-span-2 group relative overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow p-6">
+                <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-blue-500" />
+                <div className="flex items-start gap-4 relative">
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
+                    <ClipboardList className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-[15px] font-extrabold text-slate-900 leading-tight">{program.name}</h1>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      {program.komisi && (
+                        <span className="text-[11px] font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full border border-blue-100">{program.komisi}</span>
+                      )}
+                      {program.mitra && (
+                        <span className="text-[11px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">{program.mitra}</span>
+                      )}
+                      {program.tahun && (
+                        <span className="text-[11px] font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full border border-amber-100 flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />{program.tahun}
+                        </span>
+                      )}
+                    </div>
+                    {program.kabupatenPenerima.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                        <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        {program.kabupatenPenerima.map((k) => (
+                          <span key={k} className="text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">{k}</span>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  {program.kabupatenPenerima.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
-                      <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                      {program.kabupatenPenerima.map((k) => (
-                        <span key={k} className="text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">{k}</span>
-                      ))}
+                </div>
+                {/* Progress */}
+                <div className="mt-5 pt-4 border-t border-slate-100 relative">
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="text-xs font-bold text-slate-400 tracking-wide">PENERIMA KTP</span>
+                    <div className="flex items-baseline gap-1">
+                      {program.totalKtpPenerima && (
+                        <span className="text-sm text-slate-400">Target: {program.totalKtpPenerima.toLocaleString("id-ID")}</span>
+                      )}
+                      {pct !== null && (
+                        <span className={`text-[11px] font-bold ml-1 px-2 py-0.5 rounded-full ${pct >= 100 ? "bg-emerald-100 text-emerald-700" : "bg-blue-50 text-blue-600"}`}>
+                          {pct}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {pct !== null && (
+                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${pct}%`, background: pct >= 100 ? "#22c55e" : "#3b82f6" }}
+                      />
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Progress */}
-              <div className="mt-5 pt-4 border-t border-slate-100">
-                <div className="flex items-baseline justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-400 tracking-wide">PENERIMA KTP</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-extrabold text-slate-900">{program.registeredCount.toLocaleString("id-ID")}</span>
-                    {program.totalKtpPenerima && (
-                      <span className="text-sm text-slate-400">/ {program.totalKtpPenerima.toLocaleString("id-ID")}</span>
-                    )}
-                    {pct !== null && (
-                      <span className={`text-[11px] font-bold ml-1 px-2 py-0.5 rounded-full ${pct >= 100 ? "bg-emerald-100 text-emerald-700" : "bg-blue-50 text-blue-600"}`}>
-                        {pct}%
-                      </span>
-                    )}
-                  </div>
+              {/* Penerima KTP stat card */}
+              <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
+                <div className={`absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 ${pct !== null && pct >= 100 ? "bg-emerald-500" : "bg-blue-500"}`} />
+                <div className="flex items-start justify-between mb-3 relative">
+                  <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Penerima KTP</p>
+                  <Users className="h-5 w-5 text-blue-400" />
                 </div>
-                {pct !== null && (
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${pct}%`, background: pct >= 100 ? "#22c55e" : "#3b82f6" }}
-                    />
-                  </div>
-                )}
+                <p className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>
+                  {program.registeredCount.toLocaleString("id-ID")}
+                </p>
               </div>
             </div>
 

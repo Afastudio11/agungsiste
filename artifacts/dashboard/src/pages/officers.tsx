@@ -146,54 +146,42 @@ export default function OfficersPage() {
           </button>
         </div>
 
-        {/* Summary cards — glass-card style */}
+        {/* Summary cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Total Petugas */}
-          <div className="group relative rounded-2xl bg-white/70 backdrop-blur-sm border border-white/80 px-6 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.07)] hover:-translate-y-1 transition-all duration-200 cursor-default">
-            <div className="flex items-start justify-between mb-4">
-              <div className="h-12 w-12 rounded-2xl bg-blue-100 group-hover:bg-blue-600 flex items-center justify-center transition-colors duration-200">
-                <Users className="h-6 w-6 text-blue-600 group-hover:text-white transition-colors duration-200" />
-              </div>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-                Petugas
-              </span>
+          <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow cursor-default">
+            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-blue-500" />
+            <div className="flex items-start justify-between mb-3 relative">
+              <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Total Petugas</p>
+              <Users className="h-5 w-5 text-blue-400" />
             </div>
-            <div className="text-[36px] font-extrabold text-slate-900 leading-none mb-1" style={{ letterSpacing: "-0.04em" }}>
+            <div className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>
               {petugas.length}
             </div>
-            <p className="text-xs font-semibold text-slate-400 tracking-widest">Total Petugas</p>
           </div>
 
           {/* Total Registrasi */}
-          <div className="group relative rounded-2xl bg-white/70 backdrop-blur-sm border border-white/80 px-6 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.07)] hover:-translate-y-1 transition-all duration-200 cursor-default">
-            <div className="flex items-start justify-between mb-4">
-              <div className="h-12 w-12 rounded-2xl bg-violet-100 group-hover:bg-violet-600 flex items-center justify-center transition-colors duration-200">
-                <Trophy className="h-6 w-6 text-violet-600 group-hover:text-white transition-colors duration-200" />
-              </div>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-violet-50 text-violet-600 border border-violet-100">
-                Registrasi
-              </span>
+          <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow cursor-default">
+            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-violet-500" />
+            <div className="flex items-start justify-between mb-3 relative">
+              <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Total Registrasi</p>
+              <Trophy className="h-5 w-5 text-violet-400" />
             </div>
-            <div className="text-[36px] font-extrabold text-slate-900 leading-none mb-1" style={{ letterSpacing: "-0.04em" }}>
+            <div className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>
               {totalRegistrasi.toLocaleString("id-ID")}
             </div>
-            <p className="text-xs font-semibold text-slate-400 tracking-widest">Total Registrasi</p>
           </div>
 
           {/* Petugas Aktif */}
-          <div className="group relative rounded-2xl bg-white/70 backdrop-blur-sm border border-white/80 px-6 py-5 shadow-[0_2px_12px_rgba(0,0,0,0.07)] hover:-translate-y-1 transition-all duration-200 cursor-default">
-            <div className="flex items-start justify-between mb-4">
-              <div className="h-12 w-12 rounded-2xl bg-emerald-100 group-hover:bg-emerald-600 flex items-center justify-center transition-colors duration-200">
-                <Activity className="h-6 w-6 text-emerald-600 group-hover:text-white transition-colors duration-200" />
-              </div>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
-                Aktif
-              </span>
+          <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow cursor-default">
+            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-emerald-500" />
+            <div className="flex items-start justify-between mb-3 relative">
+              <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Petugas Aktif</p>
+              <Activity className="h-5 w-5 text-emerald-400" />
             </div>
-            <div className="text-[36px] font-extrabold text-slate-900 leading-none mb-1" style={{ letterSpacing: "-0.04em" }}>
+            <div className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>
               {petugasAktif}
             </div>
-            <p className="text-xs font-semibold text-slate-400 tracking-widest">Petugas Aktif</p>
           </div>
         </div>
 

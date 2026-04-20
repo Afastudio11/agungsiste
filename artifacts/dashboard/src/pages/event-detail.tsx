@@ -214,39 +214,29 @@ function StatCard({
   value,
   sub,
   icon,
-  accentColor,
-  iconBg,
-  numberColor,
+  circleColor,
+  iconColor,
 }: {
   label: string;
   value: number | string;
   sub?: string;
   icon: React.ReactNode;
-  accentColor: string;
-  iconBg: string;
-  numberColor: string;
+  circleColor: string;
+  iconColor: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.07)] px-5 py-5">
-      {/* Top: icon */}
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${iconBg}`}>
-        {icon}
+    <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
+      <div className={`absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 ${circleColor}`} />
+      <div className="flex items-start justify-between mb-3 relative">
+        <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>{label}</p>
+        <span className={iconColor}>{icon}</span>
       </div>
-      {/* Number */}
-      <p
-        className={`text-[36px] font-extrabold leading-none mb-1 ${numberColor}`}
-        style={{ letterSpacing: "-0.04em" }}
-      >
+      <p className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>
         {value}
       </p>
-      {/* Label */}
-      <p className="text-[13px] font-bold text-slate-700">{label}</p>
-      {/* Sub-label */}
       {sub && (
-        <p className="text-[11px] text-slate-400 font-medium mt-0.5">{sub}</p>
+        <p className="text-[11px] text-slate-400 font-medium mt-1.5 relative">{sub}</p>
       )}
-      {/* Accent bar at bottom */}
-      <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${accentColor}`} />
     </div>
   );
 }
@@ -409,19 +399,17 @@ export default function EventDetailPage() {
             label="Jumlah Peserta"
             value={participantsLoading ? "—" : hadirTotal}
             sub={participantsLoading ? undefined : walkinCount > 0 ? `${walkinCount} walk-in` : "Semua via RSVP"}
-            icon={<UserCheck className="h-5 w-5 text-emerald-600" />}
-            iconBg="bg-emerald-100"
-            numberColor="text-emerald-700"
-            accentColor="bg-emerald-500"
+            icon={<UserCheck className="h-5 w-5" />}
+            circleColor="bg-emerald-500"
+            iconColor="text-emerald-400"
           />
           <StatCard
             label="Jumlah Registrasi"
             value={participantsLoading ? "—" : rsvpTotal}
             sub={participantsLoading ? undefined : rsvpCheckedIn > 0 ? `${rsvpCheckedIn} sudah hadir` : "Belum ada check-in"}
-            icon={<Users className="h-5 w-5 text-indigo-600" />}
-            iconBg="bg-indigo-100"
-            numberColor="text-indigo-700"
-            accentColor="bg-indigo-500"
+            icon={<Users className="h-5 w-5" />}
+            circleColor="bg-indigo-500"
+            iconColor="text-indigo-400"
           />
         </div>
 

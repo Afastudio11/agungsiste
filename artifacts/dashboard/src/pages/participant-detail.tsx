@@ -6,7 +6,7 @@ import {
   getGetParticipantByNikQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, MapPin, ImageIcon, Download, FileText, Loader2, Pencil, X, Check, Trash2, AlertTriangle } from "@/lib/icons";
+import { CalendarDays, Calendar, Tag, MapPin, ImageIcon, Download, FileText, Loader2, Pencil, X, Check, Trash2, AlertTriangle } from "@/lib/icons";
 import jsPDF from "jspdf";
 import { kabupatenList, getKecamatanList, getDesaList } from "@workspace/db/jatimWilayah";
 
@@ -563,18 +563,23 @@ export default function ParticipantDetailPage() {
           <div className="space-y-4">
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white rounded-2xl border border-slate-100 p-4">
-                <div className="text-xs font-bold text-slate-400 tracking-wider mb-1">Total Kegiatan</div>
-                <div
-                  className="text-3xl font-extrabold text-slate-900"
-                  style={{ letterSpacing: "-0.04em" }}
-                >
+              <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-5 pt-5 pb-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
+                <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-blue-500" />
+                <div className="flex items-start justify-between mb-2 relative">
+                  <p className="text-[12px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Total Kegiatan</p>
+                  <Calendar className="h-4 w-4 text-blue-400" />
+                </div>
+                <div className="text-[34px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>
                   {profile.events?.length ?? 0}
                 </div>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-100 p-4">
-                <div className="text-xs font-bold text-slate-400 tracking-wider mb-1">Status</div>
-                <div className="mt-1">
+              <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-5 pt-5 pb-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
+                <div className={`absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 ${(profile.events?.length ?? 0) > 1 ? "bg-amber-500" : "bg-violet-500"}`} />
+                <div className="flex items-start justify-between mb-2 relative">
+                  <p className="text-[12px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Status</p>
+                  <Tag className="h-4 w-4 text-slate-400" />
+                </div>
+                <div className="mt-1 relative">
                   {(profile.events?.length ?? 0) > 1 ? (
                     <span className="inline-block text-xs font-bold bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full">
                       Multi Event
