@@ -178,7 +178,7 @@ export default function PublicRegisterPage() {
 
   const handleSubmit = async () => {
     if (!ktpData.nik || !ktpData.fullName || !event) return;
-    if (!phone.trim()) { setErrorMsg("Nomor telepon wajib diisi"); setStep(step === "verify-data" ? "verify-data" : "fill-form"); return; }
+
     setErrorMsg("");
     setSubmitting(true);
     try {
@@ -851,7 +851,7 @@ export default function PublicRegisterPage() {
 
                   <div className="border-t border-slate-100 pt-3 space-y-3">
                     <p className="text-[11px] font-extrabold text-slate-400 tracking-widest">KONTAK</p>
-                    <FormField label="No. Telepon *" value={phone} onChange={setPhone} placeholder="+62 8xx xxxx xxxx" type="tel" />
+                    <FormField label="No. Telepon" value={phone} onChange={setPhone} placeholder="08123456789" type="tel" />
                     <FormField label="Email" value={email} onChange={setEmail} placeholder="email@domain.com" type="email" />
                     {errorMsg && (
                       <p className="text-[12px] text-red-600 font-semibold flex items-center gap-1.5">
@@ -865,7 +865,7 @@ export default function PublicRegisterPage() {
 
             <button
               onClick={handleSubmit}
-              disabled={submitting || !ktpData.nik || !ktpData.fullName || !phone.trim()}
+              disabled={submitting || !ktpData.nik || !ktpData.fullName}
               className="w-full mt-7 flex items-center justify-center gap-2.5 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-2xl font-extrabold text-[15px] transition shadow-md shadow-blue-500/20 active:scale-[0.98]"
             >
               {submitting ? (
@@ -934,10 +934,10 @@ export default function PublicRegisterPage() {
                   )}
                 </div>
                 <FormField
-                  label="No. Telepon *"
+                  label="No. Telepon"
                   value={phone}
                   onChange={setPhone}
-                  placeholder="+62 8xx xxxx xxxx"
+                  placeholder="08123456789"
                   type="tel"
                   readOnly={!!existingParticipant?.phone}
                 />
@@ -959,7 +959,7 @@ export default function PublicRegisterPage() {
 
             <button
               onClick={handleSubmit}
-              disabled={submitting || !ktpData.nik || !ktpData.fullName || !phone.trim()}
+              disabled={submitting || !ktpData.nik || !ktpData.fullName}
               className="w-full mt-6 flex items-center justify-center gap-2.5 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-2xl font-extrabold text-[15px] transition shadow-md shadow-blue-500/20 active:scale-[0.98]"
             >
               {submitting ? (

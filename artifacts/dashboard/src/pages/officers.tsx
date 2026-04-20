@@ -233,7 +233,7 @@ export default function OfficersPage() {
                     { label: "Nama Lengkap *", key: "name", placeholder: "Nama lengkap" },
                     { label: "Jabatan", key: "jabatan", placeholder: "Koordinator / Staf" },
                     { label: "Wilayah / Kabupaten", key: "wilayah", placeholder: "Kab. Bandung" },
-                    { label: "Nomor HP", key: "phone", placeholder: "+62 8xx" },
+                    { label: "Nomor HP", key: "phone", placeholder: "08123456789" },
                   ].map(({ label, key, placeholder }) => (
                     <div key={key}>
                       <label className="block text-xs font-bold text-slate-500 mb-1.5">{label}</label>
