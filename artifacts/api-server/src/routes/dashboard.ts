@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, prizesTable, usersTable, adminAuditLogTable, programsTable } from "@workspace/db";
+import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, prizesTable, usersTable, adminAuditLogTable, programsTable, programRegistrationsTable } from "@workspace/db";
 import { eq, sql, and, gte, lte, ilike } from "drizzle-orm";
 import { GetDashboardStatsQueryParams, GetEventsSummaryQueryParams, GetDailyRegistrationsQueryParams } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/auth";
@@ -23,13 +23,39 @@ router.get("/stats", requireAdmin, async (req, res) => {
       .from(participantsTable)
       .where(participantConds.length > 0 ? and(...participantConds) : undefined);
 
-    const [totalEvents] = await db
-      .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(eventsTable);
+    // Total events: if daerah filter active, count only events that have at least 1 participant from that area
+    let totalEvents: { count: number };
+    if (participantConds.length > 0) {
+      const subq = db
+        .selectDistinct({ eventId: eventRegistrationsTable.eventId })
+        .from(eventRegistrationsTable)
+        .innerJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+        .where(and(...participantConds));
+      [totalEvents] = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(subq.as("filtered_events"));
+    } else {
+      [totalEvents] = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(eventsTable);
+    }
 
-    const [totalPrograms] = await db
-      .select({ count: sql<number>`cast(count(*) as integer)` })
-      .from(programsTable);
+    // Total programs: if daerah filter active, count only programs that have at least 1 participant from that area
+    let totalPrograms: { count: number };
+    if (participantConds.length > 0) {
+      const progSubq = db
+        .selectDistinct({ programId: programRegistrationsTable.programId })
+        .from(programRegistrationsTable)
+        .innerJoin(participantsTable, eq(programRegistrationsTable.participantId, participantsTable.id))
+        .where(and(...participantConds));
+      [totalPrograms] = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(progSubq.as("filtered_programs"));
+    } else {
+      [totalPrograms] = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(programsTable);
+    }
 
     let regConditions: any[] = [...participantConds.map(() => null)]; // placeholder
     regConditions = [];
@@ -400,12 +426,27 @@ router.get("/segments", requireAdmin, async (req, res) => {
 
     let ageRawRows: { age_group: string; count: number }[];
     if (needsDateOrDaerah) {
+      // Build raw WHERE conditions for daerah (join with participants)
+      const esc = (v: string) => v.replace(/'/g, "''");
+      const rawConds: string[] = [`${AGE_CASE_CTE} <> 'unknown'`];
+      if (startDate) rawConds.push(`er.registered_at >= '${esc(startDate)}'::timestamptz`);
+      if (endDate) rawConds.push(`er.registered_at < ('${esc(endDate)}'::date + interval '1 day')::timestamptz`);
+      if (kabupaten) rawConds.push(`p.city ilike '%${esc(kabupaten)}%'`);
+      if (kecamatan) rawConds.push(`p.kecamatan ilike '%${esc(kecamatan)}%'`);
+      if (kelurahan) rawConds.push(`p.kelurahan ilike '%${esc(kelurahan)}%'`);
+
+      const needsParticipantJoin = kabupaten || kecamatan || kelurahan;
+      const joinClause = needsParticipantJoin
+        ? `inner join participants p on er.participant_id = p.id`
+        : "";
+
       const result = await db.execute(sql.raw(`
         with ${SAFE_DATE_CTE}
         select ${AGE_CASE_CTE} as age_group, cast(count(distinct sd.id) as integer) as count
         from safe_date sd
         inner join event_registrations er on er.participant_id = sd.id
-        where ${AGE_CASE_CTE} <> 'unknown'
+        ${joinClause}
+        where ${rawConds.join(" and ")}
         group by 1
         order by min(extract(year from age(sd.parsed_date)))
       `));
