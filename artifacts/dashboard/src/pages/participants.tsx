@@ -489,8 +489,8 @@ export default function ParticipantsPage() {
                   <SortTh col="gender" label="Kelamin" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="hidden sm:table-cell" />
                   <SortTh col="city" label="Domisili" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
                   <SortTh col="firstRegisteredAt" label="Terdaftar" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="hidden md:table-cell" />
-                  <SortTh col="eventCount" label="Kegiatan" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right hidden lg:table-cell" />
-                  <SortTh col="programCount" label="Program" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right hidden lg:table-cell" />
+                  <SortTh col="eventCount" label="Kegiatan" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-center hidden lg:table-cell" />
+                  <SortTh col="programCount" label="Program" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-center hidden lg:table-cell" />
                   <th className="px-6 py-4 text-right" />
                 </tr>
               </thead>
@@ -561,28 +561,17 @@ export default function ParticipantsPage() {
                         </td>
 
                         {/* Total Kegiatan */}
-                        <td className="px-6 py-4 text-right hidden lg:table-cell">
+                        <td className="px-6 py-4 text-center hidden lg:table-cell">
                           <span className="text-sm font-bold text-slate-900 tabular-nums">
                             {String(p.eventCount).padStart(2, "0")}
                           </span>
                         </td>
 
                         {/* Total Program */}
-                        <td className="px-6 py-4 text-right hidden lg:table-cell">
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="text-sm font-bold text-slate-900">
-                              {String((p as any).programCount ?? 0).padStart(2, "0")}
-                            </span>
-                            {((p as any).programCount ?? 0) > 0 ? (
-                              <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-indigo-50 text-indigo-600">
-                                Aktif
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-slate-100 text-slate-400">
-                                —
-                              </span>
-                            )}
-                          </div>
+                        <td className="px-6 py-4 text-center hidden lg:table-cell">
+                          <span className="text-sm font-bold text-slate-900 tabular-nums">
+                            {String((p as any).programCount ?? 0).padStart(2, "0")}
+                          </span>
                         </td>
 
                         {/* Aksi */}
