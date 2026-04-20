@@ -582,13 +582,13 @@ export default function EventsPage() {
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all bg-slate-50 hover:bg-slate-100 disabled:opacity-50"
                       >
                         <span
-                          className={`relative inline-block w-8 h-4 rounded-full transition-colors duration-200 ${
-                            (event as any).status === "inactive" ? "bg-slate-300" : "bg-emerald-500"
+                          className={`relative inline-flex shrink-0 w-9 h-5 rounded-full transition-colors duration-200 ${
+                            (event as any).status === "inactive" ? "bg-slate-200" : "bg-emerald-500"
                           }`}
                         >
                           <span
-                            className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform duration-200 ${
-                              (event as any).status === "inactive" ? "translate-x-0.5" : "translate-x-[1.125rem]"
+                            className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+                              (event as any).status === "inactive" ? "translate-x-0" : "translate-x-4"
                             }`}
                           />
                         </span>
