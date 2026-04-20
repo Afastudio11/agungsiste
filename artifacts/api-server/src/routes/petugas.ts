@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { eventRegistrationsTable, participantsTable, eventsTable } from "@workspace/db";
+import { eventRegistrationsTable, participantsTable, eventsTable, programRegistrationsTable } from "@workspace/db";
 import { eq, ne, desc, sql, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
@@ -47,10 +47,10 @@ router.get("/my-stats", requireAuth, async (req, res) => {
     const userId = (req.session as any).userId as number;
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-    const [row] = await db
+    const [eventRow] = await db
       .select({
-        totalRegistered: sql<number>`cast(count(*) as integer)`,
-        totalEvents: sql<number>`cast(count(distinct ${eventRegistrationsTable.eventId}) as integer)`,
+        totalEventKtp: sql<number>`cast(count(*) as integer)`,
+        totalKegiatan: sql<number>`cast(count(distinct ${eventRegistrationsTable.eventId}) as integer)`,
       })
       .from(eventRegistrationsTable)
       .where(
@@ -60,7 +60,22 @@ router.get("/my-stats", requireAuth, async (req, res) => {
         )
       );
 
-    res.json({ totalRegistered: row?.totalRegistered ?? 0, totalEvents: row?.totalEvents ?? 0 });
+    const [programRow] = await db
+      .select({
+        totalProgramKtp: sql<number>`cast(count(*) as integer)`,
+        totalProgram: sql<number>`cast(count(distinct ${programRegistrationsTable.programId}) as integer)`,
+      })
+      .from(programRegistrationsTable)
+      .where(eq(programRegistrationsTable.staffId, userId));
+
+    const totalEventKtp = eventRow?.totalEventKtp ?? 0;
+    const totalProgramKtp = programRow?.totalProgramKtp ?? 0;
+
+    res.json({
+      totalKtp: totalEventKtp + totalProgramKtp,
+      totalKegiatan: eventRow?.totalKegiatan ?? 0,
+      totalProgram: programRow?.totalProgram ?? 0,
+    });
   } catch (err) {
     console.error("my-stats error:", err);
     res.status(500).json({ error: "Gagal memuat statistik" });

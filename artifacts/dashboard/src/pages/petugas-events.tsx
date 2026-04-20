@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
   CalendarDays, MapPin, LogOut, ScanLine, Search,
-  Users, QrCode, X,
+  Users, QrCode, X, Globe,
   History, Clock, ChevronRight, Home, ClipboardList, Calendar,
 } from "@/lib/icons";
 import { useAuth } from "@/lib/auth";
@@ -98,7 +98,7 @@ export default function PetugasEventsPage() {
     refetchInterval: 15000,
   });
 
-  const { data: myStats } = useQuery<{ totalRegistered: number; totalEvents: number }>({
+  const { data: myStats } = useQuery<{ totalKtp: number; totalKegiatan: number; totalProgram: number }>({
     queryKey: ["petugas-my-stats"],
     queryFn: () =>
       fetch(`${BASE}/api/petugas/my-stats`, { credentials: "include" }).then((r) => r.json()),
@@ -319,21 +319,31 @@ export default function PetugasEventsPage() {
             <div className="flex items-stretch gap-0">
               <div className="flex-1 py-2 flex flex-col items-center text-center">
                 <div className="text-[10px] text-white font-semibold tracking-widest uppercase mb-1.5 flex items-center gap-1.5">
-                  <CalendarDays size={9} />
-                  Event
+                  <Users size={9} />
+                  Total KTP
                 </div>
-                <div className="text-[32px] font-extrabold text-white leading-none" style={{ letterSpacing: "-0.05em" }}>
-                  {myStats == null ? "—" : myStats.totalEvents.toLocaleString("id-ID")}
+                <div className="text-[28px] font-extrabold text-white leading-none" style={{ letterSpacing: "-0.05em" }}>
+                  {myStats == null ? "—" : (myStats.totalKtp ?? 0).toLocaleString("id-ID")}
                 </div>
               </div>
               <div className="w-px bg-white/20 my-1" />
               <div className="flex-1 py-2 flex flex-col items-center text-center">
                 <div className="text-[10px] text-white font-semibold tracking-widest uppercase mb-1.5 flex items-center gap-1.5">
-                  <Users size={9} />
-                  Peserta
+                  <CalendarDays size={9} />
+                  Kegiatan
                 </div>
-                <div className="text-[32px] font-extrabold text-white leading-none" style={{ letterSpacing: "-0.05em" }}>
-                  {myStats == null ? "—" : myStats.totalRegistered.toLocaleString("id-ID")}
+                <div className="text-[28px] font-extrabold text-white leading-none" style={{ letterSpacing: "-0.05em" }}>
+                  {myStats == null ? "—" : (myStats.totalKegiatan ?? 0).toLocaleString("id-ID")}
+                </div>
+              </div>
+              <div className="w-px bg-white/20 my-1" />
+              <div className="flex-1 py-2 flex flex-col items-center text-center">
+                <div className="text-[10px] text-white font-semibold tracking-widest uppercase mb-1.5 flex items-center gap-1.5">
+                  <Globe size={9} />
+                  Program
+                </div>
+                <div className="text-[28px] font-extrabold text-white leading-none" style={{ letterSpacing: "-0.05em" }}>
+                  {myStats == null ? "—" : (myStats.totalProgram ?? 0).toLocaleString("id-ID")}
                 </div>
               </div>
             </div>
