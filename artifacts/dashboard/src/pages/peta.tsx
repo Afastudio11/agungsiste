@@ -92,13 +92,14 @@ interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: numbe
 interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalEvent: number; }
 interface DesaRow { kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; totalProgram?: number; }
 
-function getColor(count: number, max: number): string {
+function getColor(count: number, max: number, min = 0): string {
   if (!count || max === 0) return "#e2e8f0";
-  const r = count / max;
-  if (r < 0.15) return "#dbeafe";
-  if (r < 0.35) return "#93c5fd";
-  if (r < 0.55) return "#60a5fa";
-  if (r < 0.75) return "#3b82f6";
+  const span = max - min;
+  const r = span > 0 ? (count - min) / span : 1;
+  if (r < 0.2) return "#dbeafe";
+  if (r < 0.4) return "#93c5fd";
+  if (r < 0.6) return "#60a5fa";
+  if (r < 0.8) return "#3b82f6";
   return "#1d4ed8";
 }
 
@@ -145,12 +146,16 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
   });
 
   const countByKab = Object.fromEntries(kabData.map(k => [k.kabupaten, k.totalInput]));
-  const maxKab = Math.max(...kabData.map(k => k.totalInput), 1);
+  const kabInputs = kabData.map(k => Number(k.totalInput)).filter(v => v > 0);
+  const maxKab = Math.max(...kabInputs, 1);
+  const minKab = kabInputs.length >= 2 ? Math.min(...kabInputs) : 0;
 
   const countByKec = Object.fromEntries(kecData.map(k => [k.kecamatan.toLowerCase(), k.totalInput]));
   const eventByKec = Object.fromEntries(kecData.map(k => [k.kecamatan.toLowerCase(), k.totalEvent ?? 0]));
   const kecInSelectedKab = kecData.filter(k => k.kabupaten?.toLowerCase() === selectedKab?.toLowerCase());
-  const maxKec = Math.max(...kecInSelectedKab.map(k => k.totalInput), 1);
+  const kecInputs = kecInSelectedKab.map(k => Number(k.totalInput)).filter(v => v > 0);
+  const maxKec = Math.max(...kecInputs, 1);
+  const minKec = kecInputs.length >= 2 ? Math.min(...kecInputs) : 0;
 
   // Filter kecamatan GeoJSON features for selected kabupaten
   const kecFeatures = selectedKab
@@ -171,7 +176,9 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
   const countByDesa = Object.fromEntries(desaData.map(d => [d.kelurahan.toLowerCase(), Number(d.totalInput)]));
   const eventByDesa = Object.fromEntries(desaData.map(d => [d.kelurahan.toLowerCase(), d.totalEvent ?? 0]));
   const programByDesa = Object.fromEntries(desaData.map(d => [d.kelurahan.toLowerCase(), d.totalProgram ?? 0]));
-  const maxDesa = Math.max(...desaData.map(d => Number(d.totalInput)), 1);
+  const desaInputs = desaData.map(d => Number(d.totalInput)).filter(v => v > 0);
+  const maxDesa = Math.max(...desaInputs, 1);
+  const minDesa = desaInputs.length >= 2 ? Math.min(...desaInputs) : 0;
 
   function onEachKab(feature: any, layer: L.Layer) {
     const name = feature.properties?.name || "";
@@ -183,7 +190,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
       ? (isSelected ? 0.1 : 0.15)
       : isDimmed ? 0.35 : 0.82;
     path.setStyle({
-      fillColor: isDimmed ? "#cbd5e1" : getColor(count, maxKab),
+      fillColor: isDimmed ? "#cbd5e1" : getColor(count, maxKab, minKab),
       weight: view === "kecamatan" ? 1 : 2,
       opacity: 1,
       color: "white",
@@ -220,7 +227,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
     const isSelected = name === selectedKec;
     const isDimmed = !!selectedKec && !isSelected;
     (layer as L.Path).setStyle({
-      fillColor: isDimmed ? "#cbd5e1" : getColor(count, maxKec),
+      fillColor: isDimmed ? "#cbd5e1" : getColor(count, maxKec, minKec),
       weight: isSelected ? 2.5 : 1.5,
       opacity: 1,
       color: isSelected ? "#1d4ed8" : "white",
@@ -258,7 +265,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
     const isDimmed = selectedDesa && !isSelected;
 
     (layer as L.Path).setStyle({
-      fillColor: isDimmed ? "#cbd5e1" : getColor(count, maxDesa),
+      fillColor: isDimmed ? "#cbd5e1" : getColor(count, maxDesa, minDesa),
       weight: isSelected ? 2.5 : 1,
       opacity: 1,
       color: isSelected ? "#1d4ed8" : "white",
