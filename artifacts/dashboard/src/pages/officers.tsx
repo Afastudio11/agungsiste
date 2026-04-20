@@ -97,7 +97,7 @@ export default function OfficersPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           {/* Leaderboard */}
           <div className="rounded-2xl bg-white border border-slate-100 p-6 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
             <div className="flex items-center gap-2.5 mb-5">
@@ -154,7 +154,7 @@ export default function OfficersPage() {
             {isLoading ? (
               <div className="p-10 text-center text-slate-400 text-sm">Memuat...</div>
             ) : (
-              <div className="divide-y divide-slate-50 overflow-y-auto max-h-72">
+              <div className="divide-y divide-slate-50">
                 {filtered.map((o) => (
                   <div key={o.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/70 transition-colors">
                     <div className="flex-1 min-w-0">
