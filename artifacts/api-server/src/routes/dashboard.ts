@@ -414,7 +414,6 @@ router.get("/segments", requireAdmin, async (req, res) => {
     const AGE_CASE_CTE = `
       case
         when parsed_date is null then 'unknown'
-        when extract(year from age(parsed_date)) < 17 then 'di bawah 17'
         when extract(year from age(parsed_date)) between 17 and 24 then '17-24'
         when extract(year from age(parsed_date)) between 25 and 34 then '25-34'
         when extract(year from age(parsed_date)) between 35 and 44 then '35-44'
@@ -464,7 +463,7 @@ router.get("/segments", requireAdmin, async (req, res) => {
       ageRawRows = result.rows as any[];
     }
 
-    const AGE_ORDER = ['di bawah 17', '17-24', '25-34', '35-44', '45-54', '55-64', 'di atas 64'];
+    const AGE_ORDER = ['17-24', '25-34', '35-44', '45-54', '55-64', 'di atas 64'];
     const ageGroups = ageRawRows
       .map(r => ({ ageGroup: r.age_group, count: Number(r.count) }))
       .sort((a, b) => AGE_ORDER.indexOf(a.ageGroup) - AGE_ORDER.indexOf(b.ageGroup));
@@ -523,13 +522,13 @@ router.get("/export", requireAdmin, async (req, res) => {
     // ── 3. Age groups ─────────────────────────────────────────────────────────
     const esc = (v: string) => v.replace(/'/g, "''");
     const AGE_DATE_EXPR = `case when birth_date ~ '^\\d{4}-\\d{2}-\\d{2}$' then birth_date::date when birth_date ~ '^\\d{2}-\\d{2}-\\d{4}$' then to_date(birth_date,'DD-MM-YYYY') else null end`;
-    const AGE_CASE = `case when extract(year from age(${AGE_DATE_EXPR})) < 17 then 'di bawah 17' when extract(year from age(${AGE_DATE_EXPR})) between 17 and 24 then '17-24' when extract(year from age(${AGE_DATE_EXPR})) between 25 and 34 then '25-34' when extract(year from age(${AGE_DATE_EXPR})) between 35 and 44 then '35-44' when extract(year from age(${AGE_DATE_EXPR})) between 45 and 54 then '45-54' when extract(year from age(${AGE_DATE_EXPR})) between 55 and 64 then '55-64' when extract(year from age(${AGE_DATE_EXPR})) > 64 then 'di atas 64' else null end`;
+    const AGE_CASE = `case when extract(year from age(${AGE_DATE_EXPR})) between 17 and 24 then '17-24' when extract(year from age(${AGE_DATE_EXPR})) between 25 and 34 then '25-34' when extract(year from age(${AGE_DATE_EXPR})) between 35 and 44 then '35-44' when extract(year from age(${AGE_DATE_EXPR})) between 45 and 54 then '45-54' when extract(year from age(${AGE_DATE_EXPR})) between 55 and 64 then '55-64' when extract(year from age(${AGE_DATE_EXPR})) > 64 then 'di atas 64' else null end`;
     const rawAgeConds: string[] = [`birth_date is not null`, `trim(birth_date) <> ''`, `${AGE_CASE} is not null`];
     if (kabupaten) rawAgeConds.push(`city ilike '%${esc(kabupaten)}%'`);
     if (kecamatan) rawAgeConds.push(`kecamatan ilike '%${esc(kecamatan)}%'`);
     if (kelurahan) rawAgeConds.push(`kelurahan ilike '%${esc(kelurahan)}%'`);
     const ageResult = await db.execute(sql.raw(`select ${AGE_CASE} as age_group, cast(count(*) as integer) as count from participants where ${rawAgeConds.join(" and ")} group by 1 order by min(extract(year from age(birth_date::date)))`));
-    const AGE_ORDER = ['di bawah 17', '17-24', '25-34', '35-44', '45-54', '55-64', 'di atas 64'];
+    const AGE_ORDER = ['17-24', '25-34', '35-44', '45-54', '55-64', 'di atas 64'];
     const ageRows = (ageResult.rows as any[]).sort((a, b) => AGE_ORDER.indexOf(a.age_group) - AGE_ORDER.indexOf(b.age_group));
 
     // ── 4. Recent events (filtered by location) ───────────────────────────────
