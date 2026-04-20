@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, prizesTable, usersTable, adminAuditLogTable } from "@workspace/db";
+import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, prizesTable, usersTable, adminAuditLogTable, programsTable } from "@workspace/db";
 import { eq, sql, and, gte, lte, ilike } from "drizzle-orm";
 import { GetDashboardStatsQueryParams, GetEventsSummaryQueryParams, GetDailyRegistrationsQueryParams } from "@workspace/api-zod";
 import { requireAdmin } from "../middlewares/auth";
@@ -26,6 +26,10 @@ router.get("/stats", requireAdmin, async (req, res) => {
     const [totalEvents] = await db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(eventsTable);
+
+    const [totalPrograms] = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(programsTable);
 
     let regConditions: any[] = [...participantConds.map(() => null)]; // placeholder
     regConditions = [];
@@ -90,6 +94,7 @@ router.get("/stats", requireAdmin, async (req, res) => {
     res.json({
       totalParticipants: totalParticipants.count,
       totalEvents: totalEvents.count,
+      totalPrograms: totalPrograms.count,
       totalRegistrations: totalRegistrations.count,
       multiEventParticipants: multiEventParticipants.count,
       recentRegistrations: recentRegistrations.count,
@@ -365,9 +370,94 @@ router.get("/segments", requireAdmin, async (req, res) => {
           .groupBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`)
           .orderBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`);
 
-    res.json({ gender, province, dow });
+    // Age groups: calculated from birthDate (text field, YYYY-MM-DD)
+    const ageGroupConds = needsDateOrDaerah ? [...regJoinConds, ...daerahConds] : [];
+    const ageRows = needsDateOrDaerah
+      ? await db
+          .select({
+            ageGroup: sql<string>`
+              case
+                when ${participantsTable.birthDate} is null then 'Tidak Diketahui'
+                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 18 then '< 18'
+                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 26 then '18-25'
+                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 36 then '26-35'
+                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 46 then '36-45'
+                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 56 then '46-55'
+                else '55+'
+              end
+            `,
+            count: sql<number>`cast(count(distinct ${participantsTable.id}) as integer)`,
+          })
+          .from(participantsTable)
+          .innerJoin(eventRegistrationsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+          .where(ageGroupConds.length > 0 ? and(...ageGroupConds) : undefined)
+          .groupBy(sql`1`)
+      : await db
+          .select({
+            ageGroup: sql<string>`
+              case
+                when ${participantsTable.birthDate} is null then 'Tidak Diketahui'
+                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 18 then '< 18'
+                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 26 then '18-25'
+                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 36 then '26-35'
+                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 46 then '36-45'
+                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 56 then '46-55'
+                else '55+'
+              end
+            `,
+            count: sql<number>`cast(count(*) as integer)`,
+          })
+          .from(participantsTable)
+          .groupBy(sql`1`);
+
+    const AGE_ORDER = ['< 18', '18-25', '26-35', '36-45', '46-55', '55+', 'Tidak Diketahui'];
+    const ageGroups = ageRows
+      .filter(r => r.ageGroup !== 'Tidak Diketahui')
+      .sort((a, b) => AGE_ORDER.indexOf(a.ageGroup) - AGE_ORDER.indexOf(b.ageGroup));
+
+    res.json({ gender, province, dow, ageGroups });
   } catch (err) {
     req.log.error({ err }, "Error getting segments");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/recent", requireAdmin, async (req, res) => {
+  try {
+    const recentEvents = await db
+      .select({
+        id: eventsTable.id,
+        name: eventsTable.name,
+        category: eventsTable.category,
+        location: eventsTable.location,
+        eventDate: eventsTable.eventDate,
+        status: eventsTable.status,
+        participantCount: sql<number>`cast(count(${eventRegistrationsTable.id}) as integer)`,
+      })
+      .from(eventsTable)
+      .leftJoin(eventRegistrationsTable, eq(eventsTable.id, eventRegistrationsTable.eventId))
+      .groupBy(eventsTable.id)
+      .orderBy(sql`${eventsTable.createdAt} desc`)
+      .limit(5);
+
+    const recentPrograms = await db
+      .select({
+        id: programsTable.id,
+        name: programsTable.name,
+        komisi: programsTable.komisi,
+        mitra: programsTable.mitra,
+        tahun: programsTable.tahun,
+        totalKtpPenerima: programsTable.totalKtpPenerima,
+        registeredCount: programsTable.registeredCount,
+        status: programsTable.status,
+      })
+      .from(programsTable)
+      .orderBy(sql`${programsTable.createdAt} desc`)
+      .limit(5);
+
+    res.json({ recentEvents, recentPrograms });
+  } catch (err) {
+    req.log.error({ err }, "Error getting recent data");
     res.status(500).json({ error: "Internal server error" });
   }
 });
