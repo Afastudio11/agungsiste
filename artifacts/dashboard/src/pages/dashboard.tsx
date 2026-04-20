@@ -130,12 +130,13 @@ function AgeCard({ data }: { data: { ageGroup: string; count: number }[] }) {
   const total = data.reduce((s, d) => s + d.count, 0);
 
   const AGE_COLORS: Record<string, string> = {
-    "17-24":     "#60a5fa",
-    "25-34":     "#34d399",
-    "35-44":     "#fbbf24",
-    "45-54":     "#f87171",
-    "55-64":     "#fb923c",
-    "di atas 64": "#a78bfa",
+    "di bawah 17": "#f472b6",
+    "17-24":        "#60a5fa",
+    "25-34":        "#34d399",
+    "35-44":        "#fbbf24",
+    "45-54":        "#f87171",
+    "55-64":        "#fb923c",
+    "di atas 64":   "#a78bfa",
   };
 
   return (
