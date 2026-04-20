@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import Layout from "@/components/layout";
 import {
   ClipboardList, Plus, Trash2, ChevronRight, Users, Calendar,
-  MapPin, Search, X, FileText, Pencil,
+  MapPin, Search, X, Pencil,
 } from "@/lib/icons";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -163,29 +163,26 @@ export default function ProgramsPage() {
       <div className="space-y-8">
 
         {/* ── Summary Stats ── */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex flex-col items-center text-center">
-            <div className="w-11 h-11 bg-indigo-50 rounded-xl flex items-center justify-center mb-3">
-              <ClipboardList className="h-5 w-5 text-indigo-600" />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex items-center gap-4">
+            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0">
+              <ClipboardList className="h-6 w-6 text-indigo-600" />
             </div>
-            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Total Program</p>
-            <p className="text-3xl font-extrabold text-slate-900">{programs.length}</p>
+            <div>
+              <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-0.5">Total Program</p>
+              <p className="text-3xl font-extrabold text-slate-900">{programs.length}</p>
+            </div>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex flex-col items-center text-center">
-            <div className="w-11 h-11 bg-sky-50 rounded-xl flex items-center justify-center mb-3">
-              <FileText className="h-5 w-5 text-sky-500" />
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex items-center gap-4">
+            <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center shrink-0">
+              <Users className="h-6 w-6 text-emerald-500" />
             </div>
-            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Target KTP</p>
-            <p className="text-3xl font-extrabold text-slate-900">{totalTarget.toLocaleString("id-ID")}</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex flex-col items-center text-center">
-            <div className="w-11 h-11 bg-emerald-50 rounded-xl flex items-center justify-center mb-3">
-              <Users className="h-5 w-5 text-emerald-500" />
-            </div>
-            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Terdaftar</p>
-            <div className="flex items-baseline gap-1 justify-center">
-              <p className="text-3xl font-extrabold text-slate-900">{totalRegistered.toLocaleString("id-ID")}</p>
-              {totalTarget > 0 && <span className="text-sm text-slate-400">/ {totalTarget.toLocaleString("id-ID")}</span>}
+            <div>
+              <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-0.5">Total Penerima Manfaat</p>
+              <div className="flex items-baseline gap-1.5">
+                <p className="text-3xl font-extrabold text-slate-900">{totalRegistered.toLocaleString("id-ID")}</p>
+                {totalTarget > 0 && <span className="text-sm text-slate-400">/ {totalTarget.toLocaleString("id-ID")} target</span>}
+              </div>
             </div>
           </div>
         </div>
