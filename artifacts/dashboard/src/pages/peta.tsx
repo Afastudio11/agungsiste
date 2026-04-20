@@ -90,7 +90,7 @@ function MapLabels({ features, getName, fontSize = 11, fontWeight = "700", color
 
 interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: number; totalKecamatan: number; totalEvent: number; }
 interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalEvent: number; }
-interface DesaRow { kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; }
+interface DesaRow { kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; totalProgram?: number; }
 
 function getColor(count: number, max: number): string {
   if (!count || max === 0) return "#e2e8f0";
@@ -169,6 +169,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
   // Build participant count lookup by village name
   const countByDesa = Object.fromEntries(desaData.map(d => [d.kelurahan.toLowerCase(), Number(d.totalInput)]));
   const eventByDesa = Object.fromEntries(desaData.map(d => [d.kelurahan.toLowerCase(), d.totalEvent ?? 0]));
+  const programByDesa = Object.fromEntries(desaData.map(d => [d.kelurahan.toLowerCase(), d.totalProgram ?? 0]));
   const maxDesa = Math.max(...desaData.map(d => Number(d.totalInput)), 1);
 
   function onEachKab(feature: any, layer: L.Layer) {
@@ -229,6 +230,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
     const displayName = feature.properties?.kelurahan || villageName;
     const count = countByDesa[villageName.toLowerCase()] ?? 0;
     const events = eventByDesa[villageName.toLowerCase()] ?? 0;
+    const programs = programByDesa[villageName.toLowerCase()] ?? 0;
     const isSelected = selectedDesa && (
       villageName.toLowerCase() === selectedDesa.toLowerCase() ||
       displayName.toLowerCase() === selectedDesa.toLowerCase()
@@ -242,12 +244,13 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
       color: isSelected ? "#1d4ed8" : "white",
       fillOpacity: isDimmed ? 0.55 : isSelected ? 0.92 : 0.80,
     });
-    const hasData = count > 0;
     layer.bindTooltip(
-      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;line-height:1.5">
-        <b style="font-size:14px">${displayName}</b><br/>
-        <span style="color:#10b981">👥 ${count.toLocaleString()} peserta</span><br/>
-        <span style="color:#64748b">📅 ${events} event</span>${hasData && onDesaClick ? `<br/><span style="color:#94a3b8;font-size:11px">Klik untuk profil desa</span>` : ""}
+      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;line-height:1.8;min-width:140px">
+        <b style="font-size:13px;display:block;margin-bottom:4px;color:#0f172a">${displayName}</b>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total KTP</span><span style="font-weight:700;color:#1e293b">${count.toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total Kegiatan</span><span style="font-weight:700;color:#1e293b">${events}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total Program</span><span style="font-weight:700;color:#1e293b">${programs}</span></div>
+        ${onDesaClick ? `<div style="color:#94a3b8;font-size:10px;margin-top:4px">Klik untuk profil desa</div>` : ""}
       </div>`,
       { sticky: true, className: "ktp-tooltip" }
     );

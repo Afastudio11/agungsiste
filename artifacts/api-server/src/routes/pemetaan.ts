@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable } from "@workspace/db";
+import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, programRegistrationsTable } from "@workspace/db";
 import { jatimWilayah, getKecamatanList, getDesaList } from "@workspace/db/jatimWilayah";
 import { sql, count, countDistinct } from "drizzle-orm";
 
@@ -166,6 +166,17 @@ router.get("/desa", async (req, res) => {
       .orderBy(sql`count(distinct ${participantsTable.id}) desc`)
       .limit(2000);
 
+    const programRows = await db
+      .select({
+        kelurahan: participantsTable.kelurahan,
+        totalProgram: countDistinct(programRegistrationsTable.programId),
+      })
+      .from(participantsTable)
+      .innerJoin(programRegistrationsTable, sql`${programRegistrationsTable.participantId} = ${participantsTable.id}`)
+      .where(sql`${participantsTable.kelurahan} is not null`)
+      .groupBy(participantsTable.kelurahan);
+
+    const programMap = new Map(programRows.map((r) => [r.kelurahan?.toLowerCase() ?? "", Number(r.totalProgram)]));
     const dbMap = new Map(dbRows.map((r) => [r.kelurahan?.toLowerCase() ?? "", r]));
 
     const kabKey = kabupaten
@@ -204,6 +215,7 @@ router.get("/desa", async (req, res) => {
         kabupaten: kab,
         totalInput: row?.totalInput ?? 0,
         totalEvent: row?.totalEvent ?? 0,
+        totalProgram: programMap.get(kelurahan.toLowerCase()) ?? 0,
       };
     });
 
@@ -252,7 +264,14 @@ router.get("/desa/:kelurahan", async (req, res) => {
       .innerJoin(participantsTable, sql`${participantsTable.id} = ${prizeDistributionsTable.participantId}`)
       .where(sql`lower(${participantsTable.kelurahan}) = lower(${kelurahan})`);
 
+    const [programRow] = await db
+      .select({ totalProgram: countDistinct(programRegistrationsTable.programId) })
+      .from(participantsTable)
+      .innerJoin(programRegistrationsTable, sql`${programRegistrationsTable.participantId} = ${participantsTable.id}`)
+      .where(sql`lower(${participantsTable.kelurahan}) = lower(${kelurahan})`);
+
     const totalHadiah = hadiahRow?.total ?? 0;
+    const totalProgram = Number(programRow?.totalProgram ?? 0);
 
     if (!info) {
       let foundKec = "";
@@ -272,12 +291,13 @@ router.get("/desa/:kelurahan", async (req, res) => {
         kabupaten: foundKab,
         totalInput: 0,
         totalEvent: 0,
+        totalProgram: 0,
         totalHadiah: 0,
         events: [],
       });
     }
 
-    return res.json({ ...info, totalHadiah, events });
+    return res.json({ ...info, totalHadiah, totalProgram, events });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: "Server error" });
