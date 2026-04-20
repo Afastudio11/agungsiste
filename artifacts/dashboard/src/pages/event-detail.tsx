@@ -18,8 +18,6 @@ import {
   ClipboardList,
   ClipboardCheck,
   ScanLine,
-  CheckCircle2,
-  Clock,
   QrCode,
   Copy,
   Check,
@@ -296,7 +294,6 @@ export default function EventDetailPage() {
   const rsvpTotal = rsvpList.length;
   const hadirTotal = hadirList.length;
   const rsvpCheckedIn = rsvpList.filter((p) => p.checkedInAt != null).length;
-  const rsvpNoShow = rsvpTotal - rsvpCheckedIn;
   const walkinCount = allParticipants.filter((p) => p.registrationType === "onsite").length;
 
   const pct = (event as any).targetParticipants
@@ -435,10 +432,6 @@ export default function EventDetailPage() {
                   <p className="text-[15px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
                     Daftar Peserta
                   </p>
-                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                    {rsvpTotal} registrasi · {hadirTotal} hadir
-                    {rsvpNoShow > 0 ? ` · ${rsvpNoShow} tidak hadir` : ""}
-                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {/* Search */}
@@ -489,155 +482,52 @@ export default function EventDetailPage() {
               </div>
             </div>
 
-            {/* Context info row */}
-            {activeTab === "rsvp" && !participantsLoading && rsvpTotal > 0 && (
-              <div className="px-5 py-2.5 bg-indigo-50/50 border-b border-indigo-100 flex items-center gap-3 text-[11px]">
-                <span className="flex items-center gap-1 font-semibold text-emerald-700">
-                  <CheckCircle2 className="h-3 w-3" />{rsvpCheckedIn} hadir hari-H
-                </span>
-                <span className="text-slate-300">·</span>
-                <span className="flex items-center gap-1 font-semibold text-slate-500">
-                  <Clock className="h-3 w-3" />{rsvpNoShow} belum/tidak hadir
-                </span>
-              </div>
-            )}
-            {activeTab === "onsite" && !participantsLoading && hadirTotal > 0 && (
-              <div className="px-5 py-2.5 bg-emerald-50/50 border-b border-emerald-100 flex items-center gap-3 text-[11px]">
-                <span className="flex items-center gap-1 font-semibold text-indigo-700">
-                  <ClipboardList className="h-3 w-3" />{rsvpCheckedIn} dari RSVP
-                </span>
-                <span className="text-slate-300">·</span>
-                <span className="flex items-center gap-1 font-semibold text-slate-600">
-                  <ScanLine className="h-3 w-3" />{walkinCount} walk-in
-                </span>
-              </div>
-            )}
-
             {/* Table */}
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-50 bg-slate-50/60">
-                    {activeTab === "rsvp"
-                      ? ["NIK", "Nama", "Kelamin", "Kota", "Waktu Daftar", "Status"].map((h, i) => (
-                          <th
-                            key={h}
-                            className={`px-5 py-3 text-[10px] font-bold tracking-[0.08em] text-slate-400 ${i === 5 ? "text-right" : "text-left"}`}
-                          >
-                            {h}
-                          </th>
-                        ))
-                      : ["NIK", "Nama", "Kelamin", "Kota", "Waktu Hadir", "Tipe", "Total"].map((h, i) => (
-                          <th
-                            key={h}
-                            className={`px-5 py-3 text-[10px] font-bold tracking-[0.08em] text-slate-400 ${i === 6 ? "text-right" : "text-left"}`}
-                          >
-                            {h}
-                          </th>
-                        ))}
+                    {["NIK", "Nama", "Jenis Kelamin", "Kabupaten", "Nomor HP", "Status Sosial"].map((h) => (
+                      <th
+                        key={h}
+                        className="px-5 py-3 text-[10px] font-bold tracking-[0.08em] text-slate-400 text-left"
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {participantsLoading ? (
                     <tr>
-                      <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">
+                      <td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-400">
                         Memuat...
                       </td>
                     </tr>
                   ) : filteredList.length > 0 ? (
                     filteredList.map((p) => (
-                      <tr
-                        key={p.nik}
-                        className="transition-colors hover:bg-slate-50/60"
-                      >
-                        <td className="px-5 py-3 font-mono text-[11px] text-slate-400">{p.nik}</td>
+                      <tr key={p.nik} className="transition-colors hover:bg-slate-50/60">
+                        <td className="px-5 py-3 font-mono text-[11px] text-slate-400 whitespace-nowrap">{p.nik}</td>
                         <td className="px-5 py-3">
                           <Link href={`/participants/${p.nik}`}>
                             <span className="font-semibold text-sm text-slate-900 hover:text-indigo-600 cursor-pointer transition-colors">
                               {p.fullName}
                             </span>
                           </Link>
-                          {p.staffName && (
-                            <div className="text-[10px] text-slate-400 mt-0.5">via {p.staffName}</div>
-                          )}
                         </td>
-                        <td className="px-5 py-3 text-sm text-slate-500">{p.gender ?? "—"}</td>
-                        <td className="px-5 py-3 text-sm text-slate-500">{p.city ?? "—"}</td>
-
-                        {activeTab === "rsvp" ? (
-                          <>
-                            <td className="px-5 py-3 text-[11px] text-slate-400 whitespace-nowrap">
-                              {new Date(p.registeredAt).toLocaleDateString("id-ID")}
-                            </td>
-                            <td className="px-5 py-3 text-right">
-                              {p.checkedInAt ? (
-                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700">
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  Hadir{" "}
-                                  {new Date(p.checkedInAt).toLocaleTimeString("id-ID", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
-                              ) : (p as any).status === "cancelled" ? (
-                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-red-100 text-red-700">
-                                  Dibatalkan
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-500">
-                                  <Clock className="h-3 w-3" />
-                                  Belum Absen
-                                </span>
-                              )}
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="px-5 py-3 text-[11px] text-slate-400 whitespace-nowrap">
-                              {p.checkedInAt
-                                ? new Date(p.checkedInAt).toLocaleString("id-ID")
-                                : new Date(p.registeredAt).toLocaleString("id-ID")}
-                            </td>
-                            <td className="px-5 py-3">
-                              {p.registrationType === "rsvp" ? (
-                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-700">
-                                  <ClipboardList className="h-3 w-3" />
-                                  RSVP
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600">
-                                  <ScanLine className="h-3 w-3" />
-                                  Walk-in
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-5 py-3 text-right">
-                              <span
-                                className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                                  p.eventCount > 1 ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"
-                                }`}
-                              >
-                                {p.eventCount} event
-                              </span>
-                            </td>
-                          </>
-                        )}
+                        <td className="px-5 py-3 text-sm text-slate-600">{p.gender ?? "—"}</td>
+                        <td className="px-5 py-3 text-sm text-slate-600">{p.city ?? "—"}</td>
+                        <td className="px-5 py-3 text-sm text-slate-600">{(p as any).phone ?? "—"}</td>
+                        <td className="px-5 py-3 text-sm text-slate-600">{(p as any).socialStatus ?? "—"}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-5 py-12 text-center">
+                      <td colSpan={6} className="px-5 py-12 text-center">
                         {activeTab === "rsvp" ? (
                           <>
                             <ClipboardList className="h-8 w-8 mx-auto mb-2 text-slate-200" />
                             <p className="text-sm text-slate-400">Belum ada peserta yang registrasi pra-acara</p>
-                            {(event as any).isRsvp && (
-                              <Link href={`/events/${id}/rsvp`}>
-                                <span className="mt-2 inline-block text-xs font-bold text-indigo-600 hover:underline cursor-pointer">
-                                  Kelola daftar RSVP →
-                                </span>
-                              </Link>
-                            )}
                           </>
                         ) : (
                           <>

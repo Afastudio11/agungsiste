@@ -187,6 +187,7 @@ router.get("/:id/participants", requireAuth, async (req, res) => {
         gender: participantsTable.gender,
         occupation: participantsTable.occupation,
         city: participantsTable.city,
+        socialStatus: participantsTable.socialStatus,
         registeredAt: eventRegistrationsTable.registeredAt,
         staffName: eventRegistrationsTable.staffName,
         phone: eventRegistrationsTable.phone,
