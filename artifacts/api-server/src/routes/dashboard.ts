@@ -477,6 +477,7 @@ router.get("/segments", requireAdmin, async (req, res) => {
 
 router.get("/export", requireAdmin, async (req, res) => {
   try {
+    const XLSX = await import("xlsx");
     const { startDate, endDate, kabupaten, kecamatan, kelurahan } = req.query as Record<string, string>;
 
     const participantConds: any[] = [];
@@ -484,43 +485,129 @@ router.get("/export", requireAdmin, async (req, res) => {
     if (kecamatan) participantConds.push(ilike(participantsTable.kecamatan, `%${kecamatan}%`));
     if (kelurahan) participantConds.push(ilike(participantsTable.kelurahan, `%${kelurahan}%`));
 
-    const regConds: any[] = [...participantConds];
-    if (startDate) regConds.push(gte(eventRegistrationsTable.registeredAt, new Date(startDate)));
-    if (endDate) regConds.push(lte(eventRegistrationsTable.registeredAt, new Date(endDate)));
+    const allRegConds: any[] = [...participantConds];
+    if (startDate) allRegConds.push(gte(eventRegistrationsTable.registeredAt, new Date(startDate)));
+    if (endDate) allRegConds.push(lte(eventRegistrationsTable.registeredAt, new Date(endDate)));
 
-    const rows = await db
-      .select({
-        nik: participantsTable.nik,
-        nama: participantsTable.fullName,
-        gender: participantsTable.gender,
-        tgl_lahir: participantsTable.birthDate,
-        kota: participantsTable.city,
-        kecamatan: participantsTable.kecamatan,
-        kelurahan: participantsTable.kelurahan,
-        provinsi: participantsTable.province,
-      })
-      .from(participantsTable)
-      .where(participantConds.length > 0 ? and(...participantConds) : undefined)
-      .orderBy(participantsTable.fullName);
+    // ── 1. Stats ─────────────────────────────────────────────────────────────
+    const [[totalKtp], [totalKeg], [totalProg]] = await Promise.all([
+      db.select({ count: sql<number>`cast(count(*) as integer)` }).from(participantsTable)
+        .where(participantConds.length > 0 ? and(...participantConds) : undefined),
+      participantConds.length > 0
+        ? db.select({ count: sql<number>`cast(count(*) as integer)` })
+            .from(db.selectDistinct({ eventId: eventRegistrationsTable.eventId })
+              .from(eventRegistrationsTable)
+              .innerJoin(participantsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+              .where(and(...participantConds)).as("ev"))
+        : db.select({ count: sql<number>`cast(count(*) as integer)` }).from(eventsTable),
+      participantConds.length > 0
+        ? db.select({ count: sql<number>`cast(count(*) as integer)` })
+            .from(db.selectDistinct({ programId: programRegistrationsTable.programId })
+              .from(programRegistrationsTable)
+              .innerJoin(participantsTable, eq(programRegistrationsTable.participantId, participantsTable.id))
+              .where(and(...participantConds)).as("pr"))
+        : db.select({ count: sql<number>`cast(count(*) as integer)` }).from(programsTable),
+    ]);
 
-    const escape = (v: string | null | undefined) => {
-      if (v == null) return "";
-      const s = String(v);
-      return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
-    };
+    // ── 2. Gender ─────────────────────────────────────────────────────────────
+    const genderRows = allRegConds.length > 0
+      ? await db.select({ gender: participantsTable.gender, count: sql<number>`cast(count(distinct ${participantsTable.id}) as integer)` })
+          .from(participantsTable)
+          .innerJoin(eventRegistrationsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
+          .where(and(...allRegConds))
+          .groupBy(participantsTable.gender)
+      : await db.select({ gender: participantsTable.gender, count: sql<number>`cast(count(*) as integer)` })
+          .from(participantsTable).groupBy(participantsTable.gender);
 
-    const header = ["NIK", "Nama", "Jenis Kelamin", "Tanggal Lahir", "Kota/Kabupaten", "Kecamatan", "Kelurahan", "Provinsi"].join(",");
-    const lines = rows.map((r) =>
-      [r.nik, r.nama, r.gender, r.tgl_lahir, r.kota, r.kecamatan, r.kelurahan, r.provinsi].map(escape).join(",")
-    );
-    const csv = [header, ...lines].join("\n");
+    // ── 3. Age groups ─────────────────────────────────────────────────────────
+    const esc = (v: string) => v.replace(/'/g, "''");
+    const AGE_CASE = `case when extract(year from age(case when birth_date ~ '^\\d{4}-\\d{2}-\\d{2}$' then birth_date::date when birth_date ~ '^\\d{2}-\\d{2}-\\d{4}$' then to_date(birth_date,'DD-MM-YYYY') else null end)) between 17 and 24 then '17-24' when extract(year from age(case when birth_date ~ '^\\d{4}-\\d{2}-\\d{2}$' then birth_date::date when birth_date ~ '^\\d{2}-\\d{2}-\\d{4}$' then to_date(birth_date,'DD-MM-YYYY') else null end)) between 25 and 34 then '25-34' when extract(year from age(case when birth_date ~ '^\\d{4}-\\d{2}-\\d{2}$' then birth_date::date when birth_date ~ '^\\d{2}-\\d{2}-\\d{4}$' then to_date(birth_date,'DD-MM-YYYY') else null end)) between 35 and 44 then '35-44' when extract(year from age(case when birth_date ~ '^\\d{4}-\\d{2}-\\d{2}$' then birth_date::date when birth_date ~ '^\\d{2}-\\d{2}-\\d{4}$' then to_date(birth_date,'DD-MM-YYYY') else null end)) between 45 and 54 then '45-54' when extract(year from age(case when birth_date ~ '^\\d{4}-\\d{2}-\\d{2}$' then birth_date::date when birth_date ~ '^\\d{2}-\\d{2}-\\d{4}$' then to_date(birth_date,'DD-MM-YYYY') else null end)) between 55 and 64 then '55-64' when extract(year from age(case when birth_date ~ '^\\d{4}-\\d{2}-\\d{2}$' then birth_date::date when birth_date ~ '^\\d{2}-\\d{2}-\\d{4}$' then to_date(birth_date,'DD-MM-YYYY') else null end)) > 64 then 'di atas 64' else null end`;
+    const rawAgeConds: string[] = [`birth_date is not null`, `trim(birth_date) <> ''`, `${AGE_CASE} is not null`];
+    if (kabupaten) rawAgeConds.push(`city ilike '%${esc(kabupaten)}%'`);
+    if (kecamatan) rawAgeConds.push(`kecamatan ilike '%${esc(kecamatan)}%'`);
+    if (kelurahan) rawAgeConds.push(`kelurahan ilike '%${esc(kelurahan)}%'`);
+    const ageResult = await db.execute(sql.raw(`select ${AGE_CASE} as age_group, cast(count(*) as integer) as count from participants where ${rawAgeConds.join(" and ")} group by 1 order by min(extract(year from age(birth_date::date)))`));
+    const AGE_ORDER = ['17-24', '25-34', '35-44', '45-54', '55-64', 'di atas 64'];
+    const ageRows = (ageResult.rows as any[]).sort((a, b) => AGE_ORDER.indexOf(a.age_group) - AGE_ORDER.indexOf(b.age_group));
 
-    const date = new Date().toISOString().slice(0, 10);
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", `attachment; filename="dashboard-ktp-${date}.csv"`);
-    res.send("\uFEFF" + csv);
+    // ── 4. Recent events ──────────────────────────────────────────────────────
+    const recentEvents = await db
+      .select({ id: eventsTable.id, name: eventsTable.name, category: eventsTable.category, location: eventsTable.location, eventDate: eventsTable.eventDate, status: eventsTable.status, participantCount: sql<number>`cast(count(${eventRegistrationsTable.id}) as integer)` })
+      .from(eventsTable)
+      .leftJoin(eventRegistrationsTable, eq(eventsTable.id, eventRegistrationsTable.eventId))
+      .groupBy(eventsTable.id)
+      .orderBy(sql`${eventsTable.createdAt} desc`)
+      .limit(10);
+
+    // ── 5. Recent programs ────────────────────────────────────────────────────
+    const recentPrograms = await db
+      .select({ id: programsTable.id, name: programsTable.name, komisi: programsTable.komisi, mitra: programsTable.mitra, tahun: programsTable.tahun, totalKtpPenerima: programsTable.totalKtpPenerima, registeredCount: programsTable.registeredCount, status: programsTable.status })
+      .from(programsTable)
+      .orderBy(sql`${programsTable.createdAt} desc`)
+      .limit(10);
+
+    // ── Build workbook ────────────────────────────────────────────────────────
+    const wb = XLSX.utils.book_new();
+    const dateStr = new Date().toLocaleDateString("id-ID");
+
+    // Sheet 1: Ringkasan
+    const summaryData = [
+      ["LAPORAN DASHBOARD KTP", "", `Tanggal: ${dateStr}`],
+      [],
+      ["RINGKASAN STATISTIK"],
+      ["Metrik", "Nilai"],
+      ["Total KTP Terdaftar", totalKtp.count],
+      ["Total Kegiatan", totalKeg.count],
+      ["Total Program", totalProg.count],
+      [],
+      ["JENIS KELAMIN"],
+      ["Jenis Kelamin", "Jumlah", "Persentase"],
+      ...genderRows.map(r => {
+        const total = genderRows.reduce((s, x) => s + x.count, 0);
+        const pct = total > 0 ? ((r.count / total) * 100).toFixed(1) + "%" : "0%";
+        const label = r.gender === "LAKI-LAKI" ? "Laki-laki" : r.gender === "PEREMPUAN" ? "Perempuan" : r.gender ?? "Lainnya";
+        return [label, r.count, pct];
+      }),
+      [],
+      ["KELOMPOK USIA"],
+      ["Kelompok", "Jumlah", "Persentase"],
+      ...ageRows.map((r: any) => {
+        const total = ageRows.reduce((s: number, x: any) => s + Number(x.count), 0);
+        const pct = total > 0 ? ((Number(r.count) / total) * 100).toFixed(1) + "%" : "0%";
+        return [r.age_group, Number(r.count), pct];
+      }),
+    ];
+    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+    ws1["!cols"] = [{ wch: 28 }, { wch: 12 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws1, "Ringkasan");
+
+    // Sheet 2: Kegiatan Terbaru
+    const eventData = [
+      ["KEGIATAN TERBARU"],
+      ["No", "Nama Kegiatan", "Kategori", "Lokasi", "Tanggal", "Status", "Peserta"],
+      ...recentEvents.map((e, i) => [i + 1, e.name, e.category ?? "", e.location ?? "", e.eventDate ?? "", e.status ?? "", e.participantCount]),
+    ];
+    const ws2 = XLSX.utils.aoa_to_sheet(eventData);
+    ws2["!cols"] = [{ wch: 4 }, { wch: 35 }, { wch: 15 }, { wch: 25 }, { wch: 14 }, { wch: 12 }, { wch: 8 }];
+    XLSX.utils.book_append_sheet(wb, ws2, "Kegiatan Terbaru");
+
+    // Sheet 3: Program Terbaru
+    const programData = [
+      ["PROGRAM TERBARU"],
+      ["No", "Nama Program", "Komisi", "Mitra", "Tahun", "Status", "Kuota KTP", "Terdaftar"],
+      ...recentPrograms.map((p, i) => [i + 1, p.name, p.komisi ?? "", p.mitra ?? "", p.tahun ?? "", p.status, p.totalKtpPenerima ?? "", p.registeredCount]),
+    ];
+    const ws3 = XLSX.utils.aoa_to_sheet(programData);
+    ws3["!cols"] = [{ wch: 4 }, { wch: 35 }, { wch: 12 }, { wch: 20 }, { wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 10 }];
+    XLSX.utils.book_append_sheet(wb, ws3, "Program Terbaru");
+
+    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+    const filename = `dashboard-ktp-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buf);
   } catch (err) {
-    req.log.error({ err }, "Error exporting CSV");
+    req.log.error({ err }, "Error exporting XLSX");
     res.status(500).json({ error: "Internal server error" });
   }
 });

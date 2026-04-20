@@ -267,14 +267,38 @@ export default function DashboardPage() {
   // ── Export handler ───────────────────────────────────────────────────────────
   useEffect(() => {
     setOnExport((type) => {
-      if (type === "pdf") {
-        window.print();
-      } else {
-        const qs = statsQs ? `?${statsQs}` : "";
+      const qs = statsQs ? `?${statsQs}` : "";
+      if (type === "excel") {
         const a = document.createElement("a");
         a.href = `/api/dashboard/export${qs}`;
-        a.download = `dashboard-export.csv`;
+        a.download = `dashboard-ktp-${new Date().toISOString().slice(0, 10)}.xlsx`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
+      } else {
+        // PDF via html2canvas + jsPDF
+        const target = document.getElementById("dashboard-content");
+        if (!target) return;
+        import("html2canvas").then(({ default: html2canvas }) =>
+          import("jspdf").then(({ default: jsPDF }) => {
+            html2canvas(target, { scale: 2, useCORS: true, backgroundColor: "#f8fafc" }).then((canvas) => {
+              const imgData = canvas.toDataURL("image/png");
+              const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+              const pdfW = pdf.internal.pageSize.getWidth();
+              const pdfH = pdf.internal.pageSize.getHeight();
+              const imgW = pdfW;
+              const imgH = (canvas.height * pdfW) / canvas.width;
+              let y = 0;
+              let remaining = imgH;
+              while (remaining > 0) {
+                pdf.addImage(imgData, "PNG", 0, y === 0 ? 0 : -y, imgW, imgH);
+                remaining -= pdfH;
+                if (remaining > 0) { pdf.addPage(); y += pdfH; }
+              }
+              pdf.save(`dashboard-ktp-${new Date().toISOString().slice(0, 10)}.pdf`);
+            });
+          })
+        );
       }
     });
     return () => setOnExport(null);
@@ -434,6 +458,8 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* ── Capturable content for PDF ───────────────────────────────── */}
+      <div id="dashboard-content">
       {/* ── Row 1: 3 Stat Cards ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         <StatCard
@@ -604,6 +630,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      </div>{/* end dashboard-content */}
     </Layout>
   );
 }
