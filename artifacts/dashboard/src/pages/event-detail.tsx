@@ -30,15 +30,17 @@ import {
 
 type TabType = "rsvp" | "onsite";
 
-function exportExcel(participants: any[], eventName: string, label: string) {
+function exportExcel(participants: any[], eventName: string, tab: "onsite" | "rsvp") {
   import("@/lib/exportUtils").then(({ exportExcel: doExport }) => {
-    const headers = ["NIK", "Nama", "Kelamin", "Pekerjaan", "Kota", "Waktu Daftar", "Waktu Check-in", "Staf", "Tag", "Total Kegiatan"];
-    const rows = [headers, ...participants.map((p) => [
-      p.nik, p.fullName, p.gender ?? "", p.occupation ?? "", p.city ?? "",
-      new Date(p.registeredAt).toLocaleString("id-ID"),
-      p.checkedInAt ? new Date(p.checkedInAt).toLocaleString("id-ID") : "",
-      p.staffName ?? "", p.tags ?? "", p.eventCount,
-    ])];
+    const label = tab === "onsite" ? "peserta" : "registrasi";
+    const headers = tab === "onsite"
+      ? ["NIK", "Nama", "Jenis Kelamin", "Kabupaten", "Kecamatan", "Desa", "Nomor HP"]
+      : ["NIK", "Nama", "Jenis Kelamin", "Kabupaten", "Nomor HP", "Status Sosial"];
+    const rows = [headers, ...participants.map((p) =>
+      tab === "onsite"
+        ? [p.nik, p.fullName, p.gender ?? "", p.city ?? "", p.kecamatan ?? "", p.kelurahan ?? "", p.phone ?? ""]
+        : [p.nik, p.fullName, p.gender ?? "", p.city ?? "", p.phone ?? "", p.socialStatus ?? ""]
+    )];
     doExport(rows, `${label}_${eventName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
   });
 }
@@ -379,8 +381,8 @@ export default function EventDetailPage() {
                   </Link>
                 )}
                 <button
-                  onClick={() => exportExcel(filteredList, event.name, activeTab === "rsvp" ? "registrasi" : "absen")}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+                  onClick={() => exportExcel(filteredList, event.name, activeTab)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200"
                 >
                   <Download className="h-4 w-4" />
                   Export Data
