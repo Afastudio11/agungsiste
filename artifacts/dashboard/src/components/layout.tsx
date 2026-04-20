@@ -26,12 +26,12 @@ interface LayoutProps {
 
 const adminNavBase: { href: string; key: "dashboard"|"events"|"participants"|"officers"|"scan"|"prizes"|"pemetaan"|"settings"; Icon: ElementType }[] = [
   { href: "/dashboard",    key: "dashboard",    Icon: LayoutDashboard },
+  { href: "/pemetaan",     key: "pemetaan",     Icon: MapTrifold },
   { href: "/events",       key: "events",       Icon: Calendar },
+  { href: "/programs",     key: "prizes",       Icon: ClipboardList },
   { href: "/participants", key: "participants", Icon: Users },
   { href: "/officers",     key: "officers",     Icon: IdentificationBadge },
   { href: "/scan",         key: "scan",         Icon: Scan },
-  { href: "/programs",     key: "prizes",       Icon: ClipboardList },
-  { href: "/pemetaan",     key: "pemetaan",     Icon: MapTrifold },
   { href: "/settings",     key: "settings",     Icon: Settings },
 ];
 

@@ -24,7 +24,7 @@ export type AppSettings = {
 
 export const defaultMenuLabels: MenuLabels = {
   dashboard: "Dashboard",
-  events: "Event",
+  events: "Kegiatan",
   participants: "Peserta",
   officers: "Petugas",
   scan: "Scan KTP",
