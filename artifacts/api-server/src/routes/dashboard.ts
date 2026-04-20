@@ -530,19 +530,31 @@ router.get("/export", requireAdmin, async (req, res) => {
     const AGE_ORDER = ['17-24', '25-34', '35-44', '45-54', '55-64', 'di atas 64'];
     const ageRows = (ageResult.rows as any[]).sort((a, b) => AGE_ORDER.indexOf(a.age_group) - AGE_ORDER.indexOf(b.age_group));
 
-    // ── 4. Recent events ──────────────────────────────────────────────────────
+    // ── 4. Recent events (filtered by location) ───────────────────────────────
+    const eventLocConds: any[] = [];
+    if (kabupaten) eventLocConds.push(ilike(eventsTable.location, `%${kabupaten}%`));
+    if (kecamatan) eventLocConds.push(ilike(eventsTable.location, `%${kecamatan}%`));
+    if (kelurahan) eventLocConds.push(ilike(eventsTable.location, `%${kelurahan}%`));
+
     const recentEvents = await db
       .select({ id: eventsTable.id, name: eventsTable.name, category: eventsTable.category, location: eventsTable.location, eventDate: eventsTable.eventDate, status: eventsTable.status, participantCount: sql<number>`cast(count(${eventRegistrationsTable.id}) as integer)` })
       .from(eventsTable)
       .leftJoin(eventRegistrationsTable, eq(eventsTable.id, eventRegistrationsTable.eventId))
+      .where(eventLocConds.length > 0 ? and(...eventLocConds) : undefined)
       .groupBy(eventsTable.id)
       .orderBy(sql`${eventsTable.createdAt} desc`)
       .limit(10);
 
-    // ── 5. Recent programs ────────────────────────────────────────────────────
+    // ── 5. Recent programs (filtered by kabupatenPenerima) ────────────────────
+    const programLocConds: any[] = [];
+    if (kabupaten) programLocConds.push(ilike(programsTable.kabupatenPenerima, `%${kabupaten}%`));
+    if (kecamatan) programLocConds.push(ilike(programsTable.kabupatenPenerima, `%${kecamatan}%`));
+    if (kelurahan) programLocConds.push(ilike(programsTable.kabupatenPenerima, `%${kelurahan}%`));
+
     const recentPrograms = await db
-      .select({ id: programsTable.id, name: programsTable.name, komisi: programsTable.komisi, mitra: programsTable.mitra, tahun: programsTable.tahun, totalKtpPenerima: programsTable.totalKtpPenerima, registeredCount: programsTable.registeredCount, status: programsTable.status })
+      .select({ id: programsTable.id, name: programsTable.name, komisi: programsTable.komisi, mitra: programsTable.mitra, tahun: programsTable.tahun, totalKtpPenerima: programsTable.totalKtpPenerima, kabupatenPenerima: programsTable.kabupatenPenerima, registeredCount: programsTable.registeredCount, status: programsTable.status })
       .from(programsTable)
+      .where(programLocConds.length > 0 ? and(...programLocConds) : undefined)
       .orderBy(sql`${programsTable.createdAt} desc`)
       .limit(10);
 
@@ -594,11 +606,11 @@ router.get("/export", requireAdmin, async (req, res) => {
     // Sheet 3: Program Terbaru
     const programData = [
       ["PROGRAM TERBARU"],
-      ["No", "Nama Program", "Komisi", "Mitra", "Tahun", "Status", "Kuota KTP", "Terdaftar"],
-      ...recentPrograms.map((p, i) => [i + 1, p.name, p.komisi ?? "", p.mitra ?? "", p.tahun ?? "", p.status, p.totalKtpPenerima ?? "", p.registeredCount]),
+      ["No", "Nama Program", "Komisi", "Mitra", "Tahun", "Kabupaten Penerima", "Status", "Kuota KTP", "Terdaftar"],
+      ...recentPrograms.map((p, i) => [i + 1, p.name, p.komisi ?? "", p.mitra ?? "", p.tahun ?? "", p.kabupatenPenerima ?? "", p.status, p.totalKtpPenerima ?? "", p.registeredCount]),
     ];
     const ws3 = XLSX.utils.aoa_to_sheet(programData);
-    ws3["!cols"] = [{ wch: 4 }, { wch: 35 }, { wch: 12 }, { wch: 20 }, { wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 10 }];
+    ws3["!cols"] = [{ wch: 4 }, { wch: 35 }, { wch: 12 }, { wch: 20 }, { wch: 8 }, { wch: 22 }, { wch: 12 }, { wch: 10 }, { wch: 10 }];
     XLSX.utils.book_append_sheet(wb, ws3, "Program Terbaru");
 
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -614,6 +626,15 @@ router.get("/export", requireAdmin, async (req, res) => {
 
 router.get("/recent", requireAdmin, async (req, res) => {
   try {
+    const { kabupaten, kecamatan, kelurahan } = req.query as Record<string, string>;
+    const limit = 5;
+
+    // Events filtered by location text matching daerah filter
+    const eventConds: any[] = [];
+    if (kabupaten) eventConds.push(ilike(eventsTable.location, `%${kabupaten}%`));
+    if (kecamatan) eventConds.push(ilike(eventsTable.location, `%${kecamatan}%`));
+    if (kelurahan) eventConds.push(ilike(eventsTable.location, `%${kelurahan}%`));
+
     const recentEvents = await db
       .select({
         id: eventsTable.id,
@@ -626,9 +647,16 @@ router.get("/recent", requireAdmin, async (req, res) => {
       })
       .from(eventsTable)
       .leftJoin(eventRegistrationsTable, eq(eventsTable.id, eventRegistrationsTable.eventId))
+      .where(eventConds.length > 0 ? and(...eventConds) : undefined)
       .groupBy(eventsTable.id)
       .orderBy(sql`${eventsTable.createdAt} desc`)
-      .limit(5);
+      .limit(limit);
+
+    // Programs filtered by kabupatenPenerima matching daerah filter
+    const programConds: any[] = [];
+    if (kabupaten) programConds.push(ilike(programsTable.kabupatenPenerima, `%${kabupaten}%`));
+    if (kecamatan) programConds.push(ilike(programsTable.kabupatenPenerima, `%${kecamatan}%`));
+    if (kelurahan) programConds.push(ilike(programsTable.kabupatenPenerima, `%${kelurahan}%`));
 
     const recentPrograms = await db
       .select({
@@ -642,8 +670,9 @@ router.get("/recent", requireAdmin, async (req, res) => {
         status: programsTable.status,
       })
       .from(programsTable)
+      .where(programConds.length > 0 ? and(...programConds) : undefined)
       .orderBy(sql`${programsTable.createdAt} desc`)
-      .limit(5);
+      .limit(limit);
 
     res.json({ recentEvents, recentPrograms });
   } catch (err) {

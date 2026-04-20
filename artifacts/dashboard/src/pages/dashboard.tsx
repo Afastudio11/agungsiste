@@ -229,12 +229,18 @@ export default function DashboardPage() {
     refetchInterval: 30_000,
   });
 
+  const recentQs = new URLSearchParams({
+    ...(filterKabupaten ? { kabupaten: filterKabupaten } : {}),
+    ...(filterKecamatan ? { kecamatan: filterKecamatan } : {}),
+    ...(filterKelurahan ? { kelurahan: filterKelurahan } : {}),
+  }).toString();
+
   const { data: recent } = useQuery<{
     recentEvents: { id: number; name: string; category: string | null; location: string | null; eventDate: string | null; status: string | null; participantCount: number }[];
     recentPrograms: { id: number; name: string; komisi: string | null; mitra: string | null; tahun: string | null; totalKtpPenerima: number | null; registeredCount: number; status: string }[];
   }>({
-    queryKey: ["dashboard-recent"],
-    queryFn: () => fetch("/api/dashboard/recent").then((r) => r.json()),
+    queryKey: ["dashboard-recent", recentQs],
+    queryFn: () => fetch(`/api/dashboard/recent${recentQs ? `?${recentQs}` : ""}`).then((r) => r.json()),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -277,11 +283,37 @@ export default function DashboardPage() {
         document.body.removeChild(a);
       } else {
         // PDF via html2canvas + jsPDF
+        // Note: html2canvas can't parse oklch (Tailwind v4). Fix by inlining
+        // computed RGB styles into the cloned document before capture.
         const target = document.getElementById("dashboard-content");
         if (!target) return;
+
+        const inlineComputedColors = (originalRoot: Element, clonedRoot: Element) => {
+          const origEls = Array.from(originalRoot.querySelectorAll("*")) as HTMLElement[];
+          const clonedEls = Array.from(clonedRoot.querySelectorAll("*")) as HTMLElement[];
+          const PROPS = ["color", "backgroundColor", "borderColor", "borderTopColor", "borderBottomColor", "borderLeftColor", "borderRightColor", "fill", "stroke"] as const;
+          origEls.forEach((origEl, i) => {
+            const clonedEl = clonedEls[i] as HTMLElement | undefined;
+            if (!clonedEl) return;
+            const cs = window.getComputedStyle(origEl);
+            PROPS.forEach((p) => {
+              const val = cs[p as keyof CSSStyleDeclaration] as string;
+              if (val && val !== "none" && val !== "transparent") clonedEl.style[p as any] = val;
+            });
+          });
+        };
+
         import("html2canvas").then(({ default: html2canvas }) =>
           import("jspdf").then(({ default: jsPDF }) => {
-            html2canvas(target, { scale: 2, useCORS: true, backgroundColor: "#f8fafc" }).then((canvas) => {
+            html2canvas(target, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: "#f8fafc",
+              logging: false,
+              onclone: (_clonedDoc, clonedEl) => {
+                inlineComputedColors(target, clonedEl);
+              },
+            }).then((canvas) => {
               const imgData = canvas.toDataURL("image/png");
               const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
               const pdfW = pdf.internal.pageSize.getWidth();
