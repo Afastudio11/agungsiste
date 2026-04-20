@@ -84,7 +84,7 @@ export default function OfficersPage() {
 
   return (
     <Layout>
-      <div className="space-y-6 max-w-6xl">
+      <div className="space-y-6 max-w-6xl mx-auto">
 
         {/* Action bar */}
         <div className="flex items-center justify-end">
