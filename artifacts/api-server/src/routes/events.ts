@@ -41,6 +41,7 @@ router.get("/", requireAuth, async (req, res) => {
         targetParticipants: eventsTable.targetParticipants,
         isRsvp: eventsTable.isRsvp,
         status: eventsTable.status,
+        fasilitas: eventsTable.fasilitas,
         registrationToken: eventsTable.registrationToken,
         attendanceToken: eventsTable.attendanceToken,
         createdAt: eventsTable.createdAt,
@@ -86,6 +87,7 @@ router.get("/:id", requireAuth, async (req, res) => {
         targetParticipants: eventsTable.targetParticipants,
         isRsvp: eventsTable.isRsvp,
         status: eventsTable.status,
+        fasilitas: eventsTable.fasilitas,
         registrationToken: eventsTable.registrationToken,
         attendanceToken: eventsTable.attendanceToken,
         createdAt: eventsTable.createdAt,
@@ -108,7 +110,7 @@ router.put("/:id", requireAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
-    const { name, description, category, location, eventDate, startTime, endTime, targetParticipants, isRsvp, status } = req.body as Record<string, any>;
+    const { name, description, category, location, eventDate, startTime, endTime, targetParticipants, isRsvp, status, fasilitas } = req.body as Record<string, any>;
     if (!name || !eventDate) return res.status(400).json({ error: "name and eventDate are required" });
     const [event] = await db.update(eventsTable).set({
       name,
@@ -121,6 +123,7 @@ router.put("/:id", requireAdmin, async (req, res) => {
       targetParticipants: targetParticipants ? parseInt(targetParticipants) : null,
       isRsvp: isRsvp === true || isRsvp === "true",
       status: status ?? "active",
+      fasilitas: fasilitas ?? null,
     }).where(eq(eventsTable.id, id)).returning();
     if (!event) return res.status(404).json({ error: "Event not found" });
     const count = await db.$count(eventRegistrationsTable, eq(eventRegistrationsTable.eventId, id));

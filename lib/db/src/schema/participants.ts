@@ -53,6 +53,7 @@ export const eventsTable = pgTable("events", {
   targetParticipants: integer("target_participants"),
   isRsvp: boolean("is_rsvp").default(false),
   status: text("status").default("active"),
+  fasilitas: text("fasilitas"),
   registrationToken: text("registration_token").unique(),
   attendanceToken: text("attendance_token").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

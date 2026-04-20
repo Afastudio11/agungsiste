@@ -43,6 +43,12 @@ export const CreateEventBody = zod.object({
   description: zod.string().nullish(),
   location: zod.string().nullish(),
   eventDate: zod.string(),
+  category: zod.string().nullish(),
+  startTime: zod.string().nullish(),
+  endTime: zod.string().nullish(),
+  targetParticipants: zod.number().nullish(),
+  isRsvp: zod.boolean().nullish(),
+  fasilitas: zod.string().nullish(),
 });
 
 /**

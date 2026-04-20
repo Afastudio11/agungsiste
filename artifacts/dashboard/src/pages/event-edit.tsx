@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import Layout from "@/components/layout";
-import { ChevronLeft, CheckCircle2, Calendar, MapPin, Users, Clock } from "@/lib/icons";
+import { ChevronLeft, CheckCircle2, Calendar, MapPin, Users, Clock, X, Plus, Gift } from "@/lib/icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -72,6 +72,9 @@ export default function EventEditPage() {
     isRsvp: false,
     status: "active",
   });
+  const [fasilitas, setFasilitas] = useState<string[]>([]);
+  const [fasilitasInput, setFasilitasInput] = useState("");
+  const fasilitasRef = useRef<HTMLInputElement>(null);
 
   const { data: event, isLoading, isError } = useQuery<EventData>({
     queryKey: ["event", id],
@@ -96,8 +99,23 @@ export default function EventEditPage() {
         isRsvp: event.isRsvp ?? false,
         status: event.status ?? "active",
       });
+      try {
+        const parsed = JSON.parse((event as any).fasilitas ?? "[]");
+        setFasilitas(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setFasilitas([]);
+      }
     }
   }, [event]);
+
+  const addFasilitas = () => {
+    const val = fasilitasInput.trim();
+    if (val && !fasilitas.includes(val)) {
+      setFasilitas((prev) => [...prev, val]);
+    }
+    setFasilitasInput("");
+    fasilitasRef.current?.focus();
+  };
 
   const mutation = useMutation({
     mutationFn: (data: typeof form) =>
@@ -107,6 +125,7 @@ export default function EventEditPage() {
         body: JSON.stringify({
           ...data,
           targetParticipants: data.targetParticipants ? parseInt(data.targetParticipants) : null,
+          fasilitas: fasilitas.length > 0 ? JSON.stringify(fasilitas) : null,
         }),
       }).then(async (r) => {
         if (!r.ok) {
@@ -304,6 +323,72 @@ export default function EventEditPage() {
               <span className="text-sm text-slate-700">{form.isRsvp ? "RSVP diaktifkan" : "RSVP dinonaktifkan"}</span>
             </label>
           </FormField>
+        </div>
+
+        {/* Fasilitas */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
+          <h2 className="text-[12px] font-bold text-slate-400 tracking-widest uppercase">Fasilitas</h2>
+          <p className="text-[11px] text-slate-400 -mt-2">Isi fasilitas yang didapatkan peserta, mis: Merchandise, Snack, Sertifikat.</p>
+
+          {/* Chips */}
+          {fasilitas.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {fasilitas.map((f) => (
+                <span key={f} className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 border border-indigo-100 px-3 py-1 text-[12px] font-semibold text-indigo-700">
+                  {f}
+                  <button
+                    type="button"
+                    onClick={() => setFasilitas((prev) => prev.filter((x) => x !== f))}
+                    className="text-indigo-400 hover:text-indigo-700 transition"
+                  >
+                    <X size={11} weight="bold" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Input + add button */}
+          <div className="flex gap-2">
+            <input
+              ref={fasilitasRef}
+              type="text"
+              value={fasilitasInput}
+              onChange={(e) => setFasilitasInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); addFasilitas(); }
+                if (e.key === ",") { e.preventDefault(); addFasilitas(); }
+              }}
+              placeholder="Ketik fasilitas lalu tekan Enter"
+              className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition"
+            />
+            <button
+              type="button"
+              onClick={addFasilitas}
+              disabled={!fasilitasInput.trim()}
+              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-40 transition"
+            >
+              <Plus size={14} weight="bold" />
+              Tambah
+            </button>
+          </div>
+
+          {/* Quick suggestions */}
+          <div className="flex flex-wrap gap-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest self-center">Cepat:</span>
+            {["Merchandise", "Snack", "Konsumsi", "Sertifikat", "Kaos", "Topi", "Makan Siang"].map((s) => (
+              !fasilitas.includes(s) && (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setFasilitas((prev) => [...prev, s])}
+                  className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition"
+                >
+                  + {s}
+                </button>
+              )
+            ))}
+          </div>
         </div>
 
         {/* Action buttons */}

@@ -137,6 +137,8 @@ export default function EventsPage() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
+  const [fasilitasCreate, setFasilitasCreate] = useState<string[]>([]);
+  const [fasilitasInputCreate, setFasilitasInputCreate] = useState("");
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [filterKabupaten, setFilterKabupaten] = useState("");
   const [showWilayahFilter, setShowWilayahFilter] = useState(false);
@@ -244,6 +246,16 @@ export default function EventsPage() {
   const closeForm = () => {
     setShowForm(false);
     setForm({ ...emptyForm });
+    setFasilitasCreate([]);
+    setFasilitasInputCreate("");
+  };
+
+  const addFasilitasCreate = () => {
+    const val = fasilitasInputCreate.trim();
+    if (val && !fasilitasCreate.includes(val)) {
+      setFasilitasCreate((prev) => [...prev, val]);
+    }
+    setFasilitasInputCreate("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -257,6 +269,7 @@ export default function EventsPage() {
       category: form.category || undefined,
       startTime: form.startTime || undefined,
       targetParticipants: form.targetParticipants ? parseInt(form.targetParticipants) : undefined,
+      fasilitas: fasilitasCreate.length > 0 ? JSON.stringify(fasilitasCreate) : undefined,
     };
     createEvent.mutate({ data });
   };
@@ -720,6 +733,65 @@ export default function EventsPage() {
                   />
                 </div>
               </div>
+
+              {/* Fasilitas */}
+              <div className="mt-4 space-y-2">
+                <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
+                  Fasilitas
+                </label>
+                {fasilitasCreate.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {fasilitasCreate.map((f) => (
+                      <span key={f} className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700">
+                        {f}
+                        <button
+                          type="button"
+                          onClick={() => setFasilitasCreate((prev) => prev.filter((x) => x !== f))}
+                          className="text-indigo-400 hover:text-indigo-700 transition ml-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={fasilitasInputCreate}
+                    onChange={(e) => setFasilitasInputCreate(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); addFasilitasCreate(); }
+                      if (e.key === ",") { e.preventDefault(); addFasilitasCreate(); }
+                    }}
+                    placeholder="cth: Merchandise, Snack..."
+                    className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={addFasilitasCreate}
+                    disabled={!fasilitasInputCreate.trim()}
+                    className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {["Merchandise", "Snack", "Konsumsi", "Sertifikat", "Kaos", "Topi"].map((s) => (
+                    !fasilitasCreate.includes(s) && (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setFasilitasCreate((prev) => [...prev, s])}
+                        className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500 hover:bg-slate-100 transition-colors"
+                      >
+                        + {s}
+                      </button>
+                    )
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-5 flex gap-2">
                 <button
                   type="button"

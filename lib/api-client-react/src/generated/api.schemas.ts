@@ -24,6 +24,12 @@ export interface CreateEventBody {
   description?: string | null;
   location?: string | null;
   eventDate: string;
+  category?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  targetParticipants?: number | null;
+  isRsvp?: boolean | null;
+  fasilitas?: string | null;
 }
 
 export interface Participant {
