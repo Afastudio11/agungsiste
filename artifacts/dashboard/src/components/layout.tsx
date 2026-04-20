@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { ReactNode, useState, useRef, useEffect } from "react";
+import { ReactNode, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useSettings } from "@/lib/settings-context";
 import { useHeaderContext } from "@/lib/header-context";
@@ -76,18 +76,6 @@ export default function Layout({ children }: LayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { settings } = useSettings();
   const { onExport } = useHeaderContext();
-  const [exportOpen, setExportOpen] = useState(false);
-  const exportRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
-        setExportOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   const isDashboard = location === "/dashboard";
 
@@ -204,45 +192,16 @@ export default function Layout({ children }: LayoutProps) {
 
           <div className="flex-1" />
 
-          {/* Export dropdown — shown on dashboard */}
+          {/* Export button — shown on dashboard */}
           {isDashboard && (
-            <div ref={exportRef} className="relative hidden sm:block">
+            <div className="relative hidden sm:block">
               <button
-                onClick={() => setExportOpen((v) => !v)}
+                onClick={() => onExport?.()}
                 className="flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-[12px] font-bold text-white shadow-sm shadow-blue-300/50 hover:bg-blue-700 transition-colors"
               >
                 <Download size={15} weight="bold" />
-                Export
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="ml-0.5 opacity-80">
-                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                Export Excel
               </button>
-              {exportOpen && (
-                <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl bg-white border border-slate-100 shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden z-50">
-                  <button
-                    onClick={() => { onExport?.("pdf"); setExportOpen(false); }}
-                    className="flex w-full items-center gap-2.5 px-4 py-3 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-red-500" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                      <line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="11" y2="17"/>
-                    </svg>
-                    Export PDF
-                  </button>
-                  <div className="h-px bg-slate-50 mx-3" />
-                  <button
-                    onClick={() => { onExport?.("excel"); setExportOpen(false); }}
-                    className="flex w-full items-center gap-2.5 px-4 py-3 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-emerald-500" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                      <line x1="8" y1="13" x2="10" y2="17"/><line x1="10" y1="13" x2="8" y2="17"/>
-                      <line x1="13" y1="13" x2="16" y2="13"/><line x1="16" y1="13" x2="16" y2="17"/><line x1="13" y1="17" x2="16" y2="17"/>
-                    </svg>
-                    Export Excel
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
