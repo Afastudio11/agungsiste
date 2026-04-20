@@ -475,6 +475,8 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
 
 /* ─── VIEW 3: Desa list ────────────────────────────────────────────────── */
 function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecamatan: string; onSelect: (kel: string) => void }) {
+  const [desaFilter, setDesaFilter] = useState<"terjangkau" | "belum" | null>(null);
+
   const { data: desaData = [], isLoading } = useQuery<DesaRow[]>({
     queryKey: ["pemetaan-desa", kabupaten, kecamatan],
     queryFn: () => fetch(
@@ -487,6 +489,17 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
     queryFn: () => fetch(`${BASE}/api/pemetaan/kecamatan?kabupaten=${encodeURIComponent(kabupaten)}`, { credentials: "include" }).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
   });
   const kecInfo = kecAll.find((k) => k.kecamatan.toLowerCase() === kecamatan.toLowerCase());
+
+  // Terjangkau = punya minimal 1 kegiatan ATAU program
+  const terjangkauList = desaData.filter((d) => (d.totalEvent ?? 0) > 0 || (d.totalProgram ?? 0) > 0);
+  const belumList = desaData.filter((d) => (d.totalEvent ?? 0) === 0 && (d.totalProgram ?? 0) === 0);
+  const totalDesa = desaData.length;
+
+  const displayList = desaFilter === "terjangkau"
+    ? terjangkauList
+    : desaFilter === "belum"
+    ? belumList
+    : desaData;
 
   return (
     <div className="space-y-4">
@@ -509,29 +522,98 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
         </div>
       </div>
 
-      {kecInfo && (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { icon: <TrendingUp className="h-6 w-6 text-indigo-500" />, label: "Total Peserta", value: Number(kecInfo.totalInput).toLocaleString() },
-            { icon: <Home className="h-6 w-6 text-indigo-500" />, label: "Desa/Kel.", value: kecInfo.totalDesa },
-            { icon: <CalendarDays className="h-6 w-6 text-indigo-500" />, label: "Kegiatan", value: kecInfo.totalKegiatan ?? 0 },
-          ].map(({ icon, label, value }) => (
-            <div key={label} className="rounded-2xl p-4 flex items-center gap-3 bg-white border border-slate-100 shadow-sm">
-              <div className="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">{icon}</div>
-              <div>
-                <div className="text-[9px] font-bold tracking-widest text-slate-400 mb-0.5">{label}</div>
-                <div className="text-2xl font-extrabold text-slate-900 leading-none">{value}</div>
-              </div>
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { icon: <Users className="h-3.5 w-3.5 text-indigo-500" />, bg: "bg-indigo-50", label: "Total KTP", value: Number(kecInfo?.totalInput ?? 0).toLocaleString() },
+          { icon: <CalendarDays className="h-3.5 w-3.5 text-blue-500" />, bg: "bg-blue-50", label: "Kegiatan", value: kecInfo?.totalKegiatan ?? 0 },
+          { icon: <Globe className="h-3.5 w-3.5 text-violet-500" />, bg: "bg-violet-50", label: "Program", value: kecInfo?.totalProgram ?? 0 },
+        ].map(({ icon, bg, label, value }) => (
+          <div key={label} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`h-6 w-6 rounded-lg ${bg} flex items-center justify-center shrink-0`}>{icon}</div>
+              <span className="text-[10px] font-bold text-slate-400 tracking-wide">{label}</span>
             </div>
-          ))}
+            <div className="text-xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Comparison cards — clickable filter */}
+      {!isLoading && (
+        <div className="grid grid-cols-2 gap-3">
+          {/* Terjangkau */}
+          {(() => {
+            const isActive = desaFilter === "terjangkau";
+            return (
+              <button
+                onClick={() => setDesaFilter(isActive ? null : "terjangkau")}
+                className={`text-left rounded-2xl border p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all ${
+                  isActive ? "bg-emerald-50 border-emerald-300 ring-2 ring-emerald-200" : "bg-white border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/40"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`h-6 w-6 rounded-lg flex items-center justify-center ${isActive ? "bg-emerald-100" : "bg-emerald-50"}`}>
+                    <Home className="h-3 w-3 text-emerald-500" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 tracking-wide">Desa Terjangkau</span>
+                  {isActive && <span className="ml-auto text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">Filter Aktif</span>}
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{terjangkauList.length}</span>
+                  <span className="text-xs text-slate-400">/ {totalDesa} desa</span>
+                </div>
+                <CompBar value={terjangkauList.length} total={totalDesa} color="bg-emerald-400" />
+                {!isActive && <div className="mt-1.5 text-[10px] text-slate-400">Klik untuk filter desa ini</div>}
+              </button>
+            );
+          })()}
+
+          {/* Belum Terjangkau */}
+          {(() => {
+            const isActive = desaFilter === "belum";
+            return (
+              <button
+                onClick={() => setDesaFilter(isActive ? null : "belum")}
+                className={`text-left rounded-2xl border p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all ${
+                  isActive ? "bg-rose-50 border-rose-300 ring-2 ring-rose-200" : "bg-white border-slate-100 hover:border-rose-200 hover:bg-rose-50/40"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`h-6 w-6 rounded-lg flex items-center justify-center ${isActive ? "bg-rose-100" : "bg-rose-50"}`}>
+                    <Home className="h-3 w-3 text-rose-400" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 tracking-wide">Belum Terjangkau</span>
+                  {isActive && <span className="ml-auto text-[10px] font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full">Filter Aktif</span>}
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl font-extrabold text-rose-700" style={{ letterSpacing: "-0.04em" }}>{belumList.length}</span>
+                  <span className="text-xs text-slate-400">/ {totalDesa} desa</span>
+                </div>
+                <CompBar value={belumList.length} total={totalDesa} color="bg-rose-400" />
+                {!isActive && <div className="mt-1.5 text-[10px] text-slate-400">Klik untuk lihat desa ini</div>}
+              </button>
+            );
+          })()}
         </div>
       )}
 
       {/* Desa table */}
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <span className="font-bold text-slate-900">Daftar Desa / Kelurahan</span>
-          <span className="ml-auto text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-lg">{desaData.length} desa/kel.</span>
+          {desaFilter && (
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-1 ${
+              desaFilter === "belum" ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-700"
+            }`}>
+              {desaFilter === "belum" ? "Belum Terjangkau" : "Sudah Terjangkau"}
+            </span>
+          )}
+          <span className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded-lg ${
+            desaFilter === "belum" ? "bg-rose-50 text-rose-600" : "bg-indigo-50 text-indigo-600"
+          }`}>
+            {displayList.length} desa/kel.
+          </span>
         </div>
         {isLoading ? (
           <div className="p-10 text-center text-slate-400 text-sm">Memuat data desa/kel....</div>
@@ -543,22 +625,47 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
                   <th className="px-4 py-3 text-center w-12">No.</th>
                   <th className="px-4 py-3 text-left">Nama Desa / Kelurahan</th>
                   <th className="px-4 py-3 text-right">Kegiatan</th>
+                  <th className="px-4 py-3 text-right">Program</th>
                   <th className="px-4 py-3 text-right">Total KTP</th>
                   <th className="px-3 py-3 w-8" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {desaData.map((d, idx) => (
-                  <tr key={`${d.kelurahan}-${idx}`} onClick={() => onSelect(d.kelurahan)} className="hover:bg-indigo-50/60 cursor-pointer transition group">
-                    <td className="px-4 py-3 text-center text-xs text-slate-400 font-medium">{idx + 1}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition">{d.kelurahan}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700 text-right">{d.totalEvent}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-slate-900 text-right">{Number(d.totalInput).toLocaleString()}</td>
-                    <td className="px-3 py-3"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-500 transition" /></td>
-                  </tr>
-                ))}
-                {desaData.length === 0 && (
-                  <tr><td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-sm">Tidak ada data desa/kel.</td></tr>
+                {displayList.map((d, idx) => {
+                  const isTerj = (d.totalEvent ?? 0) > 0 || (d.totalProgram ?? 0) > 0;
+                  return (
+                    <tr
+                      key={`${d.kelurahan}-${idx}`}
+                      onClick={() => isTerj && onSelect(d.kelurahan)}
+                      className={`transition group ${isTerj ? "hover:bg-indigo-50/60 cursor-pointer" : "opacity-60 cursor-default"}`}
+                    >
+                      <td className="px-4 py-3 text-center text-xs text-slate-400 font-medium">{idx + 1}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${isTerj ? "bg-emerald-400" : "bg-rose-300"}`} />
+                          <span className={`text-sm font-semibold transition ${isTerj ? "text-slate-900 group-hover:text-indigo-700" : "text-slate-500"}`}>
+                            {d.kelurahan}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600 text-right">{d.totalEvent ?? 0}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600 text-right">{d.totalProgram ?? 0}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-slate-900 text-right">
+                        {Number(d.totalInput) > 0 ? Number(d.totalInput).toLocaleString() : <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-3 py-3">
+                        {isTerj
+                          ? <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-500 transition" />
+                          : <span className="text-[10px] text-rose-400 font-bold">Belum</span>
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
+                {displayList.length === 0 && (
+                  <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-400 text-sm">
+                    {desaFilter === "belum" ? "Semua desa sudah terjangkau!" : "Tidak ada data desa/kel."}
+                  </td></tr>
                 )}
               </tbody>
             </table>
