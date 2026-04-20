@@ -17,10 +17,14 @@ interface DesaRow { kelurahan: string; kecamatan: string; kabupaten: string; tot
 interface DesaDetail {
   kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; totalProgram: number; totalHadiah: number;
   events: { eventId: number; eventName: string; eventDate: string; location: string; peserta: number }[];
+  programs: { programId: number; programName: string; tahun: number | null; peserta: number }[];
 }
 interface Participant {
   nik: string; fullName: string; gender?: string; occupation?: string;
   phone?: string; tags?: string; registeredAt?: string;
+}
+interface DesaParticipant {
+  nik: string; fullName: string; gender?: string; occupation?: string; phone?: string; address?: string;
 }
 
 type View =
@@ -686,12 +690,45 @@ function DesaDetailView({
   kelurahan: string;
   onSelectEvent: (eventId: number, eventName: string) => void;
 }) {
+  const [activeTab, setActiveTab] = useState<"riwayat" | "daftar" | null>("riwayat");
+
   const { data, isLoading } = useQuery<DesaDetail>({
     queryKey: ["pemetaan-desa-detail", kelurahan],
     queryFn: () => fetch(`${BASE}/api/pemetaan/desa/${encodeURIComponent(kelurahan)}`, { credentials: "include" }).then((r) => r.json()),
   });
+
+  const { data: pesertaList, isLoading: pesertaLoading } = useQuery<DesaParticipant[]>({
+    queryKey: ["pemetaan-desa-participants", kelurahan],
+    queryFn: () => fetch(`${BASE}/api/pemetaan/desa/${encodeURIComponent(kelurahan)}/participants`, { credentials: "include" }).then((r) => r.json()),
+    enabled: activeTab === "daftar",
+  });
+
   if (isLoading) return <div className="py-16 text-center text-slate-400 text-sm">Memuat data desa/kel....</div>;
   if (!data) return null;
+
+  /* Combined riwayat: kegiatan + program */
+  type RiwayatRow = { id: string; type: "kegiatan" | "program"; name: string; tanggal: string; totalKtp: number; eventId?: number; eventName?: string };
+  const riwayat: RiwayatRow[] = [
+    ...(data.events ?? []).map((ev) => ({
+      id: `k-${ev.eventId}`,
+      type: "kegiatan" as const,
+      name: ev.eventName,
+      tanggal: ev.eventDate ? new Date(ev.eventDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "-",
+      totalKtp: Number(ev.peserta),
+      eventId: ev.eventId,
+      eventName: ev.eventName,
+    })),
+    ...(data.programs ?? []).map((pr) => ({
+      id: `p-${pr.programId}`,
+      type: "program" as const,
+      name: pr.programName,
+      tanggal: pr.tahun ? String(pr.tahun) : "-",
+      totalKtp: Number(pr.peserta),
+    })),
+  ];
+
+  const totalRiwayat = riwayat.length;
+
   return (
     <div className="space-y-4">
       {/* Hero banner card */}
@@ -713,12 +750,12 @@ function DesaDetailView({
         </div>
       </div>
 
-      {/* Stats grid — horizontal layout */}
+      {/* Stats grid */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: <Users className="h-6 w-6 text-blue-500" />, label: "KTP Terkumpul", value: Number(data.totalInput).toLocaleString() },
-          { icon: <CalendarDays className="h-6 w-6 text-blue-500" />, label: "Kegiatan", value: Number(data.totalEvent) },
-          { icon: <Globe className="h-6 w-6 text-blue-500" />, label: "Program", value: Number(data.totalProgram ?? 0) },
+          { icon: <Users className="h-6 w-6 text-blue-500" />, label: "Total KTP", value: Number(data.totalInput).toLocaleString() },
+          { icon: <CalendarDays className="h-6 w-6 text-indigo-500" />, label: "Total Kegiatan", value: Number(data.totalEvent) },
+          { icon: <Globe className="h-6 w-6 text-violet-500" />, label: "Total Program", value: Number(data.totalProgram ?? 0) },
         ].map(({ icon, label, value }) => (
           <div
             key={label}
@@ -731,7 +768,7 @@ function DesaDetailView({
               boxShadow: "0 4px 16px 0 rgba(31,38,135,0.04)",
             }}
           >
-            <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+            <div className="h-12 w-12 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
               {icon}
             </div>
             <div>
@@ -742,40 +779,121 @@ function DesaDetailView({
         ))}
       </div>
 
-      {/* Event list */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-blue-500" />
-          <span className="font-bold text-slate-900">Daftar Kegiatan</span>
-          <span className="ml-auto text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-0.5 rounded-full">{data.events.length} kegiatan</span>
-        </div>
-        {data.events.length === 0 ? (
-          <div className="p-10 text-center text-slate-400 text-sm">Tidak ada kegiatan</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 tracking-widest border-b border-slate-100">
-                  <th className="px-4 py-3 text-center w-12">No.</th>
-                  <th className="px-4 py-3 text-left">Nama Event</th>
-                  <th className="px-4 py-3 text-right">Total Peserta</th>
-                  <th className="px-3 py-3 w-8" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {data.events.map((ev, i) => (
-                  <tr key={ev.eventId} onClick={() => onSelectEvent(ev.eventId, ev.eventName)} className="hover:bg-blue-50/50 cursor-pointer transition-colors group">
-                    <td className="px-4 py-3.5 text-center text-xs text-slate-400 font-medium">{i + 1}</td>
-                    <td className="px-4 py-3.5 text-sm font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">{ev.eventName}</td>
-                    <td className="px-4 py-3.5 text-sm font-bold text-slate-900 text-right">{Number(ev.peserta).toLocaleString()}</td>
-                    <td className="px-3 py-3.5"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-400 transition-colors" /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* Tab buttons + badge */}
+      <div className="flex items-center gap-0 bg-slate-100 rounded-xl p-1">
+        <button
+          onClick={() => setActiveTab(activeTab === "riwayat" ? null : "riwayat")}
+          className={`flex-1 py-2.5 text-xs font-extrabold tracking-widest rounded-lg transition-all ${
+            activeTab === "riwayat"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-400 hover:text-slate-600"
+          }`}
+        >
+          RIWAYAT
+        </button>
+        <button
+          onClick={() => setActiveTab(activeTab === "daftar" ? null : "daftar")}
+          className={`flex-1 py-2.5 text-xs font-extrabold tracking-widest rounded-lg transition-all ${
+            activeTab === "daftar"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-400 hover:text-slate-600"
+          }`}
+        >
+          DAFTAR KTP
+        </button>
+        <span className="ml-3 mr-2 text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+          {activeTab === "daftar"
+            ? `${pesertaList?.length ?? data.totalInput} peserta`
+            : `${totalRiwayat} riwayat`}
+        </span>
       </div>
+
+      {/* RIWAYAT panel */}
+      {activeTab === "riwayat" && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          {riwayat.length === 0 ? (
+            <div className="p-10 text-center text-slate-400 text-sm">Tidak ada riwayat kegiatan atau program</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 tracking-widest border-b border-slate-100">
+                    <th className="px-4 py-3 text-center w-10">No.</th>
+                    <th className="px-4 py-3 text-left">Nama Program/Kegiatan</th>
+                    <th className="px-4 py-3 text-center">Tanggal</th>
+                    <th className="px-4 py-3 text-right">Total KTP</th>
+                    <th className="px-3 py-3 w-8" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {riwayat.map((row, i) => {
+                    const isKegiatan = row.type === "kegiatan";
+                    const clickable = isKegiatan;
+                    return (
+                      <tr
+                        key={row.id}
+                        onClick={() => isKegiatan && row.eventId != null && onSelectEvent(row.eventId, row.eventName!)}
+                        className={`transition-colors group ${clickable ? "hover:bg-blue-50/50 cursor-pointer" : "cursor-default"}`}
+                      >
+                        <td className="px-4 py-3.5 text-center text-xs text-slate-400 font-medium">{i + 1}</td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className={`shrink-0 text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded ${isKegiatan ? "bg-indigo-50 text-indigo-500" : "bg-violet-50 text-violet-500"}`}>
+                              {isKegiatan ? "KEGT" : "PROG"}
+                            </span>
+                            <span className={`text-sm font-semibold text-slate-800 ${clickable ? "group-hover:text-blue-700" : ""} transition-colors`}>{row.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-xs text-slate-500 text-center">{row.tanggal}</td>
+                        <td className="px-4 py-3.5 text-sm font-bold text-slate-900 text-right">{row.totalKtp.toLocaleString()}</td>
+                        <td className="px-3 py-3.5">
+                          {clickable && <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-400 transition-colors" />}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* DAFTAR KTP panel */}
+      {activeTab === "daftar" && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          {pesertaLoading ? (
+            <div className="p-10 text-center text-slate-400 text-sm">Memuat daftar KTP...</div>
+          ) : !pesertaList || pesertaList.length === 0 ? (
+            <div className="p-10 text-center text-slate-400 text-sm">Belum ada peserta dari desa ini</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 tracking-widest border-b border-slate-100">
+                    <th className="px-4 py-3 text-center w-10">No.</th>
+                    <th className="px-4 py-3 text-left">Nama Lengkap</th>
+                    <th className="px-4 py-3 text-left">NIK</th>
+                    <th className="px-4 py-3 text-left">L/P</th>
+                    <th className="px-4 py-3 text-left">Pekerjaan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {pesertaList.map((p, i) => (
+                    <tr key={p.nik} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-4 py-3 text-center text-xs text-slate-400 font-medium">{i + 1}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-800">{p.fullName}</td>
+                      <td className="px-4 py-3 text-xs text-slate-500 font-mono">{p.nik}</td>
+                      <td className="px-4 py-3 text-xs text-slate-500">{p.gender === "L" ? "L" : p.gender === "P" ? "P" : p.gender ?? "-"}</td>
+                      <td className="px-4 py-3 text-xs text-slate-500">{p.occupation ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, programRegistrationsTable } from "@workspace/db";
+import { participantsTable, eventRegistrationsTable, eventsTable, prizeDistributionsTable, programRegistrationsTable, programsTable } from "@workspace/db";
 import { jatimWilayah, getKecamatanList, getDesaList } from "@workspace/db/jatimWilayah";
 import { sql, count, countDistinct } from "drizzle-orm";
 
@@ -341,6 +341,20 @@ router.get("/desa/:kelurahan", async (req, res) => {
       .innerJoin(programRegistrationsTable, sql`${programRegistrationsTable.participantId} = ${participantsTable.id}`)
       .where(sql`lower(${participantsTable.kelurahan}) = lower(${kelurahan})`);
 
+    const programs = await db
+      .select({
+        programId: programsTable.id,
+        programName: programsTable.name,
+        tahun: programsTable.tahun,
+        peserta: count(participantsTable.id),
+      })
+      .from(participantsTable)
+      .innerJoin(programRegistrationsTable, sql`${programRegistrationsTable.participantId} = ${participantsTable.id}`)
+      .innerJoin(programsTable, sql`${programsTable.id} = ${programRegistrationsTable.programId}`)
+      .where(sql`lower(${participantsTable.kelurahan}) = lower(${kelurahan})`)
+      .groupBy(programsTable.id, programsTable.name, programsTable.tahun)
+      .orderBy(sql`count(${participantsTable.id}) desc`);
+
     const totalHadiah = hadiahRow?.total ?? 0;
     const totalProgram = Number(programRow?.totalProgram ?? 0);
 
@@ -365,10 +379,11 @@ router.get("/desa/:kelurahan", async (req, res) => {
         totalProgram: 0,
         totalHadiah: 0,
         events: [],
+        programs: [],
       });
     }
 
-    return res.json({ ...info, totalHadiah, totalProgram, events });
+    return res.json({ ...info, totalHadiah, totalProgram, events, programs });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: "Server error" });
@@ -395,6 +410,28 @@ router.get("/desa/:kelurahan/event/:eventId/participants", async (req, res) => {
           and ${eventRegistrationsTable.eventId} = ${parseInt(eventId)}`
       )
       .orderBy(sql`${eventRegistrationsTable.registeredAt} desc`);
+    return res.json(data);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/desa/:kelurahan/participants", async (req, res) => {
+  try {
+    const { kelurahan } = req.params;
+    const data = await db
+      .select({
+        nik: participantsTable.nik,
+        fullName: participantsTable.fullName,
+        gender: participantsTable.gender,
+        occupation: participantsTable.occupation,
+        phone: participantsTable.phone,
+        address: participantsTable.address,
+      })
+      .from(participantsTable)
+      .where(sql`lower(${participantsTable.kelurahan}) = lower(${kelurahan})`)
+      .orderBy(participantsTable.fullName);
     return res.json(data);
   } catch (e) {
     console.error(e);
