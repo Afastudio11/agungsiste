@@ -156,6 +156,29 @@ router.get("/kecamatan", async (req, res) => {
 
     const dbMap = new Map(dbRows.map((r) => [r.kecamatan?.toLowerCase() ?? "", r]));
 
+    const terjangkauRows = await db.execute(sql`
+      SELECT p.kecamatan,
+        count(distinct p.kelurahan) as desa_terjangkau
+      FROM participants p
+      WHERE p.kecamatan IS NOT NULL AND (
+        EXISTS (SELECT 1 FROM event_registrations er WHERE er.participant_id = p.id)
+        OR EXISTS (SELECT 1 FROM program_registrations pr WHERE pr.participant_id = p.id)
+      )
+      GROUP BY p.kecamatan
+    `);
+    const terjArr = (terjangkauRows.rows ?? terjangkauRows) as Record<string, unknown>[];
+    const terjKecMap = new Map(terjArr.map((r) => [(r.kecamatan as string)?.toLowerCase() ?? "", Number(r.desa_terjangkau ?? 0)]));
+
+    const progKecRows = await db.execute(sql`
+      SELECT p.kecamatan, count(distinct pr.program_id) as total_program
+      FROM participants p
+      INNER JOIN program_registrations pr ON pr.participant_id = p.id
+      WHERE p.kecamatan IS NOT NULL
+      GROUP BY p.kecamatan
+    `);
+    const progKecArr = (progKecRows.rows ?? progKecRows) as Record<string, unknown>[];
+    const progKecMap = new Map(progKecArr.map((r) => [(r.kecamatan as string)?.toLowerCase() ?? "", Number(r.total_program ?? 0)]));
+
     const kabKey = kabupaten
       ? Object.keys(jatimWilayah).find((k) => k.toLowerCase().includes(kabupaten.toLowerCase()))
       : undefined;
@@ -172,7 +195,9 @@ router.get("/kecamatan", async (req, res) => {
         kabupaten: row?.kabupaten ?? kabKey ?? "",
         totalInput: row?.totalInput ?? 0,
         totalDesa,
-        totalEvent: row?.totalEvent ?? 0,
+        totalKegiatan: row?.totalEvent ?? 0,
+        desaTerjangkau: terjKecMap.get(kec.toLowerCase()) ?? 0,
+        totalProgram: progKecMap.get(kec.toLowerCase()) ?? 0,
       };
     });
 

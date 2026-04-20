@@ -10,12 +10,12 @@ import PetaMapContent from "@/pages/peta";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-interface Summary { totalDesa: number; totalKecamatan: number; totalKabupaten: number; desaWithEvents: number; totalEvent: number; totalHadiah: number; }
-interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: number; totalKecamatan: number; totalEvent: number; }
-interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalEvent: number; }
+interface Summary { totalDesa: number; totalKecamatan: number; totalKabupaten: number; totalKTP: number; desaTerjangkau: number; kecamatanTerjangkau: number; totalEvent: number; totalProgram: number; totalHadiah: number; }
+interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: number; totalKecamatan: number; totalEvent: number; desaTerjangkau: number; kecamatanTerjangkau: number; totalProgram: number; }
+interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalKegiatan: number; desaTerjangkau: number; totalProgram: number; }
 interface DesaRow { kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; }
 interface DesaDetail {
-  kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; totalHadiah: number;
+  kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; totalProgram: number; totalHadiah: number;
   events: { eventId: number; eventName: string; eventDate: string; location: string; peserta: number }[];
 }
 interface Participant {
@@ -97,30 +97,76 @@ function backView(view: View): View {
   return { type: "kabupaten" };
 }
 
+/* ─── helpers ──────────────────────────────────────────────────────────── */
+function CompBar({ value, total, color = "bg-blue-500" }: { value: number; total: number; color?: string }) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  return (
+    <div className="mt-1.5">
+      <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%`, transition: "width 0.5s" }} />
+      </div>
+      <div className="text-[10px] text-slate-400 mt-0.5">{pct}% dari {total.toLocaleString()}</div>
+    </div>
+  );
+}
+
 /* ─── VIEW 1: Kabupaten ────────────────────────────────────────────────── */
 function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabData: KabupatenRow[]; onSelect: (k: string) => void }) {
   const max = Math.max(...kabData.map((k) => Number(k.totalInput)), 1);
+  const totalDesa = summary?.totalDesa ?? 0;
+  const totalKec = summary?.totalKecamatan ?? 0;
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="space-y-4">
+      {/* Row 1 — 3 scalar cards */}
+      <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Total Desa / Kelurahan", value: summary?.totalDesa ?? 0, icon: Home },
-          { label: "Total Event", value: summary?.totalEvent ?? 0, icon: CalendarDays },
-          { label: "Total Hadiah", value: summary?.totalHadiah ?? 0, icon: Gift },
-          { label: "Total Kecamatan", value: summary?.totalKecamatan ?? 0, icon: MapPin },
-        ].map(({ label, value, icon: Icon }) => (
-          <div key={label} className="bg-white rounded-2xl border border-slate-100 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Icon className="h-3.5 w-3.5 text-slate-400" />
-              <div className="text-xs font-bold text-slate-400 tracking-wider">{label}</div>
+          { label: "Total KTP Terkumpul", value: (summary?.totalKTP ?? 0).toLocaleString(), icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
+          { label: "Total Kegiatan", value: (summary?.totalEvent ?? 0).toLocaleString(), icon: CalendarDays, color: "text-indigo-500", bg: "bg-indigo-50" },
+          { label: "Total Program", value: (summary?.totalProgram ?? 0).toLocaleString(), icon: Globe, color: "text-violet-500", bg: "bg-violet-50" },
+        ].map(({ label, value, icon: Icon, color, bg }) => (
+          <div key={label} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`h-7 w-7 rounded-lg ${bg} flex items-center justify-center`}>
+                <Icon className={`h-3.5 w-3.5 ${color}`} />
+              </div>
+              <span className="text-xs font-bold text-slate-400 tracking-wide">{label}</span>
             </div>
-            <div className="text-2xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>
-              {Number(value).toLocaleString()}
-            </div>
+            <div className="text-2xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{value}</div>
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      {/* Row 2 — 2 comparison cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-7 w-7 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <Home className="h-3.5 w-3.5 text-emerald-500" />
+            </div>
+            <span className="text-xs font-bold text-slate-400 tracking-wide">Desa Terjangkau</span>
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{(summary?.desaTerjangkau ?? 0).toLocaleString()}</span>
+            <span className="text-sm text-slate-400 font-medium">/ {totalDesa.toLocaleString()} desa</span>
+          </div>
+          <CompBar value={summary?.desaTerjangkau ?? 0} total={totalDesa} color="bg-emerald-400" />
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-7 w-7 rounded-lg bg-amber-50 flex items-center justify-center">
+              <MapPin className="h-3.5 w-3.5 text-amber-500" />
+            </div>
+            <span className="text-xs font-bold text-slate-400 tracking-wide">Kecamatan Terjangkau</span>
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{(summary?.kecamatanTerjangkau ?? 0).toLocaleString()}</span>
+            <span className="text-sm text-slate-400 font-medium">/ {totalKec.toLocaleString()} kec</span>
+          </div>
+          <CompBar value={summary?.kecamatanTerjangkau ?? 0} total={totalKec} color="bg-amber-400" />
+        </div>
+      </div>
+
+      {/* Sebaran per Kabupaten */}
+      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <Building2 className="h-4 w-4 text-blue-500" />
           <span className="font-bold text-slate-900">Sebaran per Kabupaten</span>
@@ -128,34 +174,40 @@ function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabD
         </div>
         <div className="divide-y divide-slate-50">
           {kabData.map((k, i) => {
-            const colors = ["bg-blue-500","bg-indigo-500","bg-violet-500","bg-sky-500","bg-teal-500"];
+            const dotColors = ["bg-blue-500","bg-indigo-500","bg-violet-500","bg-sky-500","bg-teal-500"];
             const barColors = ["bg-blue-400","bg-indigo-400","bg-violet-400","bg-sky-400","bg-teal-400"];
             const pct = Math.round((Number(k.totalInput) / max) * 100);
+            const desaPct = k.totalDesa > 0 ? Math.round((Number(k.desaTerjangkau) / k.totalDesa) * 100) : 0;
+            const kecPct = k.totalKecamatan > 0 ? Math.round((Number(k.kecamatanTerjangkau) / k.totalKecamatan) * 100) : 0;
             return (
-              <button
-                key={k.kabupaten}
-                onClick={() => onSelect(k.kabupaten)}
-                className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50/80 transition-colors text-left group"
-              >
-                <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${colors[i % colors.length]}`} />
+              <button key={k.kabupaten} onClick={() => onSelect(k.kabupaten)}
+                className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50/80 transition-colors text-left group">
+                <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${dotColors[i % dotColors.length]}`} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between mb-1.5">
-                    <span className="font-bold text-sm text-slate-900 group-hover:text-blue-700 transition-colors tracking-wide">
-                      {k.kabupaten}
-                    </span>
-                    <span className="text-xl font-extrabold text-slate-900 ml-3" style={{ letterSpacing: "-0.04em" }}>
-                      {Number(k.totalInput).toLocaleString()}
+                    <span className="font-bold text-sm text-slate-900 group-hover:text-blue-700 transition-colors">{k.kabupaten}</span>
+                    <span className="text-lg font-extrabold text-slate-900 ml-3" style={{ letterSpacing: "-0.04em" }}>
+                      {Number(k.totalInput).toLocaleString()} KTP
                     </span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden mb-2">
-                    <div className={`h-full rounded-full transition-all ${barColors[i % barColors.length]}`} style={{ width: `${pct}%` }} />
+                    <div className={`h-full rounded-full ${barColors[i % barColors.length]}`} style={{ width: `${pct}%` }} />
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
-                    <span>{k.totalDesa} desa/kel.</span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <Home className="h-2.5 w-2.5 text-emerald-400" />
+                      <span className="font-bold text-emerald-700">{k.desaTerjangkau}</span>
+                      <span className="text-slate-400">/ {k.totalDesa} desa ({desaPct}%)</span>
+                    </span>
                     <span className="text-slate-200">·</span>
-                    <span>{k.totalKecamatan} kec</span>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-2.5 w-2.5 text-amber-400" />
+                      <span className="font-bold text-amber-700">{k.kecamatanTerjangkau}</span>
+                      <span className="text-slate-400">/ {k.totalKecamatan} kec ({kecPct}%)</span>
+                    </span>
                     <span className="text-slate-200">·</span>
-                    <span className="bg-blue-50 text-blue-600 font-bold px-1.5 py-0.5 rounded-md">{k.totalEvent} event</span>
+                    <span className="bg-indigo-50 text-indigo-600 font-bold px-1.5 py-0.5 rounded-md">{k.totalEvent} kegiatan</span>
+                    <span className="bg-violet-50 text-violet-600 font-bold px-1.5 py-0.5 rounded-md">{k.totalProgram} program</span>
                   </div>
                 </div>
                 <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
@@ -182,6 +234,11 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
     queryFn: () => fetch(`${BASE}/api/pemetaan/kabupaten`, { credentials: "include" }).then((r) => r.json()).then((d) => Array.isArray(d) ? d : []),
   });
   const kabInfo = kabData?.find((k) => k.kabupaten === kabupaten);
+
+  const totalDesaKab = kabInfo?.totalDesa ?? 0;
+  const desaTerjangkauKab = kecData.reduce((s, k) => s + (k.desaTerjangkau ?? 0), 0);
+  const totalKecamatan = kecData.length;
+  const kecTerjangkau = kecData.filter(k => (k.desaTerjangkau ?? 0) > 0).length;
 
   return (
     <div className="space-y-4">
@@ -211,26 +268,59 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
         </div>
       </div>
 
+      {/* Stats — 3 scalar + 2 comparison */}
       {kabInfo && (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { icon: <TrendingUp className="h-6 w-6 text-blue-500" />, label: "Total Peserta", value: Number(kabInfo.totalInput).toLocaleString() },
-            { icon: <MapPin className="h-6 w-6 text-blue-500" />, label: "Kecamatan", value: kabInfo.totalKecamatan },
-            { icon: <CalendarDays className="h-6 w-6 text-blue-500" />, label: "Event", value: kabInfo.totalEvent },
-          ].map(({ icon, label, value }) => (
-            <div key={label} className="rounded-2xl p-4 flex items-center gap-3 bg-white border border-slate-100 shadow-sm">
-              <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">{icon}</div>
-              <div>
-                <div className="text-[9px] font-bold tracking-widest text-slate-400 mb-0.5">{label}</div>
-                <div className="text-2xl font-extrabold text-slate-900 leading-none">{value}</div>
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Total KTP", value: Number(kabInfo.totalInput).toLocaleString(), icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
+              { label: "Total Kegiatan", value: kabInfo.totalEvent, icon: CalendarDays, color: "text-indigo-500", bg: "bg-indigo-50" },
+              { label: "Total Program", value: kabInfo.totalProgram ?? 0, icon: Globe, color: "text-violet-500", bg: "bg-violet-50" },
+            ].map(({ label, value, icon: Icon, color, bg }) => (
+              <div key={label} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`h-6 w-6 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
+                    <Icon className={`h-3 w-3 ${color}`} />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 tracking-wide">{label}</span>
+                </div>
+                <div className="text-xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{value}</div>
               </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-6 w-6 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                  <Home className="h-3 w-3 text-emerald-500" />
+                </div>
+                <span className="text-[10px] font-bold text-slate-400 tracking-wide">Desa Terjangkau</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{desaTerjangkauKab}</span>
+                <span className="text-xs text-slate-400">/ {totalDesaKab} desa</span>
+              </div>
+              <CompBar value={desaTerjangkauKab} total={totalDesaKab} color="bg-emerald-400" />
             </div>
-          ))}
+            <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-6 w-6 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                  <MapPin className="h-3 w-3 text-amber-500" />
+                </div>
+                <span className="text-[10px] font-bold text-slate-400 tracking-wide">Kecamatan Terjangkau</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{kecTerjangkau}</span>
+                <span className="text-xs text-slate-400">/ {totalKecamatan} kecamatan</span>
+              </div>
+              <CompBar value={kecTerjangkau} total={totalKecamatan} color="bg-amber-400" />
+            </div>
+          </div>
         </div>
       )}
 
       {/* Kecamatan table */}
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <span className="font-bold text-slate-900">Daftar Kecamatan</span>
           <span className="ml-auto text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-lg">{kecData.length} kecamatan</span>
@@ -243,26 +333,41 @@ function KecamatanView({ kabupaten, onSelect }: { kabupaten: string; onSelect: (
               <thead>
                 <tr className="bg-slate-50 text-xs font-bold text-slate-400 tracking-wider border-b border-slate-100">
                   <th className="px-4 py-3 text-center w-12">No.</th>
-                  <th className="px-4 py-3 text-left">Nama Kecamatan</th>
-                  <th className="px-4 py-3 text-right">Jumlah Desa/Kel.</th>
-                  <th className="px-4 py-3 text-right">Jumlah Event</th>
-                  <th className="px-4 py-3 text-right">Total Peserta</th>
+                  <th className="px-4 py-3 text-left">Kecamatan</th>
+                  <th className="px-4 py-3 text-right">Desa Terjangkau</th>
+                  <th className="px-4 py-3 text-right">Total KTP</th>
+                  <th className="px-4 py-3 text-right">Kegiatan</th>
+                  <th className="px-4 py-3 text-right">Program</th>
                   <th className="px-3 py-3 w-8" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {kecData.map((k, i) => (
-                  <tr key={k.kecamatan} onClick={() => onSelect(k.kecamatan)} className="hover:bg-blue-50/60 cursor-pointer transition group">
-                    <td className="px-4 py-3 text-center text-xs text-slate-400 font-medium">{i + 1}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-slate-900 group-hover:text-blue-700 transition">{k.kecamatan}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700 text-right">{k.totalDesa}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700 text-right">{k.totalEvent}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-slate-900 text-right">{Number(k.totalInput).toLocaleString()}</td>
-                    <td className="px-3 py-3"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition" /></td>
-                  </tr>
-                ))}
+                {kecData.map((k, i) => {
+                  const isTerjangkau = (k.desaTerjangkau ?? 0) > 0;
+                  return (
+                    <tr key={k.kecamatan} onClick={() => onSelect(k.kecamatan)} className="hover:bg-blue-50/60 cursor-pointer transition group">
+                      <td className="px-4 py-3 text-center text-xs text-slate-400 font-medium">{i + 1}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {isTerjangkau && <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />}
+                          <span className="text-sm font-semibold text-slate-900 group-hover:text-blue-700 transition">{k.kecamatan}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`text-sm font-bold ${isTerjangkau ? "text-emerald-700" : "text-slate-400"}`}>
+                          {k.desaTerjangkau ?? 0}
+                        </span>
+                        <span className="text-xs text-slate-400"> / {k.totalDesa}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-bold text-slate-900 text-right">{Number(k.totalInput).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600 text-right">{k.totalKegiatan ?? 0}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600 text-right">{k.totalProgram ?? 0}</td>
+                      <td className="px-3 py-3"><ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition" /></td>
+                    </tr>
+                  );
+                })}
                 {kecData.length === 0 && (
-                  <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-400 text-sm">Tidak ada data kecamatan</td></tr>
+                  <tr><td colSpan={7} className="px-5 py-10 text-center text-slate-400 text-sm">Tidak ada data kecamatan</td></tr>
                 )}
               </tbody>
             </table>
@@ -314,7 +419,7 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
           {[
             { icon: <TrendingUp className="h-6 w-6 text-indigo-500" />, label: "Total Peserta", value: Number(kecInfo.totalInput).toLocaleString() },
             { icon: <Home className="h-6 w-6 text-indigo-500" />, label: "Desa/Kel.", value: kecInfo.totalDesa },
-            { icon: <CalendarDays className="h-6 w-6 text-indigo-500" />, label: "Event", value: kecInfo.totalEvent },
+            { icon: <CalendarDays className="h-6 w-6 text-indigo-500" />, label: "Kegiatan", value: kecInfo.totalKegiatan ?? 0 },
           ].map(({ icon, label, value }) => (
             <div key={label} className="rounded-2xl p-4 flex items-center gap-3 bg-white border border-slate-100 shadow-sm">
               <div className="h-12 w-12 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">{icon}</div>
@@ -342,8 +447,8 @@ function DesaView({ kabupaten, kecamatan, onSelect }: { kabupaten: string; kecam
                 <tr className="bg-slate-50 text-xs font-bold text-slate-400 tracking-wider border-b border-slate-100">
                   <th className="px-4 py-3 text-center w-12">No.</th>
                   <th className="px-4 py-3 text-left">Nama Desa / Kelurahan</th>
-                  <th className="px-4 py-3 text-right">Jumlah Event</th>
-                  <th className="px-4 py-3 text-right">Total Peserta</th>
+                  <th className="px-4 py-3 text-right">Kegiatan</th>
+                  <th className="px-4 py-3 text-right">Total KTP</th>
                   <th className="px-3 py-3 w-8" />
                 </tr>
               </thead>
@@ -407,9 +512,9 @@ function DesaDetailView({
       {/* Stats grid — horizontal layout */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: <Users className="h-6 w-6 text-blue-500" />, label: "Peserta", value: Number(data.totalInput).toLocaleString() },
-          { icon: <CalendarDays className="h-6 w-6 text-blue-500" />, label: "Event", value: Number(data.totalEvent) },
-          { icon: <Gift className="h-6 w-6 text-blue-500" />, label: "Hadiah", value: Number(data.totalHadiah).toLocaleString() },
+          { icon: <Users className="h-6 w-6 text-blue-500" />, label: "KTP Terkumpul", value: Number(data.totalInput).toLocaleString() },
+          { icon: <CalendarDays className="h-6 w-6 text-blue-500" />, label: "Kegiatan", value: Number(data.totalEvent) },
+          { icon: <Globe className="h-6 w-6 text-blue-500" />, label: "Program", value: Number(data.totalProgram ?? 0) },
         ].map(({ icon, label, value }) => (
           <div
             key={label}
@@ -437,11 +542,11 @@ function DesaDetailView({
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-blue-500" />
-          <span className="font-bold text-slate-900">Daftar Event</span>
-          <span className="ml-auto text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-0.5 rounded-full">{data.events.length} event</span>
+          <span className="font-bold text-slate-900">Daftar Kegiatan</span>
+          <span className="ml-auto text-xs text-blue-600 font-semibold bg-blue-50 px-2.5 py-0.5 rounded-full">{data.events.length} kegiatan</span>
         </div>
         {data.events.length === 0 ? (
-          <div className="p-10 text-center text-slate-400 text-sm">Tidak ada event</div>
+          <div className="p-10 text-center text-slate-400 text-sm">Tidak ada kegiatan</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
