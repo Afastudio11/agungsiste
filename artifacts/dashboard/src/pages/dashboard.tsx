@@ -5,7 +5,7 @@ import { useHeaderContext } from "@/lib/header-context";
 import {
   Users, Calendar, ClipboardCheck, Gift,
   TrendingUp, TrendingDown,
-  MapPin, ArrowUp, ArrowSquareOut, Trophy,
+  MapPin, ArrowUp, ArrowSquareOut,
 } from "@/lib/icons";
 import {
   useGetDailyRegistrations,
@@ -149,12 +149,6 @@ export default function DashboardPage() {
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
-  const { data: topStaff } = useQuery<{ staffName: string | null; count: number }[]>({
-    queryKey: ["dashboard-top-staff", statsQs],
-    queryFn: () => fetch(`/api/dashboard/top-staff${statsQs ? `?${statsQs}` : ""}`).then((r) => r.json()),
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-  });
   const { data: kabupatenData } = useQuery<{ kabupaten: string; totalInput: number }[]>({
     queryKey: ["pemetaan-kabupaten", dateQs],
     queryFn: () => fetch(`/api/pemetaan/kabupaten${dateQs ? `?${dateQs}` : ""}`).then((r) => r.json()),
@@ -251,7 +245,6 @@ export default function DashboardPage() {
     [kabupatenData]
   );
   const maxDaerah = daerahData[0]?.count ?? 1;
-  const maxStaff = topStaff?.[0]?.count ?? 1;
 
   return (
     <Layout>
@@ -538,7 +531,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50">
             <div>
               <p className="text-[15px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
-                Top Event
+                Top Kegiatan
               </p>
               <p className="text-[11px] text-slate-400 font-medium mt-0.5">
                 Diurutkan berdasarkan jumlah peserta terbanyak
@@ -678,62 +671,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Final row: 5-col / 7-col ─────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      {/* ── Final row: Sebaran Daerah full-width ─────────────────── */}
+      <div className="grid grid-cols-1 gap-4">
 
-        {/* Staf Terbanyak Input (5-col) */}
-        <div className="lg:col-span-5 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
-          <div className="flex items-center gap-2.5 px-6 py-4 border-b border-slate-50">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100">
-              <Trophy size={18} weight="bold" className="text-amber-500" />
-            </div>
-            <div>
-              <p className="text-[14px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
-                Staf Terbanyak Input
-              </p>
-              <p className="text-[11px] text-slate-400 font-medium">Berdasarkan jumlah registrasi yang diinput</p>
-            </div>
-          </div>
-
-          <div className="px-6 py-4 space-y-3">
-            {topStaff && topStaff.length > 0 ? (
-              topStaff.slice(0, 8).map((s, i) => {
-                const staffInitials = s.staffName
-                  ? s.staffName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
-                  : "?";
-                const rankClasses = [
-                  "bg-amber-100 text-amber-600",
-                  "bg-slate-100 text-slate-500",
-                  "bg-orange-100 text-orange-600",
-                ];
-                const barColor = i === 0 ? "bg-amber-400" : i === 1 ? "bg-slate-300" : i === 2 ? "bg-orange-300" : "bg-blue-300";
-                return (
-                  <div key={s.staffName ?? i} className="flex items-center gap-3">
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${rankClasses[i] ?? "bg-slate-50 text-slate-400"}`}>
-                      {i < 3 ? staffInitials : <span className="text-[10px] font-bold">{i + 1}</span>}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[12px] font-semibold text-slate-700 truncate">{s.staffName ?? "—"}</span>
-                        <span className="text-[13px] font-extrabold text-slate-800 ml-2 shrink-0" style={{ letterSpacing: "-0.02em" }}>
-                          {fmt(s.count)}
-                        </span>
-                      </div>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div className={`h-full rounded-full ${barColor}`} style={{ width: `${(s.count / maxStaff) * 100}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <p className="py-8 text-center text-sm text-slate-300">Belum ada data staf</p>
-            )}
-          </div>
-        </div>
-
-        {/* Sebaran Provinsi (7-col) */}
-        <div className="lg:col-span-7 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
+        {/* Sebaran Daerah (full width) */}
+        <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-50">
             <p className="text-[14px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
               Sebaran Daerah
@@ -742,9 +684,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex flex-col md:flex-row">
-            {/* Real Leaflet map */}
-            <div className="relative flex-1 min-h-[220px] overflow-hidden">
-              <DashboardMap data={daerahData} height={260} />
+            {/* Real Leaflet map — expands to fill full width */}
+            <div className="relative flex-1 min-h-[280px] overflow-hidden">
+              <DashboardMap data={daerahData} height={300} />
 
               {/* Floating glass label over map */}
               {daerahData[0] && (
@@ -756,18 +698,20 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Daerah ranked list */}
-            <div className="w-full md:w-48 px-4 py-4 space-y-3 border-t md:border-t-0 md:border-l border-slate-100">
-              {daerahData.slice(0, 8).map((p, i) => (
+            {/* Daerah ranked list — wider since we have more space */}
+            <div className="w-full md:w-64 px-5 py-4 space-y-3 border-t md:border-t-0 md:border-l border-slate-100">
+              {daerahData.slice(0, 10).map((p, i) => (
                 <div key={p.label} className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-slate-300 w-4 text-right shrink-0 font-mono">{i + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-semibold text-slate-600 truncate leading-tight">{p.label}</p>
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100 mt-0.5">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className="text-[12px] font-semibold text-slate-600 truncate leading-tight">{p.label}</p>
+                      <span className="text-[11px] font-bold text-slate-500 shrink-0 ml-2">{fmt(p.count)}</span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                       <div className="h-full rounded-full bg-blue-400" style={{ width: `${(p.count / maxDaerah) * 100}%` }} />
                     </div>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-500 shrink-0">{fmt(p.count)}</span>
                 </div>
               ))}
               {daerahData.length === 0 && (
