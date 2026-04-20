@@ -112,9 +112,25 @@ function CompBar({ value, total, color = "bg-blue-500" }: { value: number; total
 
 /* ─── VIEW 1: Kabupaten ────────────────────────────────────────────────── */
 function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabData: KabupatenRow[]; onSelect: (k: string) => void }) {
+  const [sortBy, setSortBy] = useState<"desa" | "kec" | null>(null);
   const max = Math.max(...kabData.map((k) => Number(k.totalInput)), 1);
   const totalDesa = summary?.totalDesa ?? 0;
   const totalKec = summary?.totalKecamatan ?? 0;
+
+  const sortedKabData = sortBy
+    ? [...kabData].sort((a, b) => {
+        if (sortBy === "desa") {
+          const pa = a.totalDesa > 0 ? (a.desaTerjangkau ?? 0) / a.totalDesa : 0;
+          const pb = b.totalDesa > 0 ? (b.desaTerjangkau ?? 0) / b.totalDesa : 0;
+          return pa - pb; // ascending: least covered first
+        } else {
+          const pa = a.totalKecamatan > 0 ? (a.kecamatanTerjangkau ?? 0) / a.totalKecamatan : 0;
+          const pb = b.totalKecamatan > 0 ? (b.kecamatanTerjangkau ?? 0) / b.totalKecamatan : 0;
+          return pa - pb;
+        }
+      })
+    : kabData;
+
   return (
     <div className="space-y-4">
       {/* Row 1 — 3 scalar cards */}
@@ -135,34 +151,80 @@ function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabD
           </div>
         ))}
       </div>
-      {/* Row 2 — 2 comparison cards */}
+
+      {/* Row 2 — 2 clickable comparison cards */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-7 w-7 rounded-lg bg-emerald-50 flex items-center justify-center">
-              <Home className="h-3.5 w-3.5 text-emerald-500" />
-            </div>
-            <span className="text-xs font-bold text-slate-400 tracking-wide">Desa Terjangkau</span>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{(summary?.desaTerjangkau ?? 0).toLocaleString()}</span>
-            <span className="text-sm text-slate-400 font-medium">/ {totalDesa.toLocaleString()} desa</span>
-          </div>
-          <CompBar value={summary?.desaTerjangkau ?? 0} total={totalDesa} color="bg-emerald-400" />
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-7 w-7 rounded-lg bg-amber-50 flex items-center justify-center">
-              <MapPin className="h-3.5 w-3.5 text-amber-500" />
-            </div>
-            <span className="text-xs font-bold text-slate-400 tracking-wide">Kecamatan Terjangkau</span>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{(summary?.kecamatanTerjangkau ?? 0).toLocaleString()}</span>
-            <span className="text-sm text-slate-400 font-medium">/ {totalKec.toLocaleString()} kec</span>
-          </div>
-          <CompBar value={summary?.kecamatanTerjangkau ?? 0} total={totalKec} color="bg-amber-400" />
-        </div>
+        {/* Desa Terjangkau */}
+        {(() => {
+          const isActive = sortBy === "desa";
+          const belum = totalDesa - (summary?.desaTerjangkau ?? 0);
+          return (
+            <button
+              onClick={() => setSortBy(isActive ? null : "desa")}
+              className={`text-left rounded-2xl border p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all ${
+                isActive
+                  ? "bg-emerald-50 border-emerald-300 ring-2 ring-emerald-200"
+                  : "bg-white border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/40"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${isActive ? "bg-emerald-100" : "bg-emerald-50"}`}>
+                  <Home className="h-3.5 w-3.5 text-emerald-500" />
+                </div>
+                <span className="text-xs font-bold text-slate-400 tracking-wide">Desa Terjangkau</span>
+                {isActive && <span className="ml-auto text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">Aktif</span>}
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{(summary?.desaTerjangkau ?? 0).toLocaleString()}</span>
+                <span className="text-sm text-slate-400 font-medium">/ {totalDesa.toLocaleString()} desa</span>
+              </div>
+              <CompBar value={summary?.desaTerjangkau ?? 0} total={totalDesa} color="bg-emerald-400" />
+              {isActive && belum > 0 && (
+                <div className="mt-2 flex items-center gap-1.5 text-[11px] text-rose-600 font-semibold">
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-400 inline-block" />
+                  {belum.toLocaleString()} desa belum terjangkau
+                </div>
+              )}
+              {!isActive && <div className="mt-2 text-[10px] text-slate-400">Klik untuk urutkan per kabupaten</div>}
+            </button>
+          );
+        })()}
+
+        {/* Kecamatan Terjangkau */}
+        {(() => {
+          const isActive = sortBy === "kec";
+          const belum = totalKec - (summary?.kecamatanTerjangkau ?? 0);
+          return (
+            <button
+              onClick={() => setSortBy(isActive ? null : "kec")}
+              className={`text-left rounded-2xl border p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all ${
+                isActive
+                  ? "bg-amber-50 border-amber-300 ring-2 ring-amber-200"
+                  : "bg-white border-slate-100 hover:border-amber-200 hover:bg-amber-50/40"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${isActive ? "bg-amber-100" : "bg-amber-50"}`}>
+                  <MapPin className="h-3.5 w-3.5 text-amber-500" />
+                </div>
+                <span className="text-xs font-bold text-slate-400 tracking-wide">Kecamatan Terjangkau</span>
+                {isActive && <span className="ml-auto text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Aktif</span>}
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-extrabold text-slate-900" style={{ letterSpacing: "-0.04em" }}>{(summary?.kecamatanTerjangkau ?? 0).toLocaleString()}</span>
+                <span className="text-sm text-slate-400 font-medium">/ {totalKec.toLocaleString()} kec</span>
+              </div>
+              <CompBar value={summary?.kecamatanTerjangkau ?? 0} total={totalKec} color="bg-amber-400" />
+              {isActive && belum > 0 && (
+                <div className="mt-2 flex items-center gap-1.5 text-[11px] text-rose-600 font-semibold">
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-400 inline-block" />
+                  {belum.toLocaleString()} kecamatan belum terjangkau
+                </div>
+              )}
+              {!isActive && <div className="mt-2 text-[10px] text-slate-400">Klik untuk urutkan per kabupaten</div>}
+            </button>
+          );
+        })()}
       </div>
 
       {/* Sebaran per Kabupaten */}
@@ -170,19 +232,29 @@ function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabD
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <Building2 className="h-4 w-4 text-blue-500" />
           <span className="font-bold text-slate-900">Sebaran per Kabupaten</span>
+          {sortBy ? (
+            <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+              Diurutkan: {sortBy === "desa" ? "% Desa Terjangkau" : "% Kecamatan Terjangkau"} (terendah dulu)
+            </span>
+          ) : null}
           <span className="ml-auto text-xs text-slate-400">Klik untuk lihat kecamatan</span>
         </div>
         <div className="divide-y divide-slate-50">
-          {kabData.map((k, i) => {
+          {sortedKabData.map((k, i) => {
             const dotColors = ["bg-blue-500","bg-indigo-500","bg-violet-500","bg-sky-500","bg-teal-500"];
             const barColors = ["bg-blue-400","bg-indigo-400","bg-violet-400","bg-sky-400","bg-teal-400"];
+            const origIdx = kabData.indexOf(k);
             const pct = Math.round((Number(k.totalInput) / max) * 100);
-            const desaPct = k.totalDesa > 0 ? Math.round((Number(k.desaTerjangkau) / k.totalDesa) * 100) : 0;
-            const kecPct = k.totalKecamatan > 0 ? Math.round((Number(k.kecamatanTerjangkau) / k.totalKecamatan) * 100) : 0;
+            const desaTerj = k.desaTerjangkau ?? 0;
+            const kecTerj = k.kecamatanTerjangkau ?? 0;
+            const desaPct = k.totalDesa > 0 ? Math.round((desaTerj / k.totalDesa) * 100) : 0;
+            const kecPct = k.totalKecamatan > 0 ? Math.round((kecTerj / k.totalKecamatan) * 100) : 0;
+            const desaBelum = k.totalDesa - desaTerj;
+            const kecBelum = k.totalKecamatan - kecTerj;
             return (
               <button key={k.kabupaten} onClick={() => onSelect(k.kabupaten)}
                 className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50/80 transition-colors text-left group">
-                <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${dotColors[i % dotColors.length]}`} />
+                <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${dotColors[origIdx % dotColors.length]}`} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between mb-1.5">
                     <span className="font-bold text-sm text-slate-900 group-hover:text-blue-700 transition-colors">{k.kabupaten}</span>
@@ -191,24 +263,47 @@ function KabupatenView({ summary, kabData, onSelect }: { summary?: Summary; kabD
                     </span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden mb-2">
-                    <div className={`h-full rounded-full ${barColors[i % barColors.length]}`} style={{ width: `${pct}%` }} />
+                    <div className={`h-full rounded-full ${barColors[origIdx % barColors.length]}`} style={{ width: `${pct}%` }} />
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
                     <span className="flex items-center gap-1">
                       <Home className="h-2.5 w-2.5 text-emerald-400" />
-                      <span className="font-bold text-emerald-700">{k.desaTerjangkau}</span>
+                      <span className="font-bold text-emerald-700">{desaTerj}</span>
                       <span className="text-slate-400">/ {k.totalDesa} desa ({desaPct}%)</span>
+                      {sortBy === "desa" && desaBelum > 0 && (
+                        <span className="text-rose-500 font-bold">· {desaBelum} belum</span>
+                      )}
                     </span>
                     <span className="text-slate-200">·</span>
                     <span className="flex items-center gap-1">
                       <MapPin className="h-2.5 w-2.5 text-amber-400" />
-                      <span className="font-bold text-amber-700">{k.kecamatanTerjangkau}</span>
+                      <span className="font-bold text-amber-700">{kecTerj}</span>
                       <span className="text-slate-400">/ {k.totalKecamatan} kec ({kecPct}%)</span>
+                      {sortBy === "kec" && kecBelum > 0 && (
+                        <span className="text-rose-500 font-bold">· {kecBelum} belum</span>
+                      )}
                     </span>
                     <span className="text-slate-200">·</span>
                     <span className="bg-indigo-50 text-indigo-600 font-bold px-1.5 py-0.5 rounded-md">{k.totalEvent} kegiatan</span>
                     <span className="bg-violet-50 text-violet-600 font-bold px-1.5 py-0.5 rounded-md">{k.totalProgram} program</span>
                   </div>
+                  {/* Coverage bar highlight when filter active */}
+                  {sortBy === "desa" && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-full rounded-full bg-emerald-400" style={{ width: `${desaPct}%` }} />
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-700 shrink-0">{desaPct}% desa</span>
+                    </div>
+                  )}
+                  {sortBy === "kec" && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex-1 h-1 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-full rounded-full bg-amber-400" style={{ width: `${kecPct}%` }} />
+                      </div>
+                      <span className="text-[10px] font-bold text-amber-700 shrink-0">{kecPct}% kec</span>
+                    </div>
+                  )}
                 </div>
                 <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
               </button>

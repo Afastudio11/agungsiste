@@ -8,13 +8,17 @@ const router = Router();
 
 router.get("/summary", async (_req, res) => {
   try {
-    const [totals] = await db
-      .select({
-        totalDesa: countDistinct(participantsTable.kelurahan),
-        totalKecamatan: countDistinct(participantsTable.kecamatan),
-        totalKabupaten: countDistinct(participantsTable.city),
-        totalKTP: countDistinct(participantsTable.id),
-      })
+    // Use static wilayah data for true total desa/kecamatan (not just those with participants)
+    const totalDesaAll = Object.keys(jatimWilayah).reduce(
+      (sum, kab) => sum + Object.values(jatimWilayah[kab]).flat().length, 0
+    );
+    const totalKecAll = Object.keys(jatimWilayah).reduce(
+      (sum, kab) => sum + getKecamatanList(kab).length, 0
+    );
+    const totalKabAll = Object.keys(jatimWilayah).length;
+
+    const [ktpCount] = await db
+      .select({ totalKTP: countDistinct(participantsTable.id) })
       .from(participantsTable);
 
     const [eventCount] = await db
@@ -42,10 +46,10 @@ router.get("/summary", async (_req, res) => {
     const tj = (terjangkauRows.rows?.[0] ?? terjangkauRows[0] ?? {}) as Record<string, unknown>;
 
     return res.json({
-      totalDesa: totals.totalDesa || 0,
-      totalKecamatan: totals.totalKecamatan || 0,
-      totalKabupaten: totals.totalKabupaten || 0,
-      totalKTP: totals.totalKTP || 0,
+      totalDesa: totalDesaAll,
+      totalKecamatan: totalKecAll,
+      totalKabupaten: totalKabAll,
+      totalKTP: ktpCount?.totalKTP || 0,
       desaTerjangkau: Number(tj.desa_terjangkau ?? 0),
       kecamatanTerjangkau: Number(tj.kecamatan_terjangkau ?? 0),
       totalEvent: eventCount?.totalEvent || 0,
