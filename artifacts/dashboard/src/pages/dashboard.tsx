@@ -288,30 +288,60 @@ export default function DashboardPage() {
         const target = document.getElementById("dashboard-content");
         if (!target) return;
 
+        // Convert any CSS color (including oklch) to plain rgb/rgba via a 1×1 canvas.
+        // Results are cached so each unique color string is only rendered once.
+        const colorCache = new Map<string, string>();
+        const resolveColor = (color: string): string => {
+          if (!color || color === "" || color === "none") return color;
+          if (colorCache.has(color)) return colorCache.get(color)!;
+          try {
+            const cvs = document.createElement("canvas");
+            cvs.width = cvs.height = 1;
+            const ctx = cvs.getContext("2d")!;
+            ctx.clearRect(0, 0, 1, 1);
+            ctx.fillStyle = color;          // browser converts oklch → internal RGB
+            ctx.fillRect(0, 0, 1, 1);
+            const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+            const result = a === 0
+              ? "transparent"
+              : a === 255
+                ? `rgb(${r},${g},${b})`
+                : `rgba(${r},${g},${b},${(a / 255).toFixed(3)})`;
+            colorCache.set(color, result);
+            return result;
+          } catch {
+            colorCache.set(color, color);
+            return color;
+          }
+        };
+
         const prepareClone = (clonedDoc: Document, clonedEl: Element, originalEl: Element) => {
-          // 1. Patch all <style> elements: replace oklch() with a transparent placeholder
-          //    so html2canvas doesn't throw when parsing stylesheets.
-          //    Inline styles (step 2) will override these anyway.
+          // 1. Patch <style> elements: replace oklch() literals so html2canvas CSS
+          //    parser never encounters them (the parser runs before inline styles apply).
           clonedDoc.querySelectorAll("style").forEach((s) => {
             if (s.textContent) {
               s.textContent = s.textContent.replace(/oklch\([^)]*\)/g, "transparent");
             }
           });
 
-          // 2. Inline computed RGB colors from the original element tree into the clone,
-          //    overriding the patched stylesheets with correct colours.
+          // 2. For every element, inline the browser-resolved (always rgb/rgba) computed
+          //    colors from the original document.  This overrides the CSS variables that
+          //    would otherwise resolve back to oklch inside the clone.
           const origEls = Array.from(originalEl.querySelectorAll("*")) as HTMLElement[];
           const clonedEls = Array.from(clonedEl.querySelectorAll("*")) as HTMLElement[];
-          const PROPS = ["color", "backgroundColor", "borderTopColor", "borderBottomColor", "borderLeftColor", "borderRightColor"] as const;
+          const PROPS = [
+            "color", "backgroundColor",
+            "borderTopColor", "borderBottomColor", "borderLeftColor", "borderRightColor",
+          ] as const;
           origEls.forEach((origEl, i) => {
             const cel = clonedEls[i] as HTMLElement | undefined;
             if (!cel) return;
             const cs = window.getComputedStyle(origEl);
             PROPS.forEach((p) => {
-              const val = cs[p as keyof CSSStyleDeclaration] as string;
-              if (val && val !== "" && val !== "transparent" && !val.includes("oklch")) {
-                cel.style[p as any] = val;
-              }
+              const raw = cs[p as keyof CSSStyleDeclaration] as string;
+              if (!raw || raw === "") return;
+              const resolved = resolveColor(raw);
+              cel.style[p as any] = resolved;
             });
           });
         };
