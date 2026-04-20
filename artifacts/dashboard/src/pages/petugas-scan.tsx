@@ -701,7 +701,7 @@ export default function PetugasScanPage() {
       </div>
 
       {/* ── Fixed Bottom Navigation ───────────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 backdrop-blur-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] rounded-t-[2rem]">
+      <nav className={`fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 backdrop-blur-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] rounded-t-[2rem] transition-all duration-200 ${showCamera ? "opacity-0 pointer-events-none translate-y-full" : "opacity-100 translate-y-0"}`}>
         {/* Home */}
         <button
           onClick={() => navigate("/petugas")}
