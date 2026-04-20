@@ -96,7 +96,7 @@
   --secondary-foreground: 222 47% 11%;
 
   --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted-foreground: 215.4 16.3% 30%;
 
   --accent: 210 40% 96.1%;
   --accent-foreground: 222 47% 11%;
@@ -242,6 +242,19 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+}
+
+/*
+ * Minimum text contrast: no text in the dashboard may be lighter than ~70% of black.
+ * slate-600 (HSL 215 19% 34.5%) is the minimum allowed; map lighter slate shades up to it.
+ * !important ensures these overrides win over Tailwind's generated utility classes.
+ */
+.text-slate-100,
+.text-slate-200,
+.text-slate-300,
+.text-slate-400,
+.text-slate-500 {
+  color: hsl(215.3 19.3% 34.5%) !important; /* slate-600 */
 }
 
 .leaflet-tooltip,
