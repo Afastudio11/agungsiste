@@ -181,25 +181,23 @@ export default function ProgramsPage() {
 
         {/* ── Summary Stats ── */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0">
-              <ClipboardList className="h-6 w-6 text-indigo-600" />
+          <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
+            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-indigo-500" />
+            <div className="flex items-start justify-between mb-3 relative">
+              <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Total Program</p>
+              <ClipboardList className="h-5 w-5 text-indigo-400" />
             </div>
-            <div>
-              <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-0.5">Total Program</p>
-              <p className="text-3xl font-extrabold text-slate-900">{programs.length}</p>
-            </div>
+            <p className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>{programs.length}</p>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex items-center gap-4">
-            <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center shrink-0">
-              <Users className="h-6 w-6 text-emerald-500" />
+          <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
+            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-emerald-500" />
+            <div className="flex items-start justify-between mb-3 relative">
+              <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Total Penerima Manfaat</p>
+              <Users className="h-5 w-5 text-emerald-400" />
             </div>
-            <div>
-              <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-0.5">Total Penerima Manfaat</p>
-              <div className="flex items-baseline gap-1.5">
-                <p className="text-3xl font-extrabold text-slate-900">{totalRegistered.toLocaleString("id-ID")}</p>
-                {totalTarget > 0 && <span className="text-sm text-slate-400">/ {totalTarget.toLocaleString("id-ID")} target</span>}
-              </div>
+            <div className="flex items-baseline gap-1.5 relative">
+              <p className="text-[38px] font-extrabold text-slate-900 leading-none" style={{ letterSpacing: "-0.04em" }}>{totalRegistered.toLocaleString("id-ID")}</p>
+              {totalTarget > 0 && <span className="text-sm text-slate-400">/ {totalTarget.toLocaleString("id-ID")} target</span>}
             </div>
           </div>
         </div>

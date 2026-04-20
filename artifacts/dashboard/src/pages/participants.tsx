@@ -360,46 +360,31 @@ export default function ParticipantsPage() {
 
         {/* ── Stats Bento ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)] relative overflow-hidden group">
-            <div className="relative z-10">
-              <p className="text-slate-400 text-sm font-semibold mb-1">Teregister</p>
-              <h3 className="text-4xl font-extrabold text-slate-900">{isLoading ? "—" : stats.total.toLocaleString("id-ID")}</h3>
-              <p className="text-blue-600 text-xs font-bold mt-2 flex items-center gap-1">
-                <Users className="h-3.5 w-3.5" />
-                Total peserta unik
-              </p>
+          <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
+            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-blue-500" />
+            <div className="flex items-start justify-between mb-3 relative">
+              <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Teregister</p>
+              <Users className="h-5 w-5 text-blue-400" />
             </div>
-            <div className="absolute -right-3 -bottom-3 opacity-5 group-hover:scale-110 transition-transform duration-700">
-              <Users className="h-28 w-28" />
-            </div>
+            <p className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>{isLoading ? "—" : stats.total.toLocaleString("id-ID")}</p>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-[0_2px_16px_rgba(0,0,0,0.06)] relative overflow-hidden group">
-            <div className="relative z-10">
-              <p className="text-slate-400 text-sm font-semibold mb-1">Kegiatan</p>
-              <h3 className="text-4xl font-extrabold text-slate-900">{isLoading ? "—" : stats.totalEvents.toLocaleString("id-ID")}</h3>
-              <p className="text-amber-600 text-xs font-bold mt-2 flex items-center gap-1">
-                <CalendarCheck2 className="h-3.5 w-3.5" />
-                Total registrasi event
-              </p>
+          <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
+            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-amber-500" />
+            <div className="flex items-start justify-between mb-3 relative">
+              <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Kegiatan</p>
+              <CalendarCheck2 className="h-5 w-5 text-amber-400" />
             </div>
-            <div className="absolute -right-3 -bottom-3 opacity-5 group-hover:scale-110 transition-transform duration-700">
-              <CalendarCheck2 className="h-28 w-28" />
-            </div>
+            <p className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>{isLoading ? "—" : stats.totalEvents.toLocaleString("id-ID")}</p>
           </div>
 
-          <div className="bg-purple-600 rounded-2xl p-6 shadow-[0_2px_16px_rgba(147,51,234,0.25)] relative overflow-hidden group">
-            <div className="relative z-10">
-              <p className="text-purple-200 text-sm font-semibold mb-1">Hadiah</p>
-              <h3 className="text-4xl font-extrabold text-white">{totalHadiah?.toLocaleString("id-ID") ?? "—"}</h3>
-              <p className="text-purple-200 text-xs font-bold mt-2 flex items-center gap-1">
-                <Gift className="h-3.5 w-3.5" />
-                Total hadiah dibagikan
-              </p>
+          <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-6 pt-6 pb-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
+            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-violet-500" />
+            <div className="flex items-start justify-between mb-3 relative">
+              <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Hadiah</p>
+              <Gift className="h-5 w-5 text-violet-400" />
             </div>
-            <div className="absolute -right-3 -bottom-3 opacity-10 group-hover:scale-110 transition-transform duration-700">
-              <Gift className="h-28 w-28 text-white" />
-            </div>
+            <p className="text-[38px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>{totalHadiah?.toLocaleString("id-ID") ?? "—"}</p>
           </div>
         </div>
 
