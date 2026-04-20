@@ -1,716 +1,390 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useLocation } from "wouter";
 import Layout from "@/components/layout";
-import { Gift, Plus, Trash2, Award, ChevronDown, ChevronUp, Package, Search, X, Users, Globe, Calendar, MapPin } from "@/lib/icons";
-import { jatimWilayah } from "@workspace/db/jatimWilayah";
+import {
+  ClipboardList, Plus, Trash2, ChevronRight, Users, Calendar,
+  MapPin, Search, X, FileText,
+} from "@/lib/icons";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-type Prize = {
-  id: number;
-  eventId: number | null;
-  eventName: string | null;
-  name: string;
-  description: string | null;
-  quantity: number;
-  distributedCount: number;
-};
-
-type Distribution = {
-  id: number;
-  participantName: string;
-  participantNik: string;
-  distributedBy: string | null;
-  distributedAt: string;
-  notes: string | null;
-};
-
-type Event = { id: number; name: string };
-
-type ParticipantResult = {
-  id: number;
-  nik: string;
-  fullName: string;
-  city: string | null;
-  province: string | null;
-};
-
-type AllDistribution = {
-  id: number;
-  distributedAt: string;
-  distributedBy: string | null;
-  notes: string | null;
-  participantName: string;
-  participantNik: string;
-  kabupaten: string | null;
-  kecamatan: string | null;
-  kelurahan: string | null;
-  prizeName: string;
-  prizeId: number;
-  eventName: string | null;
-};
-
 const KABUPATEN_LIST = ["Pacitan", "Trenggalek", "Magetan", "Ponorogo", "Ngawi"];
 
-type DistributeState = {
-  prizeId: number;
-  prizeName: string;
-  prizeEventId: number | null;
-  selectedParticipant: ParticipantResult | null;
-  distributedBy: string;
-  notes: string;
-  source: "event" | "all";
-  searchQ: string;
-  searchResults: ParticipantResult[];
-  searching: boolean;
+type Program = {
+  id: number;
+  name: string;
+  komisi: string | null;
+  mitra: string | null;
+  tahun: string | null;
+  kabupatenPenerima: string[];
+  totalKtpPenerima: number | null;
+  registeredCount: number;
+  createdAt: string;
 };
 
-export default function PrizesPage() {
-  const [prizes, setPrizes] = useState<Prize[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
+type FormData = {
+  name: string;
+  komisi: string;
+  mitra: string;
+  tahun: string;
+  kabupatenPenerima: string[];
+  totalKtpPenerima: string;
+};
+
+const emptyForm: FormData = {
+  name: "",
+  komisi: "",
+  mitra: "",
+  tahun: "",
+  kabupatenPenerima: [],
+  totalKtpPenerima: "",
+};
+
+export default function ProgramsPage() {
+  const [, navigate] = useLocation();
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [filterEventId, setFilterEventId] = useState<string>("");
-  const [expandedPrize, setExpandedPrize] = useState<number | null>(null);
-  const [distributions, setDistributions] = useState<Record<number, Distribution[]>>({});
-  const [distributeState, setDistributeState] = useState<DistributeState | null>(null);
-  const [distributeError, setDistributeError] = useState("");
+  const [formData, setFormData] = useState<FormData>(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const [formData, setFormData] = useState({ eventId: "", name: "", description: "", quantity: "1" });
-
-  const [distStartDate, setDistStartDate] = useState("");
-  const [distEndDate, setDistEndDate] = useState("");
-  const [distKabupaten, setDistKabupaten] = useState("");
-  const [distKecamatan, setDistKecamatan] = useState("");
-  const [distKelurahan, setDistKelurahan] = useState("");
-  const [allDistributions, setAllDistributions] = useState<AllDistribution[]>([]);
-  const [allDistLoading, setAllDistLoading] = useState(false);
-
-  const kecamatanList = distKabupaten ? Object.keys(jatimWilayah[distKabupaten] ?? {}).sort() : [];
-  const kelurahanList = distKabupaten && distKecamatan ? (jatimWilayah[distKabupaten]?.[distKecamatan] ?? []).slice().sort() : [];
-
-  const handleKabupatenChange = (val: string) => {
-    setDistKabupaten(val);
-    setDistKecamatan("");
-    setDistKelurahan("");
-  };
-  const handleKecamatanChange = (val: string) => {
-    setDistKecamatan(val);
-    setDistKelurahan("");
-  };
-
-  const fetchAllDistributions = useCallback(async () => {
-    setAllDistLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (distStartDate) params.set("startDate", distStartDate);
-      if (distEndDate) params.set("endDate", distEndDate);
-      if (distKabupaten) params.set("kabupaten", distKabupaten);
-      if (distKecamatan) params.set("kecamatan", distKecamatan);
-      if (distKelurahan) params.set("kelurahan", distKelurahan);
-      const res = await fetch(`${BASE}/api/prizes/all-distributions?${params}`, { credentials: "include" });
-      setAllDistributions(await res.json());
-    } catch { } finally { setAllDistLoading(false); }
-  }, [distStartDate, distEndDate, distKabupaten, distKecamatan, distKelurahan]);
-
-  const fetchPrizes = useCallback(async () => {
+  const fetchPrograms = useCallback(async () => {
     setLoading(true);
     try {
-      const url = filterEventId ? `${BASE}/api/prizes?eventId=${filterEventId}` : `${BASE}/api/prizes`;
-      const res = await fetch(url, { credentials: "include" });
-      setPrizes(await res.json());
+      const res = await fetch(`${BASE}/api/programs`, { credentials: "include" });
+      setPrograms(await res.json());
     } catch { } finally { setLoading(false); }
-  }, [filterEventId]);
+  }, []);
 
-  const fetchEvents = async () => {
-    try {
-      const res = await fetch(`${BASE}/api/events`, { credentials: "include" });
-      setEvents(await res.json());
-    } catch { }
+  useState(() => { fetchPrograms(); });
+
+  const toggleKabupaten = (k: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      kabupatenPenerima: prev.kabupatenPenerima.includes(k)
+        ? prev.kabupatenPenerima.filter((x) => x !== k)
+        : [...prev.kabupatenPenerima, k],
+    }));
   };
 
-  useEffect(() => { fetchEvents(); }, []);
-  useEffect(() => { fetchPrizes(); }, [fetchPrizes]);
-  useEffect(() => { fetchAllDistributions(); }, [fetchAllDistributions]);
-
-  const createPrize = async () => {
+  const createProgram = async () => {
     if (!formData.name.trim()) return;
+    setSaving(true);
     try {
-      await fetch(`${BASE}/api/prizes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(formData),
-      });
-      setShowForm(false);
-      setFormData({ eventId: "", name: "", description: "", quantity: "1" });
-      fetchPrizes();
-    } catch { }
-  };
-
-  const deletePrize = async (id: number) => {
-    if (!confirm("Hapus hadiah ini?")) return;
-    try {
-      await fetch(`${BASE}/api/prizes/${id}`, { method: "DELETE", credentials: "include" });
-      fetchPrizes();
-    } catch { }
-  };
-
-  const loadDistributions = async (prizeId: number) => {
-    if (expandedPrize === prizeId) { setExpandedPrize(null); return; }
-    try {
-      const res = await fetch(`${BASE}/api/prizes/${prizeId}/distributions`, { credentials: "include" });
-      const data = await res.json();
-      setDistributions((prev) => ({ ...prev, [prizeId]: data }));
-      setExpandedPrize(prizeId);
-    } catch { }
-  };
-
-  const openDistributeForm = (prize: Prize) => {
-    const source: "event" | "all" = prize.eventId ? "event" : "all";
-    setDistributeState({
-      prizeId: prize.id,
-      prizeName: prize.name,
-      prizeEventId: prize.eventId,
-      selectedParticipant: null,
-      distributedBy: "",
-      notes: "",
-      source,
-      searchQ: "",
-      searchResults: [],
-      searching: false,
-    });
-    setDistributeError("");
-  };
-
-  const searchParticipants = useCallback(
-    async (state: DistributeState, q: string, source: "event" | "all") => {
-      if (!state) return;
-      setDistributeState((prev) => prev ? { ...prev, searching: true, searchQ: q, source } : null);
-      try {
-        const params = new URLSearchParams({ q, source });
-        const res = await fetch(`${BASE}/api/prizes/${state.prizeId}/participant-search?${params}`, { credentials: "include" });
-        const data = await res.json();
-        setDistributeState((prev) => prev ? { ...prev, searchResults: data.results ?? [], searching: false } : null);
-      } catch {
-        setDistributeState((prev) => prev ? { ...prev, searching: false } : null);
-      }
-    },
-    []
-  );
-
-  const distributePrize = async () => {
-    if (!distributeState?.selectedParticipant) { setDistributeError("Pilih peserta terlebih dahulu"); return; }
-    setDistributeError("");
-    try {
-      const res = await fetch(`${BASE}/api/prizes/${distributeState.prizeId}/distribute`, {
+      const res = await fetch(`${BASE}/api/programs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          participantId: distributeState.selectedParticipant.id,
-          distributedBy: distributeState.distributedBy || null,
-          notes: distributeState.notes || null,
+          ...formData,
+          totalKtpPenerima: formData.totalKtpPenerima ? parseInt(formData.totalKtpPenerima) : null,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) { setDistributeError(data.error ?? "Gagal mendistribusikan"); return; }
-      setDistributeState(null);
-      fetchPrizes();
-      if (expandedPrize === distributeState.prizeId) loadDistributions(distributeState.prizeId);
-    } catch { setDistributeError("Terjadi kesalahan"); }
+      if (res.ok) {
+        setShowForm(false);
+        setFormData(emptyForm);
+        fetchPrograms();
+      }
+    } catch { } finally { setSaving(false); }
   };
 
-  const totalPrizes = prizes.reduce((a, p) => a + p.quantity, 0);
-  const totalDistributed = prizes.reduce((a, p) => a + p.distributedCount, 0);
+  const deleteProgram = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Hapus program ini?")) return;
+    try {
+      await fetch(`${BASE}/api/programs/${id}`, { method: "DELETE", credentials: "include" });
+      fetchPrograms();
+    } catch { }
+  };
+
+  const filtered = programs.filter((p) =>
+    !search ||
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    (p.komisi ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    (p.mitra ?? "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalTarget = programs.reduce((a, p) => a + (p.totalKtpPenerima ?? 0), 0);
+  const totalRegistered = programs.reduce((a, p) => a + p.registeredCount, 0);
 
   return (
     <Layout>
       <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
 
         {/* ── Summary Stats ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex flex-col items-center text-center">
             <div className="w-11 h-11 bg-blue-50 rounded-xl flex items-center justify-center mb-3">
-              <Package className="h-5 w-5 text-blue-600" />
+              <ClipboardList className="h-5 w-5 text-blue-600" />
             </div>
-            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Jenis Hadiah</p>
-            <p className="text-3xl font-extrabold text-slate-900">{prizes.length}</p>
+            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Total Program</p>
+            <p className="text-3xl font-extrabold text-slate-900">{programs.length}</p>
           </div>
-
           <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex flex-col items-center text-center">
             <div className="w-11 h-11 bg-sky-50 rounded-xl flex items-center justify-center mb-3">
-              <Gift className="h-5 w-5 text-sky-500" />
+              <FileText className="h-5 w-5 text-sky-500" />
             </div>
-            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Total Hadiah</p>
-            <div className="flex items-baseline gap-1 justify-center">
-              <p className="text-3xl font-extrabold text-slate-900">{totalPrizes}</p>
-              <span className="text-sm text-slate-400 font-medium">unit</span>
-            </div>
+            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Target KTP</p>
+            <p className="text-3xl font-extrabold text-slate-900">{totalTarget.toLocaleString("id-ID")}</p>
           </div>
-
           <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex flex-col items-center text-center">
             <div className="w-11 h-11 bg-emerald-50 rounded-xl flex items-center justify-center mb-3">
-              <Award className="h-5 w-5 text-emerald-500" />
+              <Users className="h-5 w-5 text-emerald-500" />
             </div>
-            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Didistribusikan</p>
-            <div className="flex items-baseline gap-1.5 justify-center">
-              <p className="text-3xl font-extrabold text-slate-900">{totalDistributed}</p>
-              <span className="text-slate-300 font-medium text-base">/ {totalPrizes}</span>
+            <p className="text-[10px] font-bold tracking-widest text-slate-400 mb-1">Terdaftar</p>
+            <div className="flex items-baseline gap-1 justify-center">
+              <p className="text-3xl font-extrabold text-slate-900">{totalRegistered.toLocaleString("id-ID")}</p>
+              {totalTarget > 0 && <span className="text-sm text-slate-400">/ {totalTarget.toLocaleString("id-ID")}</span>}
             </div>
           </div>
         </div>
 
-        {/* ── List Section ── */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-base font-bold text-slate-800">Daftar Inventaris</h4>
-            <div className="flex items-center gap-2">
-              <select
-                value={filterEventId}
-                onChange={(e) => setFilterEventId(e.target.value)}
-                className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
-              >
-                <option value="">Semua Event</option>
-                <option value="_standalone">Tanpa Event</option>
-                {events.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-              </select>
-              <span className="text-xs text-slate-400">{prizes.length} item</span>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-400 text-sm">Memuat...</div>
-          ) : prizes.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-100 p-14 text-center">
-              <Gift className="h-12 w-12 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400 text-sm">Belum ada hadiah</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {prizes.map((prize) => {
-                const pct = prize.quantity > 0 ? Math.round((prize.distributedCount / prize.quantity) * 100) : 0;
-                const isExpanded = expandedPrize === prize.id;
-                const isFull = prize.distributedCount >= prize.quantity;
-
-                return (
-                  <div key={prize.id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.05)] hover:border-blue-100 hover:shadow-md transition-all duration-200">
-                    <div className="p-4 sm:p-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-4 items-center">
-
-                        {/* Name + event badge */}
-                        <div className="min-w-0">
-                          <div className="flex items-center flex-wrap gap-1.5 mb-0.5">
-                            <span className="font-bold text-slate-800 text-[15px]">{prize.name}</span>
-                            {isFull && (
-                              <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-bold">Habis</span>
-                            )}
-                          </div>
-                          {prize.eventId ? (
-                            <div className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
-                              <Users className="h-3 w-3 text-blue-400" />
-                              {prize.eventName ?? "Event"}
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
-                              <Globe className="h-3 w-3" />
-                              Langsung
-                            </div>
-                          )}
-                          {prize.description && (
-                            <p className="text-[11px] text-slate-400 mt-0.5">{prize.description}</p>
-                          )}
-                        </div>
-
-                        {/* Progress bar */}
-                        <div>
-                          <p className="text-[10px] font-bold tracking-tight text-slate-400 mb-1.5">Status Distribusi</p>
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all duration-500"
-                                style={{ width: `${pct}%`, background: isFull ? "#22c55e" : "#3b82f6" }}
-                              />
-                            </div>
-                            <span className="text-xs font-bold text-slate-700 shrink-0">
-                              {prize.distributedCount}/{prize.quantity}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => loadDistributions(prize.id)}
-                            className="px-3.5 py-2 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors border border-slate-100 flex items-center gap-1"
-                          >
-                            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                            Riwayat
-                          </button>
-                          <button
-                            onClick={() => openDistributeForm(prize)}
-                            disabled={isFull}
-                            className="px-3.5 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-1"
-                          >
-                            <Award className="h-3.5 w-3.5" /> Kirim
-                          </button>
-                          <button
-                            onClick={() => deletePrize(prize.id)}
-                            className="p-2 text-slate-300 hover:text-red-500 transition rounded-xl hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Distributions expanded */}
-                    {isExpanded && (
-                      <div className="border-t border-slate-100 bg-slate-50/60 p-4">
-                        {(distributions[prize.id] ?? []).length === 0 ? (
-                          <p className="text-xs text-slate-400 text-center py-3">Belum ada penerima</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {(distributions[prize.id] ?? []).map((d) => (
-                              <div key={d.id} className="flex items-center justify-between bg-white rounded-xl px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                                <div>
-                                  <p className="font-semibold text-slate-800 text-[13px]">{d.participantName || "—"}</p>
-                                  <p className="text-xs text-slate-400 font-mono">{d.participantNik}</p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-xs text-slate-500">{d.distributedBy || "—"}</p>
-                                  <p className="text-xs text-slate-400">{new Date(d.distributedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "2-digit" })}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* Add new dashed button */}
-              <button
-                onClick={() => setShowForm(true)}
-                className="w-full border border-dashed border-slate-200 rounded-2xl p-4 flex items-center justify-center gap-2 text-slate-400 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50/30 transition-all group"
-              >
-                <Plus className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                <span className="text-sm font-bold">Tambah Hadiah Baru</span>
-              </button>
-            </div>
-          )}
-
-          {/* If empty, still show add button */}
-          {!loading && prizes.length === 0 && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="w-full border border-dashed border-slate-200 rounded-2xl p-4 flex items-center justify-center gap-2 text-slate-400 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50/30 transition-all group"
-            >
-              <Plus className="h-4 w-4 group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-bold">Tambah Hadiah Baru</span>
-            </button>
-          )}
-        </div>
-
-        {/* ── Riwayat Distribusi ── */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h4 className="text-base font-bold text-slate-800">Riwayat Distribusi</h4>
-            <span className="text-xs text-slate-400">{allDistributions.length} data</span>
-          </div>
-
-          {/* Filter bar */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-wrap gap-3 items-end">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold tracking-wider text-slate-400 flex items-center gap-1">
-                <Calendar className="h-3 w-3" /> Tanggal Dari
-              </label>
-              <input
-                type="date"
-                value={distStartDate}
-                onChange={(e) => setDistStartDate(e.target.value)}
-                className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold tracking-wider text-slate-400">Sampai</label>
-              <input
-                type="date"
-                value={distEndDate}
-                onChange={(e) => setDistEndDate(e.target.value)}
-                className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold tracking-wider text-slate-400 flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> Kabupaten
-              </label>
-              <select
-                value={distKabupaten}
-                onChange={(e) => handleKabupatenChange(e.target.value)}
-                className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
-              >
-                <option value="">Semua Kabupaten</option>
-                {KABUPATEN_LIST.map((k) => <option key={k} value={k}>{k}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold tracking-wider text-slate-400">Kecamatan</label>
-              <select
-                value={distKecamatan}
-                onChange={(e) => handleKecamatanChange(e.target.value)}
-                disabled={!distKabupaten}
-                className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <option value="">Semua Kecamatan</option>
-                {kecamatanList.map((k) => <option key={k} value={k}>{k}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold tracking-wider text-slate-400">Desa / Kelurahan</label>
-              <select
-                value={distKelurahan}
-                onChange={(e) => setDistKelurahan(e.target.value)}
-                disabled={!distKecamatan}
-                className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <option value="">Semua Desa/Kel.</option>
-                {kelurahanList.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            {(distStartDate || distEndDate || distKabupaten || distKecamatan || distKelurahan) && (
-              <button
-                onClick={() => { setDistStartDate(""); setDistEndDate(""); setDistKabupaten(""); setDistKecamatan(""); setDistKelurahan(""); }}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition"
-              >
-                <X className="h-3 w-3" /> Reset
+        {/* ── Header + Search ── */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari program..."
+              className="w-full pl-9 pr-8 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 placeholder:text-slate-300"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 rounded-full transition">
+                <X size={12} className="text-slate-400" />
               </button>
             )}
           </div>
-
-          {/* Distribution table */}
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-            {allDistLoading ? (
-              <div className="p-10 text-center text-slate-400 text-sm">Memuat data...</div>
-            ) : allDistributions.length === 0 ? (
-              <div className="p-12 text-center">
-                <Gift className="h-10 w-10 text-slate-200 mx-auto mb-2" />
-                <p className="text-slate-400 text-sm">Belum ada distribusi{distKabupaten || distStartDate ? " sesuai filter" : ""}</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-slate-50 text-xs font-bold text-slate-400 tracking-wider border-b border-slate-100">
-                      <th className="px-4 py-3 text-left">Penerima</th>
-                      <th className="px-4 py-3 text-left">Hadiah</th>
-                      <th className="px-4 py-3 text-left hidden md:table-cell">Daerah</th>
-                      <th className="px-4 py-3 text-left hidden sm:table-cell">Petugas</th>
-                      <th className="px-4 py-3 text-right">Tanggal</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {allDistributions.map((d) => (
-                      <tr key={d.id} className="hover:bg-slate-50/60 transition">
-                        <td className="px-4 py-3">
-                          <p className="text-sm font-semibold text-slate-800">{d.participantName}</p>
-                          <p className="text-xs text-slate-400 font-mono">{d.participantNik}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-sm text-slate-700 font-medium">{d.prizeName}</p>
-                          {d.eventName && <p className="text-xs text-slate-400">{d.eventName}</p>}
-                        </td>
-                        <td className="px-4 py-3 hidden md:table-cell">
-                          <p className="text-xs text-slate-600">{d.kabupaten ?? "-"}</p>
-                          {d.kecamatan && <p className="text-xs text-slate-400">{d.kecamatan}</p>}
-                        </td>
-                        <td className="px-4 py-3 hidden sm:table-cell text-xs text-slate-500">{d.distributedBy ?? "-"}</td>
-                        <td className="px-4 py-3 text-right text-xs text-slate-500">
-                          {new Date(d.distributedAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-sm shadow-blue-200 shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah
+          </button>
         </div>
-      </div>
 
-      {/* ── Create Prize Modal ── */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-slate-800">Tambah Hadiah</h3>
-              <button onClick={() => setShowForm(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
-                <X className="h-4 w-4 text-slate-400" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-slate-500 block mb-1">Event <span className="font-normal text-slate-400">(opsional)</span></label>
-                <select value={formData.eventId} onChange={(e) => setFormData({ ...formData, eventId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white">
-                  <option value="">— Tanpa Event (langsung) —</option>
-                  {events.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                </select>
-                {!formData.eventId && (
-                  <p className="text-[11px] text-slate-400 mt-1">Hadiah bisa diberikan ke siapa saja tanpa batasan event</p>
-                )}
+        {/* ── Add Program Form ── */}
+        {showForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-y-auto max-h-[90vh]">
+              <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 className="text-[15px] font-extrabold text-slate-900">Tambah Program Baru</h2>
+                <button onClick={() => { setShowForm(false); setFormData(emptyForm); }} className="p-1.5 rounded-xl hover:bg-slate-100 transition">
+                  <X className="h-4 w-4 text-slate-400" />
+                </button>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-500 block mb-1">Nama Hadiah *</label>
-                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="Cth: Sepeda Motor, Voucher 500K..." />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-500 block mb-1">Deskripsi</label>
-                <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="Opsional" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-500 block mb-1">Jumlah</label>
-                <input type="number" min="1" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-              </div>
-            </div>
-            <div className="flex gap-2 mt-5">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition">Batal</button>
-              <button onClick={createPrize} disabled={!formData.name.trim()}
-                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition">Simpan</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Distribute Modal ── */}
-      {distributeState && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setDistributeState(null)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-bold text-slate-800">Berikan Hadiah</h3>
-                <p className="text-xs text-slate-400 mt-0.5">{distributeState.prizeName}</p>
-              </div>
-              <button onClick={() => setDistributeState(null)} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
-                <X className="h-4 w-4 text-slate-400" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              {distributeState.prizeEventId && (
-                <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
-                  <button
-                    onClick={() => { searchParticipants(distributeState, distributeState.searchQ, "event"); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition ${distributeState.source === "event" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}
-                  >
-                    <Users className="h-3.5 w-3.5" /> Peserta Event
-                  </button>
-                  <button
-                    onClick={() => { searchParticipants(distributeState, distributeState.searchQ, "all"); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition ${distributeState.source === "all" ? "bg-white text-slate-700 shadow-sm" : "text-slate-500"}`}
-                  >
-                    <Globe className="h-3.5 w-3.5" /> Semua Peserta
-                  </button>
-                </div>
-              )}
-
-              <div>
-                <div className="flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2.5">
-                  <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <div className="px-6 py-5 space-y-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1.5 tracking-wide uppercase">Nama Program *</label>
                   <input
                     type="text"
-                    placeholder="Cari nama atau NIK..."
-                    value={distributeState.searchQ}
-                    onChange={(e) => searchParticipants(distributeState, e.target.value, distributeState.source)}
-                    className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
-                    autoFocus
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Cth: Bedah Rumah 2025"
+                    className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition"
                   />
-                  {distributeState.searchQ && (
-                    <button onClick={() => searchParticipants(distributeState, "", distributeState.source)}>
-                      <X className="h-3.5 w-3.5 text-slate-400" />
-                    </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 tracking-wide uppercase">Komisi</label>
+                    <input
+                      type="text"
+                      value={formData.komisi}
+                      onChange={(e) => setFormData({ ...formData, komisi: e.target.value })}
+                      placeholder="Cth: Komisi VIII"
+                      className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1.5 tracking-wide uppercase">Tahun</label>
+                    <input
+                      type="text"
+                      value={formData.tahun}
+                      onChange={(e) => setFormData({ ...formData, tahun: e.target.value })}
+                      placeholder="Cth: 2025"
+                      className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1.5 tracking-wide uppercase">Mitra / KL</label>
+                  <input
+                    type="text"
+                    value={formData.mitra}
+                    onChange={(e) => setFormData({ ...formData, mitra: e.target.value })}
+                    placeholder="Cth: Kementerian PUPR"
+                    className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1.5 tracking-wide uppercase">Total KTP Penerima</label>
+                  <input
+                    type="number"
+                    value={formData.totalKtpPenerima}
+                    onChange={(e) => setFormData({ ...formData, totalKtpPenerima: e.target.value })}
+                    placeholder="Cth: 500"
+                    min="1"
+                    className="w-full px-3.5 py-2.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-2 tracking-wide uppercase">Kabupaten Penerima</label>
+                  <div className="flex flex-wrap gap-2">
+                    {KABUPATEN_LIST.map((k) => {
+                      const active = formData.kabupatenPenerima.includes(k);
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => toggleKabupaten(k)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                            active
+                              ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
+                              : "bg-white text-slate-600 border-slate-200 hover:border-blue-300 hover:text-blue-600"
+                          }`}
+                        >
+                          {k}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {formData.kabupatenPenerima.length > 0 && (
+                    <p className="text-[11px] text-blue-600 font-medium mt-1.5">
+                      {formData.kabupatenPenerima.length} kabupaten dipilih
+                    </p>
                   )}
                 </div>
               </div>
-
-              {distributeState.selectedParticipant && (
-                <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
-                  <div className="h-8 w-8 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-700 font-bold text-sm shrink-0">
-                    {distributeState.selectedParticipant.fullName[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-emerald-800 text-sm truncate">{distributeState.selectedParticipant.fullName}</p>
-                    <p className="text-xs text-emerald-600 font-mono">{distributeState.selectedParticipant.nik}</p>
-                  </div>
-                  <button onClick={() => setDistributeState((prev) => prev ? { ...prev, selectedParticipant: null } : null)}
-                    className="p-1 text-emerald-400 hover:text-emerald-600">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              )}
-
-              {distributeState.searchResults.length > 0 && !distributeState.selectedParticipant && (
-                <div className="border border-slate-100 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
-                  {distributeState.searchResults.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => setDistributeState((prev) => prev ? { ...prev, selectedParticipant: p, searchResults: [] } : null)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 transition text-left border-b border-slate-50 last:border-0"
-                    >
-                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm shrink-0">
-                        {p.fullName[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-800 text-sm truncate">{p.fullName}</p>
-                        <p className="text-xs text-slate-400 font-mono">{p.nik}{p.city ? ` · ${p.city}` : ""}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {distributeState.searching && (
-                <p className="text-xs text-slate-400 text-center py-2">Mencari...</p>
-              )}
-
-              <div className="space-y-3 pt-1 border-t border-slate-100">
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 block mb-1">Diserahkan Oleh</label>
-                  <input type="text" value={distributeState.distributedBy}
-                    onChange={(e) => setDistributeState((prev) => prev ? { ...prev, distributedBy: e.target.value } : null)}
-                    placeholder="Nama petugas..."
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-500 block mb-1">Catatan</label>
-                  <input type="text" value={distributeState.notes}
-                    onChange={(e) => setDistributeState((prev) => prev ? { ...prev, notes: e.target.value } : null)}
-                    placeholder="Opsional..."
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-                </div>
+              <div className="px-6 pb-6 flex gap-3">
+                <button
+                  onClick={() => { setShowForm(false); setFormData(emptyForm); }}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={createProgram}
+                  disabled={!formData.name.trim() || saving}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm shadow-blue-200"
+                >
+                  {saving ? "Menyimpan..." : "Simpan Program"}
+                </button>
               </div>
-
-              {distributeError && (
-                <p className="text-xs text-red-600 bg-red-50 rounded-xl px-3 py-2">{distributeError}</p>
-              )}
-            </div>
-
-            <div className="px-5 pb-5 flex gap-2 border-t border-slate-100 pt-4">
-              <button onClick={() => setDistributeState(null)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition">Batal</button>
-              <button onClick={distributePrize} disabled={!distributeState.selectedParticipant}
-                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition">
-                Berikan Hadiah
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* ── Program List ── */}
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                <div className="h-4 bg-slate-100 rounded-lg w-1/2 mb-3" />
+                <div className="h-3 bg-slate-100 rounded-lg w-1/3 mb-4" />
+                <div className="h-2 bg-slate-100 rounded-full" />
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-100 p-16 text-center">
+            <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <ClipboardList className="h-7 w-7 text-slate-300" />
+            </div>
+            <p className="text-slate-500 font-bold mb-1">{search ? "Program tidak ditemukan" : "Belum ada program"}</p>
+            <p className="text-slate-400 text-sm mb-5">{search ? "Coba kata kunci lain" : "Buat program pertama untuk memulai"}</p>
+            {!search && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition"
+              >
+                <Plus className="h-4 w-4" /> Buat Program
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((prog) => {
+              const pct = prog.totalKtpPenerima && prog.totalKtpPenerima > 0
+                ? Math.min(100, Math.round((prog.registeredCount / prog.totalKtpPenerima) * 100))
+                : null;
+              return (
+                <div
+                  key={prog.id}
+                  onClick={() => navigate(`/programs/${prog.id}`)}
+                  className="bg-white rounded-2xl border border-slate-100 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.05)] hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-11 h-11 bg-blue-50 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
+                      <ClipboardList className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-extrabold text-slate-900 text-[15px] leading-snug">{prog.name}</h3>
+                          <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                            {prog.komisi && (
+                              <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">{prog.komisi}</span>
+                            )}
+                            {prog.mitra && (
+                              <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{prog.mitra}</span>
+                            )}
+                            {prog.tahun && (
+                              <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-0.5">
+                                <Calendar className="h-2.5 w-2.5" />{prog.tahun}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={(e) => deleteProgram(prog.id, e)}
+                            className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                          <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-400 transition-colors" />
+                        </div>
+                      </div>
+
+                      {prog.kabupatenPenerima.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                          <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+                          {prog.kabupatenPenerima.map((k) => (
+                            <span key={k} className="text-[10px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">{k}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-3">
+                        <div className="flex items-baseline justify-between mb-1.5">
+                          <span className="text-[10px] font-bold text-slate-400 tracking-wide">Penerima KTP</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-[17px] font-extrabold text-slate-900 leading-none">{prog.registeredCount.toLocaleString("id-ID")}</span>
+                            {prog.totalKtpPenerima && (
+                              <span className="text-[11px] text-slate-400">/ {prog.totalKtpPenerima.toLocaleString("id-ID")}</span>
+                            )}
+                          </div>
+                        </div>
+                        {pct !== null && (
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-700"
+                              style={{ width: `${pct}%`, background: pct >= 100 ? "#22c55e" : "#3b82f6" }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </Layout>
   );
 }

@@ -8,6 +8,7 @@ import authRouter from "./auth";
 import usersRouter from "./users";
 import pemetaanRouter from "./pemetaan";
 import prizesRouter from "./prizes";
+import programsRouter from "./programs";
 import storageRouter from "./storage";
 import petugasRouter from "./petugas";
 
@@ -22,6 +23,7 @@ router.use("/ktp", ktpRouter);
 router.use("/dashboard", dashboardRouter);
 router.use("/pemetaan", pemetaanRouter);
 router.use("/prizes", prizesRouter);
+router.use("/programs", programsRouter);
 router.use("/petugas", petugasRouter);
 router.use(storageRouter);
 

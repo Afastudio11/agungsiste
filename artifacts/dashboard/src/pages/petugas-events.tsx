@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import {
   CalendarDays, MapPin, LogOut, ScanLine, Search,
   Users, QrCode, X,
-  History, Clock, ChevronRight, Home
+  History, Clock, ChevronRight, Home, ClipboardList, Calendar,
 } from "@/lib/icons";
 import { useAuth } from "@/lib/auth";
 
@@ -38,6 +38,17 @@ interface ScanHistoryItem {
   eventLocation: string | null;
 }
 
+interface Program {
+  id: number;
+  name: string;
+  komisi: string | null;
+  mitra: string | null;
+  tahun: string | null;
+  kabupatenPenerima: string[];
+  totalKtpPenerima: number | null;
+  registeredCount: number;
+}
+
 function maskNik(nik: string) {
   if (!nik || nik.length < 8) return nik;
   return nik.slice(0, 4) + "·".repeat(nik.length - 8) + nik.slice(-4);
@@ -68,6 +79,7 @@ export default function PetugasEventsPage() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<"event" | "program">("event");
   const [showRiwayat, setShowRiwayat] = useState(false);
   const [seenCount, setSeenCount] = useState<number>(() => {
     return parseInt(localStorage.getItem("riwayatSeenCount") ?? "0", 10);
@@ -93,6 +105,12 @@ export default function PetugasEventsPage() {
     refetchInterval: 30000,
   });
 
+  const { data: programs = [], isLoading: programsLoading } = useQuery<Program[]>({
+    queryKey: ["programs"],
+    queryFn: () =>
+      fetch(`${BASE}/api/programs`, { credentials: "include" }).then((r) => r.json()),
+  });
+
   const newCount = Math.max(0, scanHistory.length - seenCount);
 
   const openRiwayat = () => {
@@ -116,6 +134,13 @@ export default function PetugasEventsPage() {
       ev.name.toLowerCase().includes(search.toLowerCase()) ||
       (ev.location ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (ev.category ?? "").toLowerCase().includes(search.toLowerCase())
+  );
+  const filteredPrograms = programs.filter(
+    (p) =>
+      !search ||
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.komisi ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.mitra ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleLogout = async () => {
@@ -315,7 +340,7 @@ export default function PetugasEventsPage() {
 
             {/* Instruction line */}
             <p className="mt-4 text-[11px] text-white font-medium leading-relaxed">
-              Pilih event lalu tekan <strong className="text-white">Scan KTP</strong> atau <strong className="text-white">Scan QR</strong> untuk absensi
+              Pilih <strong className="text-white">Event</strong> atau <strong className="text-white">Program</strong> lalu tekan <strong className="text-white">Scan KTP</strong> untuk mendaftarkan peserta
             </p>
           </div>
         </div>
@@ -325,7 +350,7 @@ export default function PetugasEventsPage() {
           <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Cari event berdasarkan nama atau lokasi..."
+            placeholder={activeTab === "event" ? "Cari event..." : "Cari program..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-10 py-3 text-sm bg-white border border-slate-200 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 placeholder:text-slate-300 transition"
@@ -340,8 +365,135 @@ export default function PetugasEventsPage() {
           )}
         </div>
 
+        {/* ── Tab Pills ────────────────────────────────────────────── */}
+        <div className="flex bg-white border border-slate-200 rounded-2xl p-1 shadow-sm">
+          <button
+            onClick={() => { setActiveTab("event"); setSearch(""); }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-extrabold transition-all duration-200 ${
+              activeTab === "event"
+                ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
+                : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            <CalendarDays size={14} />
+            Event
+          </button>
+          <button
+            onClick={() => { setActiveTab("program"); setSearch(""); }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-extrabold transition-all duration-200 ${
+              activeTab === "program"
+                ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
+                : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            <ClipboardList size={14} />
+            Program
+          </button>
+        </div>
+
         {/* ── Events Section ───────────────────────────────────────── */}
-        <div>
+        {activeTab === "program" && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-[13px] font-extrabold text-slate-700 tracking-wide">DAFTAR PROGRAM</h2>
+              <div className="text-xs font-bold text-slate-400">
+                {programsLoading ? "Memuat..." : `${filteredPrograms.length} program`}
+              </div>
+            </div>
+            {programsLoading ? (
+              <div className="space-y-3">
+                {[1, 2].map((i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
+                    <div className="h-4 bg-slate-100 rounded-lg w-1/2 mb-3" />
+                    <div className="h-3 bg-slate-100 rounded-lg w-1/3 mb-4" />
+                    <div className="h-1.5 bg-slate-100 rounded-full mb-4" />
+                    <div className="h-10 bg-slate-100 rounded-xl" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredPrograms.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-100 py-16 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                  <ClipboardList size={28} className="text-slate-300" />
+                </div>
+                <div className="text-sm font-bold text-slate-400">
+                  {search ? "Tidak ada program yang cocok" : "Belum ada program tersedia"}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredPrograms.map((prog) => {
+                  const pct = prog.totalKtpPenerima && prog.totalKtpPenerima > 0
+                    ? Math.min(100, Math.round((prog.registeredCount / prog.totalKtpPenerima) * 100))
+                    : null;
+                  return (
+                    <div key={prog.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all duration-200 overflow-hidden">
+                      <div className="p-5">
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                            <ClipboardList size={18} className="text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-[15px] font-extrabold text-slate-900 leading-snug">{prog.name}</h3>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                              {prog.komisi && (
+                                <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-100">{prog.komisi}</span>
+                              )}
+                              {prog.mitra && (
+                                <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{prog.mitra}</span>
+                              )}
+                              {prog.tahun && (
+                                <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-100 flex items-center gap-0.5">
+                                  <Calendar size={9} />{prog.tahun}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {prog.kabupatenPenerima.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                            <MapPin size={11} className="text-slate-400 shrink-0" />
+                            {prog.kabupatenPenerima.map((k) => (
+                              <span key={k} className="text-[10px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">{k}</span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mb-4">
+                          <div className="flex items-baseline justify-between mb-1.5">
+                            <span className="text-[11px] text-slate-400 font-medium">Penerima KTP</span>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-[18px] font-extrabold text-slate-900">{prog.registeredCount.toLocaleString("id-ID")}</span>
+                              {prog.totalKtpPenerima && (
+                                <span className="text-[11px] text-slate-400">/ {prog.totalKtpPenerima.toLocaleString("id-ID")}</span>
+                              )}
+                            </div>
+                          </div>
+                          {pct !== null && (
+                            <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-700"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => navigate(`/petugas/program-scan/${prog.id}`)}
+                          className="w-full flex items-center justify-center gap-1.5 py-2.5 text-[13px] font-extrabold bg-blue-600 text-white rounded-full hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
+                        >
+                          <ScanLine size={14} />
+                          Scan KTP
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+        {/* ── Events Section (conditional) ────────────────────────── */}
+        {activeTab === "event" && <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[13px] font-extrabold text-slate-700 tracking-wide">
               EVENT AKTIF
@@ -496,7 +648,7 @@ export default function PetugasEventsPage() {
               );
             })}
           </div>
-        </div>
+        </div>}
 
       </div>
 

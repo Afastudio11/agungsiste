@@ -8,7 +8,7 @@ import {
   Users,
   IdentificationBadge,
   Scan,
-  Gift,
+  ClipboardList,
   MapTrifold,
   Settings,
   PlusCircle,
@@ -30,7 +30,7 @@ const adminNavBase: { href: string; key: "dashboard"|"events"|"participants"|"of
   { href: "/participants", key: "participants", Icon: Users },
   { href: "/officers",     key: "officers",     Icon: IdentificationBadge },
   { href: "/scan",         key: "scan",         Icon: Scan },
-  { href: "/prizes",       key: "prizes",       Icon: Gift },
+  { href: "/programs",     key: "prizes",       Icon: ClipboardList },
   { href: "/pemetaan",     key: "pemetaan",     Icon: MapTrifold },
   { href: "/settings",     key: "settings",     Icon: Settings },
 ];

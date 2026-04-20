@@ -28,7 +28,7 @@ export const defaultMenuLabels: MenuLabels = {
   participants: "Peserta",
   officers: "Petugas",
   scan: "Scan KTP",
-  prizes: "Hadiah",
+  prizes: "Program",
   pemetaan: "Pemetaan",
   settings: "Pengaturan",
 };

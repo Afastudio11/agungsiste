@@ -24,6 +24,8 @@ import PetugasRsvpPage from "@/pages/petugas-rsvp";
 import PetugasQrScanPage from "@/pages/petugas-qr-scan";
 import EventRsvpPage from "@/pages/event-rsvp";
 import PrizesPage from "@/pages/prizes";
+import ProgramDetailPage from "@/pages/program-detail";
+import PetugasScanProgramPage from "@/pages/petugas-scan-program";
 import PublicRegisterPage from "@/pages/public-register";
 
 const queryClient = new QueryClient();
@@ -31,7 +33,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const ADMIN_PATHS = [
   "/dashboard", "/events", "/participants", "/scan", "/staff",
-  "/officers", "/pemetaan", "/settings", "/help", "/prizes",
+  "/officers", "/pemetaan", "/settings", "/help", "/prizes", "/programs",
 ];
 
 const PUBLIC_PATHS = ["/p/register", "/p/attend"];
@@ -101,11 +103,14 @@ function AppRoutes() {
       <Route path="/officers" component={OfficersPage} />
       <Route path="/pemetaan" component={PemetaanPage} />
       <Route path="/prizes" component={PrizesPage} />
+      <Route path="/programs" component={PrizesPage} />
+      <Route path="/programs/:id" component={ProgramDetailPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/help" component={HelpPage} />
 
       <Route path="/petugas" component={PetugasEventsPage} />
       <Route path="/petugas/scan/:id" component={PetugasScanPage} />
+      <Route path="/petugas/program-scan/:id" component={PetugasScanProgramPage} />
       <Route path="/petugas/scan-rsvp/:id" component={PetugasRsvpPage} />
       <Route path="/petugas/qr-scan/:id" component={PetugasQrScanPage} />
 

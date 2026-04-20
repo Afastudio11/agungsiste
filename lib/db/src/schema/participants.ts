@@ -96,6 +96,40 @@ export const prizeDistributionsTable = pgTable("prize_distributions", {
   notes: text("notes"),
 });
 
+export const programsTable = pgTable("programs", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  komisi: text("komisi"),
+  mitra: text("mitra"),
+  tahun: text("tahun"),
+  kabupatenPenerima: text("kabupaten_penerima"),
+  totalKtpPenerima: integer("total_ktp_penerima"),
+  registeredCount: integer("registered_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const programRegistrationsTable = pgTable(
+  "program_registrations",
+  {
+    id: serial("id").primaryKey(),
+    programId: integer("program_id").notNull().references(() => programsTable.id, { onDelete: "cascade" }),
+    participantId: integer("participant_id").notNull().references(() => participantsTable.id, { onDelete: "cascade" }),
+    staffName: text("staff_name"),
+    staffId: integer("staff_id").references(() => usersTable.id),
+    notes: text("notes"),
+    registeredAt: timestamp("registered_at").defaultNow().notNull(),
+  },
+  (t) => [unique("uq_program_participant").on(t.programId, t.participantId)]
+);
+
+export const insertProgramSchema = createInsertSchema(programsTable).omit({ id: true, createdAt: true, registeredCount: true });
+export type InsertProgram = z.infer<typeof insertProgramSchema>;
+export type Program = typeof programsTable.$inferSelect;
+
+export const insertProgramRegistrationSchema = createInsertSchema(programRegistrationsTable).omit({ id: true, registeredAt: true });
+export type InsertProgramRegistration = z.infer<typeof insertProgramRegistrationSchema>;
+export type ProgramRegistration = typeof programRegistrationsTable.$inferSelect;
+
 export const adminAuditLogTable = pgTable("admin_audit_log", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => usersTable.id),
