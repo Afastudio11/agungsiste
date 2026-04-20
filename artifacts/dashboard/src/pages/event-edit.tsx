@@ -154,7 +154,7 @@ export default function EventEditPage() {
   return (
     <Layout>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="max-w-2xl mx-auto flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate(`/events/${id}`)}
           className="flex items-center justify-center h-8 w-8 rounded-full bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 transition shadow-sm"
@@ -169,7 +169,7 @@ export default function EventEditPage() {
 
       <form
         onSubmit={(e) => { e.preventDefault(); mutation.mutate(form); }}
-        className="max-w-2xl space-y-6"
+        className="max-w-2xl mx-auto space-y-6"
       >
         {/* Informasi Dasar */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-5">

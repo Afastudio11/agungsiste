@@ -1,10 +1,9 @@
 import { useState, useMemo } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import Layout from "@/components/layout";
 import {
   useListEvents,
   useCreateEvent,
-  useUpdateEvent,
   useDeleteEvent,
   getListEventsQueryKey,
 } from "@workspace/api-client-react";
@@ -137,7 +136,6 @@ export default function EventsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("eventDate");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [filterKabupaten, setFilterKabupaten] = useState("");
@@ -229,16 +227,6 @@ export default function EventsPage() {
     },
   });
 
-  const updateEvent = useUpdateEvent({
-    mutation: {
-      onSuccess: () => {
-        qc.invalidateQueries({ queryKey: getListEventsQueryKey({}) });
-        closeForm();
-        toast({ title: "Kegiatan berhasil diperbarui" });
-      },
-    },
-  });
-
   const deleteEvent = useDeleteEvent({
     mutation: {
       onSuccess: () => {
@@ -249,28 +237,12 @@ export default function EventsPage() {
   });
 
   const openCreate = () => {
-    setEditingId(null);
     setForm({ ...emptyForm });
-    setShowForm(true);
-  };
-
-  const openEdit = (ev: any) => {
-    setEditingId(ev.id);
-    setForm({
-      name: ev.name ?? "",
-      description: ev.description ?? "",
-      location: ev.location ?? "",
-      eventDate: ev.eventDate ?? "",
-      category: ev.category ?? "",
-      startTime: ev.startTime ?? "",
-      targetParticipants: ev.targetParticipants?.toString() ?? "",
-    });
     setShowForm(true);
   };
 
   const closeForm = () => {
     setShowForm(false);
-    setEditingId(null);
     setForm({ ...emptyForm });
   };
 
@@ -286,14 +258,10 @@ export default function EventsPage() {
       startTime: form.startTime || undefined,
       targetParticipants: form.targetParticipants ? parseInt(form.targetParticipants) : undefined,
     };
-    if (editingId) {
-      updateEvent.mutate({ id: editingId, data });
-    } else {
-      createEvent.mutate({ data });
-    }
+    createEvent.mutate({ data });
   };
 
-  const isPending = createEvent.isPending || updateEvent.isPending;
+  const isPending = createEvent.isPending;
   const hasFilter = search || startDate || endDate || filterKabupaten || filterStatus !== "all";
 
   return (
@@ -613,7 +581,7 @@ export default function EventsPage() {
                         </span>
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); openEdit(event); }}
+                        onClick={(e) => { e.stopPropagation(); navigate(`/events/${event.id}/edit`); }}
                         title="Edit"
                         className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
                       >
@@ -658,7 +626,7 @@ export default function EventsPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
             <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100">
               <div className="font-extrabold text-slate-900 text-[15px]" style={{ letterSpacing: "-0.02em" }}>
-                {editingId ? "Edit Kegiatan" : "Tambah Kegiatan Baru"}
+                Tambah Kegiatan Baru
               </div>
               <button
                 onClick={closeForm}
@@ -765,7 +733,7 @@ export default function EventsPage() {
                   disabled={isPending}
                   className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-md shadow-indigo-100"
                 >
-                  {isPending ? "Menyimpan..." : editingId ? "Simpan Perubahan" : "Buat Kegiatan"}
+                  {isPending ? "Menyimpan..." : "Buat Kegiatan"}
                 </button>
               </div>
             </form>
