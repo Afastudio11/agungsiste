@@ -111,8 +111,11 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
   const [view, setView] = useState<"kabupaten" | "kecamatan">("kabupaten");
   const [selectedKab, setSelectedKab] = useState<string | null>(null);
   const [selectedKec, setSelectedKec] = useState<string | null>(null);
+  const [selectedDesa, setSelectedDesa] = useState<string | null>(null);
   const [allDesaGeo, setAllDesaGeo] = useState<any | null>(null);
   const [desaGeoLoading, setDesaGeoLoading] = useState(false);
+
+  useEffect(() => { setSelectedDesa(null); }, [selectedKec]);
 
   useEffect(() => {
     if (allDesaGeo || desaGeoLoading) return;
@@ -226,9 +229,18 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
     const displayName = feature.properties?.kelurahan || villageName;
     const count = countByDesa[villageName.toLowerCase()] ?? 0;
     const events = eventByDesa[villageName.toLowerCase()] ?? 0;
+    const isSelected = selectedDesa && (
+      villageName.toLowerCase() === selectedDesa.toLowerCase() ||
+      displayName.toLowerCase() === selectedDesa.toLowerCase()
+    );
+    const isDimmed = selectedDesa && !isSelected;
+
     (layer as L.Path).setStyle({
-      fillColor: getColor(count, maxDesa),
-      weight: 1, opacity: 1, color: "white", fillOpacity: 0.80,
+      fillColor: isDimmed ? "#cbd5e1" : getColor(count, maxDesa),
+      weight: isSelected ? 2.5 : 1,
+      opacity: 1,
+      color: isSelected ? "#1d4ed8" : "white",
+      fillOpacity: isDimmed ? 0.55 : isSelected ? 0.92 : 0.80,
     });
     const hasData = count > 0;
     layer.bindTooltip(
@@ -241,19 +253,29 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
     );
     layer.on({
       click: () => {
+        setSelectedDesa(prev =>
+          prev?.toLowerCase() === (displayName || villageName).toLowerCase() ? null : (displayName || villageName)
+        );
         if (onDesaClick && selectedKab && selectedKec) {
           onDesaClick(displayName, selectedKec, selectedKab);
         }
       },
       mouseover: (e) => {
-        (e.target as L.Path).setStyle({ fillOpacity: 0.96, weight: 2, color: onDesaClick ? "#2563eb" : "white" });
+        if (!isDimmed) {
+          (e.target as L.Path).setStyle({ fillOpacity: 0.96, weight: 2.5, color: onDesaClick ? "#2563eb" : "white" });
+        }
         if (onDesaClick) (e.target as L.Layer).getElement?.()?.setAttribute?.("style", "cursor:pointer");
       },
-      mouseout:  (e) => (e.target as L.Path).setStyle({ fillOpacity: 0.80, weight: 1, color: "white" }),
+      mouseout: (e) => (e.target as L.Path).setStyle({
+        fillColor: isDimmed ? "#cbd5e1" : getColor(count, maxDesa),
+        fillOpacity: isDimmed ? 0.55 : isSelected ? 0.92 : 0.80,
+        weight: isSelected ? 2.5 : 1,
+        color: isSelected ? "#1d4ed8" : "white",
+      }),
     });
   }
 
-  function goBack() { setView("kabupaten"); setSelectedKab(null); setSelectedKec(null); }
+  function goBack() { setView("kabupaten"); setSelectedKab(null); setSelectedKec(null); setSelectedDesa(null); }
 
   const selectedInfo = kabData.find(k => k.kabupaten === selectedKab);
 
@@ -337,7 +359,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
           {view === "kecamatan" && selectedKec && desaFeatures.length > 0 && (
             <>
               <GeoJSON
-                key={`desa-${selectedKab}-${selectedKec}-${JSON.stringify(countByDesa)}`}
+                key={`desa-${selectedKab}-${selectedKec}-${JSON.stringify(countByDesa)}-${selectedDesa ?? ""}`}
                 data={desaGeoFiltered as any}
                 onEachFeature={onEachDesa}
               />
