@@ -11,6 +11,7 @@ import prizesRouter from "./prizes";
 import programsRouter from "./programs";
 import storageRouter from "./storage";
 import petugasRouter from "./petugas";
+import backupRouter from "./backup";
 
 const router: IRouter = Router();
 
@@ -25,6 +26,7 @@ router.use("/pemetaan", pemetaanRouter);
 router.use("/prizes", prizesRouter);
 router.use("/programs", programsRouter);
 router.use("/petugas", petugasRouter);
+router.use("/admin/backup", backupRouter);
 router.use(storageRouter);
 
 export default router;

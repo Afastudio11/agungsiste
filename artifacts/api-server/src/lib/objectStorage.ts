@@ -154,6 +154,11 @@ export class ObjectStorageService {
     return objectFile;
   }
 
+  async getObjectReadStream(objectPath: string): Promise<NodeJS.ReadableStream> {
+    const file = await this.getObjectEntityFile(objectPath);
+    return file.createReadStream();
+  }
+
   normalizeObjectEntityPath(rawPath: string): string {
     if (!rawPath.startsWith("https://storage.googleapis.com/")) {
       return rawPath;
