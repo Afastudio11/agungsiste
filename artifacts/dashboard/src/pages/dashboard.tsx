@@ -2,7 +2,7 @@ import { useMemo, ElementType } from "react";
 import { Link } from "wouter";
 import Layout from "@/components/layout";
 import {
-  Users, Calendar, Gift,
+  Users, Calendar, ClipboardList,
   MapPin, ArrowSquareOut,
 } from "@/lib/icons";
 import { useQuery } from "@tanstack/react-query";
@@ -33,7 +33,7 @@ function StatCard({
         className={`absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 ${circleColor}`}
       />
       <div className="flex items-start justify-between mb-3 relative">
-        <p className="text-[10px] font-bold tracking-[0.1em] text-slate-400">{label}</p>
+        <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>{label}</p>
         <Icon size={20} weight="bold" className={iconColor} />
       </div>
       <p
@@ -67,7 +67,7 @@ function GenderCard({ data }: { data: { label: string; count: number; color: str
 
   return (
     <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-6 py-5">
-      <p className="text-[11px] font-bold tracking-[0.1em] text-slate-400 mb-4">JENIS KELAMIN</p>
+      <p className="text-[13px] font-extrabold text-slate-900 mb-4" style={{ letterSpacing: "-0.01em" }}>Jenis Kelamin</p>
       {total === 0 ? (
         <div className="flex items-center justify-center h-32 text-sm text-slate-300">Belum ada data</div>
       ) : (
@@ -129,18 +129,18 @@ function AgeCard({ data }: { data: { ageGroup: string; count: number }[] }) {
   const total = data.reduce((s, d) => s + d.count, 0);
 
   const AGE_COLORS: Record<string, string> = {
-    "< 18": "#a78bfa",
-    "18-25": "#60a5fa",
-    "26-35": "#34d399",
-    "36-45": "#fbbf24",
-    "46-55": "#f87171",
-    "55+": "#fb923c",
+    "17-24":     "#60a5fa",
+    "25-34":     "#34d399",
+    "35-44":     "#fbbf24",
+    "45-54":     "#f87171",
+    "55-64":     "#fb923c",
+    "di atas 64": "#a78bfa",
   };
 
   return (
     <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-6 py-5">
       <div className="flex items-start justify-between mb-4">
-        <p className="text-[11px] font-bold tracking-[0.1em] text-slate-400">KELOMPOK USIA</p>
+        <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Kelompok Usia</p>
         {total > 0 && (
           <span className="text-[10px] font-bold text-slate-300">{fmt(total)} data</span>
         )}
@@ -250,23 +250,23 @@ export default function DashboardPage() {
       {/* ── Row 1: 3 Stat Cards ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         <StatCard
-          label="TOTAL KTP"
+          label="Total KTP"
           value={stats?.totalParticipants ?? 0}
           Icon={Users}
           circleColor="bg-blue-500"
           iconColor="text-blue-400"
         />
         <StatCard
-          label="TOTAL KEGIATAN"
+          label="Total Kegiatan"
           value={stats?.totalEvents ?? 0}
           Icon={Calendar}
           circleColor="bg-violet-500"
           iconColor="text-violet-400"
         />
         <StatCard
-          label="TOTAL PROGRAM"
+          label="Total Program"
           value={stats?.totalPrograms ?? 0}
-          Icon={Gift}
+          Icon={ClipboardList}
           circleColor="bg-emerald-500"
           iconColor="text-emerald-400"
         />
@@ -341,7 +341,7 @@ export default function DashboardPage() {
             ) : (recent?.recentPrograms ?? []).map((prog) => (
               <div key={prog.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50/60 transition-colors">
                 <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                  <Gift size={15} weight="bold" className="text-emerald-400" />
+                  <ClipboardList size={15} weight="bold" className="text-emerald-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold text-slate-800 truncate leading-tight">{prog.name}</p>
@@ -376,7 +376,7 @@ export default function DashboardPage() {
       {/* ── Row 4: Sebaran Daerah (full width) ───────────────────────── */}
       <div className="rounded-2xl bg-white border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-50">
-          <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
+          <p className="text-[13px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>
             Sebaran Daerah
           </p>
           <p className="text-[11px] text-slate-400 font-medium">Top 10 kabupaten/kota asal peserta</p>

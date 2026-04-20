@@ -370,49 +370,61 @@ router.get("/segments", requireAdmin, async (req, res) => {
           .groupBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`)
           .orderBy(sql`extract(dow from ${eventRegistrationsTable.registeredAt})`);
 
-    // Age groups: calculated from birthDate (text field, YYYY-MM-DD)
-    const ageGroupConds = needsDateOrDaerah ? [...regJoinConds, ...daerahConds] : [];
-    const ageRows = needsDateOrDaerah
-      ? await db
-          .select({
-            ageGroup: sql<string>`
-              case
-                when ${participantsTable.birthDate} is null then 'Tidak Diketahui'
-                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 18 then '< 18'
-                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 26 then '18-25'
-                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 36 then '26-35'
-                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 46 then '36-45'
-                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 56 then '46-55'
-                else '55+'
-              end
-            `,
-            count: sql<number>`cast(count(distinct ${participantsTable.id}) as integer)`,
-          })
-          .from(participantsTable)
-          .innerJoin(eventRegistrationsTable, eq(eventRegistrationsTable.participantId, participantsTable.id))
-          .where(ageGroupConds.length > 0 ? and(...ageGroupConds) : undefined)
-          .groupBy(sql`1`)
-      : await db
-          .select({
-            ageGroup: sql<string>`
-              case
-                when ${participantsTable.birthDate} is null then 'Tidak Diketahui'
-                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 18 then '< 18'
-                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 26 then '18-25'
-                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 36 then '26-35'
-                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 46 then '36-45'
-                when date_part('year', age(to_date(${participantsTable.birthDate}, 'YYYY-MM-DD'))) < 56 then '46-55'
-                else '55+'
-              end
-            `,
-            count: sql<number>`cast(count(*) as integer)`,
-          })
-          .from(participantsTable)
-          .groupBy(sql`1`);
+    // Age groups: handle mixed date formats (YYYY-MM-DD and DD-MM-YYYY)
+    // Use a CTE to safely parse birthDate regardless of format
+    const SAFE_DATE_CTE = `
+      safe_date as (
+        select id,
+          case
+            when birth_date is null or trim(birth_date) = '' then null
+            when birth_date ~ '^\\d{4}-\\d{2}-\\d{2}$' then birth_date::date
+            when birth_date ~ '^\\d{2}-\\d{2}-\\d{4}$' then to_date(birth_date, 'DD-MM-YYYY')
+            else null
+          end as parsed_date
+        from participants
+        where birth_date is not null and trim(birth_date) <> ''
+      )
+    `;
+    const AGE_CASE_CTE = `
+      case
+        when parsed_date is null then 'unknown'
+        when extract(year from age(parsed_date)) between 17 and 24 then '17-24'
+        when extract(year from age(parsed_date)) between 25 and 34 then '25-34'
+        when extract(year from age(parsed_date)) between 35 and 44 then '35-44'
+        when extract(year from age(parsed_date)) between 45 and 54 then '45-54'
+        when extract(year from age(parsed_date)) between 55 and 64 then '55-64'
+        when extract(year from age(parsed_date)) > 64 then 'di atas 64'
+        else 'unknown'
+      end
+    `;
 
-    const AGE_ORDER = ['< 18', '18-25', '26-35', '36-45', '46-55', '55+', 'Tidak Diketahui'];
-    const ageGroups = ageRows
-      .filter(r => r.ageGroup !== 'Tidak Diketahui')
+    let ageRawRows: { age_group: string; count: number }[];
+    if (needsDateOrDaerah) {
+      const result = await db.execute(sql.raw(`
+        with ${SAFE_DATE_CTE}
+        select ${AGE_CASE_CTE} as age_group, cast(count(distinct sd.id) as integer) as count
+        from safe_date sd
+        inner join event_registrations er on er.participant_id = sd.id
+        where ${AGE_CASE_CTE} <> 'unknown'
+        group by 1
+        order by min(extract(year from age(sd.parsed_date)))
+      `));
+      ageRawRows = result.rows as any[];
+    } else {
+      const result = await db.execute(sql.raw(`
+        with ${SAFE_DATE_CTE}
+        select ${AGE_CASE_CTE} as age_group, cast(count(*) as integer) as count
+        from safe_date
+        where ${AGE_CASE_CTE} <> 'unknown'
+        group by 1
+        order by min(extract(year from age(parsed_date)))
+      `));
+      ageRawRows = result.rows as any[];
+    }
+
+    const AGE_ORDER = ['17-24', '25-34', '35-44', '45-54', '55-64', 'di atas 64'];
+    const ageGroups = ageRawRows
+      .map(r => ({ ageGroup: r.age_group, count: Number(r.count) }))
       .sort((a, b) => AGE_ORDER.indexOf(a.ageGroup) - AGE_ORDER.indexOf(b.ageGroup));
 
     res.json({ gender, province, dow, ageGroups });
