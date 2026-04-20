@@ -140,6 +140,9 @@ export default function EventsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const [filterKabupaten, setFilterKabupaten] = useState("");
+  const [showWilayahFilter, setShowWilayahFilter] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
 
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -178,7 +181,21 @@ export default function EventsPage() {
 
   const events = useMemo(() => {
     if (!rawEvents) return rawEvents;
-    return [...rawEvents].sort((a, b) => {
+    let filtered = [...rawEvents];
+
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((e) => ((e as any).status ?? "active") === filterStatus);
+    }
+
+    if (filterKabupaten) {
+      const allDesa = new Set(
+        getKecamatanList(filterKabupaten)
+          .flatMap((kec) => getDesaList(filterKabupaten, kec).map((d) => d.toLowerCase()))
+      );
+      filtered = filtered.filter((e) => allDesa.has((e.location ?? "").toLowerCase()));
+    }
+
+    return filtered.sort((a, b) => {
       let av: any = (a as any)[sortKey] ?? "";
       let bv: any = (b as any)[sortKey] ?? "";
       if (sortKey === "participantCount") {
@@ -192,7 +209,7 @@ export default function EventsPage() {
       if (av > bv) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
-  }, [rawEvents, sortKey, sortDir]);
+  }, [rawEvents, sortKey, sortDir, filterKabupaten, filterStatus]);
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -277,7 +294,7 @@ export default function EventsPage() {
   };
 
   const isPending = createEvent.isPending || updateEvent.isPending;
-  const hasFilter = search || startDate || endDate;
+  const hasFilter = search || startDate || endDate || filterKabupaten || filterStatus !== "all";
 
   return (
     <Layout>
@@ -325,9 +342,21 @@ export default function EventsPage() {
                 <span className="hidden sm:inline">Tanggal</span>
               </button>
 
+              <button
+                onClick={() => setShowWilayahFilter((v) => !v)}
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                  filterKabupaten
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700"
+                }`}
+              >
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">{filterKabupaten || "Wilayah"}</span>
+              </button>
+
               {hasFilter && (
                 <button
-                  onClick={() => { setSearch(""); setStartDate(""); setEndDate(""); }}
+                  onClick={() => { setSearch(""); setStartDate(""); setEndDate(""); setFilterKabupaten(""); setFilterStatus("all"); setShowDateFilter(false); setShowWilayahFilter(false); }}
                   className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm border bg-white text-red-400 border-red-100 hover:bg-red-50 transition-all"
                   title="Reset filter"
                 >
@@ -385,18 +414,76 @@ export default function EventsPage() {
               </button>
             </div>
           )}
+
+          {/* Wilayah filter row */}
+          {showWilayahFilter && (
+            <div className="flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-xl px-4 py-3">
+              <MapPin className="h-4 w-4 text-emerald-500 shrink-0" />
+              <span className="text-xs font-medium text-slate-500">Kabupaten / Kota</span>
+              <select
+                value={filterKabupaten}
+                onChange={(e) => setFilterKabupaten(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-emerald-400 transition-colors"
+              >
+                <option value="">— Semua wilayah —</option>
+                {kabupatenList.map((k) => (
+                  <option key={k} value={k}>{k}</option>
+                ))}
+              </select>
+              {filterKabupaten && (
+                <button
+                  onClick={() => setFilterKabupaten("")}
+                  className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                >
+                  Reset
+                </button>
+              )}
+              <button
+                onClick={() => setShowWilayahFilter(false)}
+                className="ml-auto text-xs text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                Tutup
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Event List ── */}
         <div className="space-y-5">
           {/* Section header */}
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-sm font-bold text-slate-900 tracking-widest flex items-center gap-2">
-              Daftar Event
-              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px]">
-                {events?.length ?? 0}
-              </span>
-            </h3>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-bold text-slate-900 tracking-widest flex items-center gap-2">
+                Daftar Event
+                <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px]">
+                  {events?.length ?? 0}
+                </span>
+              </h3>
+              {/* Status filter chips */}
+              <div className="flex items-center gap-1">
+                {(["all", "active", "inactive"] as const).map((s) => {
+                  const labels = { all: "Semua", active: "Aktif", inactive: "Nonaktif" };
+                  const active = filterStatus === s;
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setFilterStatus(s)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border ${
+                        active
+                          ? s === "active"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : s === "inactive"
+                              ? "bg-slate-100 text-slate-500 border-slate-200"
+                              : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                          : "bg-white text-slate-400 border-slate-200 hover:text-slate-600"
+                      }`}
+                    >
+                      {labels[s]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             {/* Sort options */}
             <div className="flex items-center gap-1 text-xs">
               {(["name", "eventDate", "participantCount"] as SortKey[]).map((key) => {
