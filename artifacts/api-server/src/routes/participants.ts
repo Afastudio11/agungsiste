@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { participantsTable, eventRegistrationsTable, eventsTable, usersTable, adminAuditLogTable } from "@workspace/db";
+import { participantsTable, eventRegistrationsTable, eventsTable, usersTable, adminAuditLogTable, programsTable, programRegistrationsTable } from "@workspace/db";
 import { eq, ne, sql, and, gte, lte, ilike, or } from "drizzle-orm";
 import {
   ListParticipantsQueryParams,
@@ -252,6 +252,22 @@ router.get("/:nik", requireAuth, async (req, res) => {
       .where(eq(eventRegistrationsTable.participantId, participant.id))
       .orderBy(sql`${eventsTable.eventDate} desc`);
 
+    const programRegistrations = await db
+      .select({
+        id: programsTable.id,
+        name: programsTable.name,
+        komisi: programsTable.komisi,
+        mitra: programsTable.mitra,
+        tahun: programsTable.tahun,
+        status: programsTable.status,
+        kabupatenPenerima: programsTable.kabupatenPenerima,
+        registeredAt: programRegistrationsTable.registeredAt,
+      })
+      .from(programRegistrationsTable)
+      .innerJoin(programsTable, eq(programRegistrationsTable.programId, programsTable.id))
+      .where(eq(programRegistrationsTable.participantId, participant.id))
+      .orderBy(sql`${programRegistrationsTable.registeredAt} desc`);
+
     res.json({
       nik: participant.nik,
       fullName: participant.fullName,
@@ -273,6 +289,7 @@ router.get("/:nik", requireAuth, async (req, res) => {
       province: participant.province,
       bloodType: participant.bloodType,
       events: registrations,
+      programs: programRegistrations,
     });
   } catch (err) {
     req.log.error({ err }, "Error getting participant");

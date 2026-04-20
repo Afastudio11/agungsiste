@@ -559,82 +559,105 @@ export default function ParticipantDetailPage() {
             <KtpImageViewer nik={nik} />
           </div>
 
-          {/* Event history + extra info */}
-          <div className="space-y-4">
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-5 pt-5 pb-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
-                <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 bg-blue-500" />
-                <div className="flex items-start justify-between mb-2 relative">
-                  <p className="text-[12px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Total Kegiatan</p>
-                  <Calendar className="h-4 w-4 text-blue-400" />
-                </div>
-                <div className="text-[34px] font-extrabold text-slate-900 leading-none relative" style={{ letterSpacing: "-0.04em" }}>
-                  {profile.events?.length ?? 0}
-                </div>
+          {/* 2 unified cards: Kegiatan + Program */}
+          <div className="grid grid-cols-2 gap-3">
+
+            {/* Card 1 – Total Kegiatan + riwayat */}
+            <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex flex-col">
+              <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 bg-blue-500" />
+              {/* Stat header */}
+              <div className="flex items-start justify-between mb-1 relative">
+                <p className="text-[12px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Total Kegiatan</p>
+                <Calendar className="h-4 w-4 text-blue-400" />
               </div>
-              <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 px-5 pt-5 pb-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.10)] transition-shadow">
-                <div className={`absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500 ${(profile.events?.length ?? 0) > 1 ? "bg-amber-500" : "bg-violet-500"}`} />
-                <div className="flex items-start justify-between mb-2 relative">
-                  <p className="text-[12px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Status</p>
-                  <Tag className="h-4 w-4 text-slate-400" />
-                </div>
-                <div className="mt-1 relative">
-                  {(profile.events?.length ?? 0) > 1 ? (
-                    <span className="inline-block text-xs font-bold bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full">
-                      Multi Event
-                    </span>
-                  ) : (
-                    <span className="inline-block text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
-                      Single Event
-                    </span>
-                  )}
-                </div>
+              <div className="text-[34px] font-extrabold text-slate-900 leading-none relative mb-4" style={{ letterSpacing: "-0.04em" }}>
+                {profile.events?.length ?? 0}
+              </div>
+              {/* Divider */}
+              <div className="border-t border-slate-100 mb-3" />
+              {/* Riwayat label + count badge */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold text-slate-400 tracking-widest">RIWAYAT KEGIATAN</span>
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-700">
+                  {profile.events?.length ?? 0}
+                </span>
+              </div>
+              {/* List */}
+              <div className="flex-1 space-y-1.5 overflow-y-auto max-h-56">
+                {profile.events && profile.events.length > 0 ? profile.events.map((event) => (
+                  <Link key={event.id} href={`/events/${event.id}`}>
+                    <div className="cursor-pointer rounded-xl border border-slate-100 px-3 py-2 hover:bg-slate-50 transition">
+                      <p className="font-semibold text-xs text-slate-900 hover:text-blue-600 transition line-clamp-1">
+                        {event.name}
+                      </p>
+                      <div className="mt-0.5 flex gap-2 text-[10px] text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <CalendarDays className="h-2.5 w-2.5" />
+                          {event.eventDate}
+                        </span>
+                        {event.location && (
+                          <span className="flex items-center gap-1 truncate">
+                            <MapPin className="h-2.5 w-2.5 shrink-0" />
+                            <span className="truncate">{event.location}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                )) : (
+                  <p className="text-xs text-slate-400">Belum pernah mengikuti kegiatan</p>
+                )}
               </div>
             </div>
 
-            {/* Event history */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-bold text-slate-400 tracking-wider">Riwayat Kegiatan</h2>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                    (profile.events?.length ?? 0) > 1
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-blue-100 text-blue-800"
-                  }`}
-                >
-                  {profile.events?.length ?? 0} event
+            {/* Card 2 – Total Program + riwayat */}
+            <div className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] flex flex-col">
+              <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full opacity-10 bg-indigo-500" />
+              {/* Stat header */}
+              <div className="flex items-start justify-between mb-1 relative">
+                <p className="text-[12px] font-extrabold text-slate-900" style={{ letterSpacing: "-0.01em" }}>Total Program</p>
+                <Tag className="h-4 w-4 text-indigo-400" />
+              </div>
+              <div className="text-[34px] font-extrabold text-slate-900 leading-none relative mb-4" style={{ letterSpacing: "-0.04em" }}>
+                {(profile as any).programs?.length ?? 0}
+              </div>
+              {/* Divider */}
+              <div className="border-t border-slate-100 mb-3" />
+              {/* Riwayat label + count badge */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold text-slate-400 tracking-widest">RIWAYAT PROGRAM</span>
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-700">
+                  {(profile as any).programs?.length ?? 0}
                 </span>
               </div>
-              {profile.events && profile.events.length > 0 ? (
-                <div className="space-y-2">
-                  {profile.events.map((event) => (
-                    <Link key={event.id} href={`/events/${event.id}`}>
-                      <div className="cursor-pointer rounded-xl border border-slate-100 p-3 hover:bg-slate-50 transition group">
-                        <p className="font-semibold text-sm text-slate-900 group-hover:text-blue-600 transition">
-                          {event.name}
+              {/* List */}
+              <div className="flex-1 space-y-1.5 overflow-y-auto max-h-56">
+                {(profile as any).programs && (profile as any).programs.length > 0
+                  ? (profile as any).programs.map((prog: any) => (
+                    <Link key={prog.id} href={`/prizes/${prog.id}`}>
+                      <div className="cursor-pointer rounded-xl border border-slate-100 px-3 py-2 hover:bg-slate-50 transition">
+                        <p className="font-semibold text-xs text-slate-900 hover:text-indigo-600 transition line-clamp-1">
+                          {prog.name}
                         </p>
-                        <div className="mt-1 flex gap-3 text-xs text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <CalendarDays className="h-3 w-3" />
-                            {event.eventDate}
-                          </span>
-                          {event.location && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {event.location}
-                            </span>
+                        <div className="mt-0.5 flex gap-2 text-[10px] text-slate-400 flex-wrap">
+                          {prog.komisi && <span className="truncate">{prog.komisi}</span>}
+                          {prog.tahun && <span>· {prog.tahun}</span>}
+                          {prog.status && (
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                              prog.status === "aktif"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-slate-100 text-slate-500"
+                            }`}>{prog.status}</span>
                           )}
                         </div>
                       </div>
                     </Link>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-slate-400">Belum pernah mengikuti event</p>
-              )}
+                  ))
+                  : <p className="text-xs text-slate-400">Belum terdaftar di program manapun</p>
+                }
+              </div>
             </div>
+
           </div>
         </div>
 
