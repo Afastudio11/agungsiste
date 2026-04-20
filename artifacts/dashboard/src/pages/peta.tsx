@@ -88,8 +88,8 @@ function MapLabels({ features, getName, fontSize = 11, fontWeight = "700", color
   return null;
 }
 
-interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: number; totalKecamatan: number; totalEvent: number; }
-interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalEvent: number; }
+interface KabupatenRow { kabupaten: string; totalInput: number; totalDesa: number; totalKecamatan: number; totalEvent: number; totalProgram?: number; }
+interface KecamatanRow { kecamatan: string; kabupaten: string; totalInput: number; totalDesa: number; totalEvent: number; totalProgram?: number; }
 interface DesaRow { kelurahan: string; kecamatan: string; kabupaten: string; totalInput: number; totalEvent: number; totalProgram?: number; }
 
 function getColor(count: number, max: number, min = 0): string {
@@ -146,12 +146,15 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
   });
 
   const countByKab = Object.fromEntries(kabData.map(k => [k.kabupaten, k.totalInput]));
+  const eventByKab = Object.fromEntries(kabData.map(k => [k.kabupaten, k.totalEvent ?? 0]));
+  const programByKab = Object.fromEntries(kabData.map(k => [k.kabupaten, k.totalProgram ?? 0]));
   const kabInputs = kabData.map(k => Number(k.totalInput)).filter(v => v > 0);
   const maxKab = Math.max(...kabInputs, 1);
   const minKab = kabInputs.length >= 2 ? Math.min(...kabInputs) : 0;
 
   const countByKec = Object.fromEntries(kecData.map(k => [k.kecamatan.toLowerCase(), k.totalInput]));
   const eventByKec = Object.fromEntries(kecData.map(k => [k.kecamatan.toLowerCase(), k.totalEvent ?? 0]));
+  const programByKec = Object.fromEntries(kecData.map(k => [k.kecamatan.toLowerCase(), k.totalProgram ?? 0]));
   const kecInSelectedKab = kecData.filter(k => k.kabupaten?.toLowerCase() === selectedKab?.toLowerCase());
   const kecInputs = kecInSelectedKab.map(k => Number(k.totalInput)).filter(v => v > 0);
   const maxKec = Math.max(...kecInputs, 1);
@@ -183,6 +186,8 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
   function onEachKab(feature: any, layer: L.Layer) {
     const name = feature.properties?.name || "";
     const count = countByKab[name] || 0;
+    const events = eventByKab[name] ?? 0;
+    const programs = programByKab[name] ?? 0;
     const isSelected = name === selectedKab;
     const isDimmed = view === "kabupaten" && !!hoveredKab && hoveredKab !== name;
     const path = layer as L.Path;
@@ -197,9 +202,11 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
       fillOpacity,
     });
     layer.bindTooltip(
-      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;line-height:1.8;min-width:140px">
+      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;line-height:1.8;min-width:160px">
         <b style="font-size:13px;display:block;margin-bottom:4px;color:#0f172a">${name}</b>
         <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total KTP</span><span style="font-weight:700;color:#1e293b">${count.toLocaleString()}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total Kegiatan</span><span style="font-weight:700;color:#1e293b">${events}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total Program</span><span style="font-weight:700;color:#1e293b">${programs}</span></div>
         ${view === "kabupaten" ? `<div style="color:#94a3b8;font-size:10px;margin-top:4px">Klik untuk lihat kecamatan</div>` : ""}
       </div>`,
       { sticky: true, className: "ktp-tooltip" }
@@ -224,6 +231,7 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
     const name = feature.properties?.name || "";
     const count = countByKec[name.toLowerCase()] || 0;
     const events = eventByKec[name.toLowerCase()] || 0;
+    const programs = programByKec[name.toLowerCase()] ?? 0;
     const isSelected = name === selectedKec;
     const isDimmed = !!selectedKec && !isSelected;
     (layer as L.Path).setStyle({
@@ -234,10 +242,11 @@ export default function PetaMapContent({ onDesaClick, onKabupatenClick }: PetaMa
       fillOpacity: isDimmed ? 0.55 : isSelected ? 0.92 : 0.78,
     });
     layer.bindTooltip(
-      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;line-height:1.8;min-width:140px">
+      `<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;line-height:1.8;min-width:160px">
         <b style="font-size:13px;display:block;margin-bottom:4px;color:#0f172a">${name}</b>
         <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total KTP</span><span style="font-weight:700;color:#1e293b">${count.toLocaleString()}</span></div>
         <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total Kegiatan</span><span style="font-weight:700;color:#1e293b">${events}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">Total Program</span><span style="font-weight:700;color:#1e293b">${programs}</span></div>
         <div style="color:#94a3b8;font-size:10px;margin-top:4px">Klik untuk lihat desa</div>
       </div>`,
       { sticky: true, className: "ktp-tooltip" }
