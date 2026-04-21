@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
   MapPin, Globe, Building2, Home, ChevronRight, ChevronLeft, ArrowLeft,
-  Users, CalendarDays, TrendingUp, User, Phone, Tag, Clock, Gift,
+  Users, CalendarDays, TrendingUp, User, Phone, Tag, Clock, Gift, Download,
 } from "@/lib/icons";
 import Layout from "@/components/layout";
 import PetaMapContent from "@/pages/peta";
@@ -729,6 +729,37 @@ function DesaDetailView({
 
   const totalRiwayat = riwayat.length;
 
+  function exportRiwayat() {
+    import("@/lib/exportUtils").then(({ exportExcel }) => {
+      const headers = ["No", "Tipe", "Nama Program/Kegiatan", "Tanggal", "Total KTP"];
+      const rows = riwayat.map((r, i) => [
+        i + 1,
+        r.type === "kegiatan" ? "Kegiatan" : "Program",
+        r.name,
+        r.tanggal,
+        r.totalKtp,
+      ]);
+      exportExcel([headers, ...rows], `riwayat_${data.kelurahan.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    });
+  }
+
+  function exportDaftarKtp() {
+    if (!pesertaList || pesertaList.length === 0) return;
+    import("@/lib/exportUtils").then(({ exportExcel }) => {
+      const headers = ["No", "Nama Lengkap", "NIK", "L/P", "Pekerjaan", "No. HP", "Alamat"];
+      const rows = pesertaList.map((p, i) => [
+        i + 1,
+        p.fullName,
+        p.nik,
+        p.gender ?? "-",
+        p.occupation ?? "-",
+        p.phone ?? "-",
+        p.address ?? "-",
+      ]);
+      exportExcel([headers, ...rows], `ktp_${data.kelurahan.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    });
+  }
+
   return (
     <div className="space-y-4">
       {/* Hero banner card */}
@@ -807,6 +838,20 @@ function DesaDetailView({
             : `${totalRiwayat} riwayat`}
         </span>
       </div>
+
+      {/* Export row */}
+      {activeTab && (
+        <div className="flex justify-end">
+          <button
+            onClick={activeTab === "riwayat" ? exportRiwayat : exportDaftarKtp}
+            disabled={activeTab === "daftar" && (!pesertaList || pesertaList.length === 0)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export Excel {activeTab === "riwayat" ? "Riwayat" : "Daftar KTP"}
+          </button>
+        </div>
+      )}
 
       {/* RIWAYAT panel */}
       {activeTab === "riwayat" && (
