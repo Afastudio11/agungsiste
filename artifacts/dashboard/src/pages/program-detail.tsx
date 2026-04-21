@@ -163,7 +163,7 @@ export default function ProgramDetailPage() {
                 {/* Progress */}
                 <div className="mt-5 pt-4 border-t border-slate-100 relative">
                   <div className="flex items-baseline justify-between mb-2">
-                    <span className="text-xs font-bold text-slate-400 tracking-wide">PENERIMA KTP</span>
+                    <span className="text-xs font-bold text-slate-400 tracking-wide">KTP PENERIMA</span>
                     <div className="flex items-baseline gap-1">
                       {program.totalKtpPenerima && (
                         <span className="text-sm text-slate-400">Target: {program.totalKtpPenerima.toLocaleString("id-ID")}</span>
