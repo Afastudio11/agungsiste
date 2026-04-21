@@ -199,7 +199,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="relative hidden sm:block">
               <button
                 onClick={() => onExport?.()}
-                className="flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-[12px] font-bold text-white shadow-sm shadow-blue-300/50 hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition"
               >
                 <Download size={15} weight="bold" />
                 Export Excel
