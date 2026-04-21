@@ -527,7 +527,7 @@ router.get("/export", requireAdmin, async (req, res) => {
     if (kabupaten) rawAgeConds.push(`city ilike '%${esc(kabupaten)}%'`);
     if (kecamatan) rawAgeConds.push(`kecamatan ilike '%${esc(kecamatan)}%'`);
     if (kelurahan) rawAgeConds.push(`kelurahan ilike '%${esc(kelurahan)}%'`);
-    const ageResult = await db.execute(sql.raw(`select ${AGE_CASE} as age_group, cast(count(*) as integer) as count from participants where ${rawAgeConds.join(" and ")} group by 1 order by min(extract(year from age(birth_date::date)))`));
+    const ageResult = await db.execute(sql.raw(`select ${AGE_CASE} as age_group, cast(count(*) as integer) as count from participants where ${rawAgeConds.join(" and ")} group by 1 order by min(extract(year from age(${AGE_DATE_EXPR})))`));
     const AGE_ORDER = ['17-24', '25-34', '35-44', '45-54', '55-64', 'di atas 64'];
     const ageRows = (ageResult.rows as any[]).sort((a, b) => AGE_ORDER.indexOf(a.age_group) - AGE_ORDER.indexOf(b.age_group));
 
