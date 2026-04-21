@@ -28,69 +28,6 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 type SortKey = "name" | "eventDate" | "location" | "participantCount";
 type SortDir = "asc" | "desc";
 
-function findWilayah(kelurahan: string): { kab: string; kec: string } {
-  if (!kelurahan) return { kab: "", kec: "" };
-  for (const kab of kabupatenList) {
-    for (const kec of getKecamatanList(kab)) {
-      if (getDesaList(kab, kec).some((d) => d.toLowerCase() === kelurahan.toLowerCase())) {
-        return { kab, kec };
-      }
-    }
-  }
-  return { kab: "", kec: "" };
-}
-
-const selectCls = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
-
-function WilayahSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const init = findWilayah(value);
-  const [kab, setKab] = useState(init.kab);
-  const [kec, setKec] = useState(init.kec);
-  const [kel, setKel] = useState(value);
-
-  const kecList = kab ? getKecamatanList(kab) : [];
-  const kelList = kab && kec ? getDesaList(kab, kec) : [];
-
-  return (
-    <div className="grid grid-cols-3 gap-2">
-      <div>
-        <label className="block text-[10px] font-bold tracking-[0.08em] text-slate-300 mb-1">Kabupaten/Kota</label>
-        <select
-          value={kab}
-          onChange={(e) => { setKab(e.target.value); setKec(""); setKel(""); onChange(""); }}
-          className={selectCls}
-        >
-          <option value="">— Pilih —</option>
-          {kabupatenList.map((k) => <option key={k} value={k}>{k}</option>)}
-        </select>
-      </div>
-      <div>
-        <label className="block text-[10px] font-bold tracking-[0.08em] text-slate-300 mb-1">Kecamatan</label>
-        <select
-          value={kec}
-          disabled={!kab}
-          onChange={(e) => { setKec(e.target.value); setKel(""); onChange(""); }}
-          className={selectCls}
-        >
-          <option value="">— Pilih —</option>
-          {kecList.map((k) => <option key={k} value={k}>{k}</option>)}
-        </select>
-      </div>
-      <div>
-        <label className="block text-[10px] font-bold tracking-[0.08em] text-slate-300 mb-1">Kelurahan/Desa</label>
-        <select
-          value={kel}
-          disabled={!kec}
-          onChange={(e) => { setKel(e.target.value); onChange(e.target.value); }}
-          className={selectCls}
-        >
-          <option value="">— Pilih —</option>
-          {kelList.map((k) => <option key={k} value={k}>{k}</option>)}
-        </select>
-      </div>
-    </div>
-  );
-}
 
 const CATEGORIES = [
   "Kegiatan Sosial",
@@ -722,10 +659,16 @@ export default function EventsPage() {
                   <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
                     Lokasi
                   </label>
-                  <WilayahSelect
-                    value={form.location}
-                    onChange={(v) => setForm({ ...form, location: v })}
-                  />
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={form.location}
+                      onChange={(e) => setForm({ ...form, location: e.target.value })}
+                      placeholder="Contoh: Gedung Serbaguna Trenggalek"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 py-2.5 text-[13px] text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
