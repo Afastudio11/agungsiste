@@ -364,11 +364,18 @@ export default function PublicRegisterPage() {
     if (evCur) evLines.push(evCur);
     evLines.slice(0, 2).forEach((line, i) => ctx.fillText(line, W / 2, footerY + 22 + i * 18));
 
-    /* ── Date · Location ── */
+    /* ── Date · Time · Location ── */
     ctx.fillStyle = "#94a3b8";
     ctx.font = "500 10px 'Plus Jakarta Sans', Arial, sans-serif";
     ctx.textAlign = "center";
-    const dateStr = `${event.eventDate}${event.location ? "  ·  " + event.location : ""}`;
+    const formattedDate = new Date(event.eventDate + "T00:00:00").toLocaleDateString("id-ID", {
+      day: "numeric", month: "long", year: "numeric",
+    });
+    const timeStr = event.startTime
+      ? event.endTime ? `  ·  ${event.startTime}–${event.endTime} WIB` : `  ·  ${event.startTime} WIB`
+      : "";
+    const locStr = event.location ? `  ·  ${event.location}` : "";
+    const dateStr = `${formattedDate}${timeStr}${locStr}`;
     ctx.fillText(dateStr, W / 2, footerY + 22 + evLines.slice(0, 2).length * 18 + 14);
 
     ctx.restore();
@@ -445,15 +452,25 @@ export default function PublicRegisterPage() {
             <h1 className="text-[22px] font-extrabold text-slate-900 leading-tight mb-2" style={{ letterSpacing: "-0.02em" }}>
               {event?.name}
             </h1>
-            <div className="flex flex-wrap items-center justify-center gap-3 text-[12px] text-slate-400 font-medium">
+            <div className="flex flex-col items-center gap-1.5 text-[12px] text-slate-400 font-medium mt-1">
               {event?.eventDate && (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5">
                   <CalendarDays size={11} />
-                  {event.eventDate}{event.startTime ? ` · ${event.startTime}` : ""}
+                  {new Date(event.eventDate + "T00:00:00").toLocaleDateString("id-ID", {
+                    weekday: "long", day: "numeric", month: "long", year: "numeric",
+                  })}
+                </span>
+              )}
+              {(event?.startTime || event?.endTime) && (
+                <span className="flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  {event.startTime
+                    ? event.endTime ? `${event.startTime} – ${event.endTime} WIB` : `${event.startTime} WIB`
+                    : `s/d ${event.endTime} WIB`}
                 </span>
               )}
               {event?.location && (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5">
                   <MapPin size={11} />
                   {event.location}
                 </span>
@@ -573,21 +590,43 @@ export default function PublicRegisterPage() {
           }`}>
             {isAttendance ? "ABSENSI EVENT" : "REGISTRASI EVENT"}
           </div>
-          <h1 className="text-[22px] font-extrabold text-slate-900 leading-tight mb-3" style={{ letterSpacing: "-0.03em" }}>
+          <h1 className="text-[22px] font-extrabold text-slate-900 leading-tight mb-4" style={{ letterSpacing: "-0.03em" }}>
             {event?.name}
           </h1>
-          <div className="flex flex-wrap items-center justify-center gap-3 text-[12px] text-slate-500 font-medium">
+
+          {/* Info pills — tanggal, waktu, lokasi */}
+          <div className="flex flex-col gap-2 items-center">
             {event?.eventDate && (
-              <span className="flex items-center gap-1">
-                <CalendarDays size={12} />
-                {event.eventDate}{event.startTime ? ` · ${event.startTime}` : ""}
-              </span>
+              <div className="inline-flex items-center gap-2 bg-white/80 border border-slate-200 rounded-2xl px-4 py-2.5 shadow-sm">
+                <CalendarDays size={14} className="text-blue-500 shrink-0" />
+                <span className="text-[13px] font-semibold text-slate-700">
+                  {new Date(event.eventDate + "T00:00:00").toLocaleDateString("id-ID", {
+                    weekday: "long", day: "numeric", month: "long", year: "numeric",
+                  })}
+                </span>
+              </div>
+            )}
+            {(event?.startTime || event?.endTime) && (
+              <div className="inline-flex items-center gap-2 bg-white/80 border border-slate-200 rounded-2xl px-4 py-2.5 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500 shrink-0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span className="text-[13px] font-semibold text-slate-700">
+                  {event.startTime
+                    ? event.endTime
+                      ? `${event.startTime} – ${event.endTime} WIB`
+                      : `${event.startTime} WIB`
+                    : event.endTime
+                      ? `s/d ${event.endTime} WIB`
+                      : ""}
+                </span>
+              </div>
             )}
             {event?.location && (
-              <span className="flex items-center gap-1">
-                <MapPin size={12} />
-                {event.location}
-              </span>
+              <div className="inline-flex items-center gap-2 bg-white/80 border border-slate-200 rounded-2xl px-4 py-2.5 shadow-sm max-w-full">
+                <MapPin size={14} className="text-rose-500 shrink-0" />
+                <span className="text-[13px] font-semibold text-slate-700 text-left leading-snug">
+                  {event.location}
+                </span>
+              </div>
             )}
           </div>
         </div>
