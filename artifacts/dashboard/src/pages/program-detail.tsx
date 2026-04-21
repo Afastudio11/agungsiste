@@ -3,8 +3,38 @@ import { useParams, useLocation } from "wouter";
 import Layout from "@/components/layout";
 import {
   ArrowLeft, ClipboardList, Users, Calendar, MapPin,
-  Search, X, FileText, ChevronRight,
+  Search, X, FileText, ChevronRight, Download,
 } from "@/lib/icons";
+
+function exportProgramExcel(recipients: Recipient[], programName: string) {
+  import("@/lib/exportUtils").then(({ exportExcel }) => {
+    const headers = [
+      "No", "Nama Lengkap", "NIK", "Jenis Kelamin",
+      "Kabupaten/Kota", "Kecamatan", "Kelurahan/Desa",
+      "No. HP", "Tanggal Daftar", "Petugas", "Catatan",
+    ];
+    const rows = [
+      headers,
+      ...recipients.map((r, i) => [
+        i + 1,
+        r.participantName,
+        r.participantNik,
+        r.participantGender ?? "",
+        r.participantCity ?? "",
+        r.participantKecamatan ?? "",
+        r.participantKelurahan ?? "",
+        r.participantPhone ?? "",
+        new Date(r.registeredAt).toLocaleDateString("id-ID", {
+          day: "numeric", month: "long", year: "numeric",
+        }),
+        r.staffName ?? "",
+        r.notes ?? "",
+      ]),
+    ];
+    const safeName = programName.replace(/[^a-zA-Z0-9_\- ]/g, "").replace(/\s+/g, "_");
+    exportExcel(rows, `penerima_${safeName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  });
+}
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -171,14 +201,23 @@ export default function ProgramDetailPage() {
 
             {/* Recipients Section */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <h2 className="text-[13px] font-extrabold text-slate-700 tracking-wide flex items-center gap-2">
                   <Users className="h-4 w-4 text-blue-500" />
                   DAFTAR PENERIMA
+                  <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
+                    {recipients.length} orang
+                  </span>
                 </h2>
-                <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
-                  {recipients.length} orang
-                </span>
+                <button
+                  onClick={() => exportProgramExcel(filtered, program.name)}
+                  disabled={filtered.length === 0}
+                  title="Export ke Excel"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export Excel
+                </button>
               </div>
 
               {/* Search */}
