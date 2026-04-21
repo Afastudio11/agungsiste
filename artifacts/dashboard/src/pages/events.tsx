@@ -367,10 +367,11 @@ export default function EventsPage() {
 
               <button
                 onClick={() => events && exportExcelEvents(events)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-600 font-bold rounded-xl border border-slate-200 hover:bg-slate-50 transition-all text-sm"
+                disabled={!events || events.length === 0}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Export</span>
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Export Excel</span>
               </button>
               <button
                 onClick={openCreate}

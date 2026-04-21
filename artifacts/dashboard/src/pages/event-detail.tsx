@@ -372,10 +372,11 @@ export default function EventDetailPage() {
                 )}
                 <button
                   onClick={() => exportExcel(filteredList, event.name, activeTab)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200"
+                  disabled={filteredList.length === 0}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Download className="h-4 w-4" />
-                  Export Data
+                  <Download className="h-3.5 w-3.5" />
+                  Export Excel
                 </button>
                 <Link href={`/events/${id}/edit`}>
                   <button className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">

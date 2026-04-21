@@ -312,10 +312,10 @@ export default function EventRsvpPage() {
               {list.length > 0 && (
                 <button
                   onClick={() => exportExcelRsvp(list, event?.name ?? "event")}
-                  className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition"
                 >
-                  <Download size={15} />
-                  Export
+                  <Download size={14} />
+                  Export Excel
                 </button>
               )}
             </div>

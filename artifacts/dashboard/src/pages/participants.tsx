@@ -5,7 +5,7 @@ import {
   useListParticipants,
   getListParticipantsQueryKey,
 } from "@workspace/api-client-react";
-import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Eye, MapPin, ChevronRight, FileText, FileSpreadsheet, Loader2, RefreshCw } from "@/lib/icons";
+import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Eye, MapPin, ChevronRight, FileText, Loader2, RefreshCw } from "@/lib/icons";
 import { useQuery } from "@tanstack/react-query";
 import { exportExcel, exportParticipantsPDF } from "@/lib/exportUtils";
 
@@ -332,10 +332,10 @@ export default function ParticipantsPage() {
             <button
               onClick={() => setShowExportModal(true)}
               disabled={!participants || participants.length === 0}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-full font-bold text-sm shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors active:scale-95"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <FileSpreadsheet className="h-4 w-4" />
-              Excel
+              <Download className="h-3.5 w-3.5" />
+              Export Excel
             </button>
             <button
               onClick={handleExportPDF}
@@ -816,10 +816,10 @@ export default function ParticipantsPage() {
                   doExportExcel(participants as any[], exportKeys);
                   setShowExportModal(false);
                 }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-full text-sm font-bold shadow-sm transition-colors active:scale-95"
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-sm transition-colors"
               >
-                <FileSpreadsheet className="h-4 w-4" />
-                Download Excel ({exportKeys.size} kolom)
+                <Download className="h-4 w-4" />
+                Export Excel ({exportKeys.size} kolom)
               </button>
             </div>
           </div>
