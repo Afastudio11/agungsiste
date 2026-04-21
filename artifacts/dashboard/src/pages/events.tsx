@@ -255,48 +255,52 @@ export default function EventsPage() {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => setShowDateFilter((v) => !v)}
-                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[12px] font-bold transition-all ${
                   startDate || endDate
-                    ? "bg-indigo-50 text-indigo-600 border-indigo-200"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : showDateFilter
+                    ? "bg-indigo-50 text-indigo-600 border border-indigo-200"
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                 }`}
               >
-                <CalendarDays className="h-4 w-4" />
-                <span className="hidden sm:inline">{startDate || endDate ? "Filter aktif" : "Tanggal"}</span>
+                <CalendarDays className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{startDate || endDate ? "Filter Tanggal" : "Tanggal"}</span>
               </button>
 
               <button
                 onClick={() => handleSort("eventDate")}
-                className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[12px] font-bold transition-all ${
                   sortKey === "eventDate"
-                    ? "bg-slate-100 text-slate-700 border-slate-200"
-                    : "bg-white text-slate-500 border-slate-200 hover:text-slate-700"
+                    ? "bg-slate-700 text-white shadow-sm"
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                 }`}
                 title="Urutkan tanggal"
               >
-                {sortKey === "eventDate" && sortDir === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                <span className="hidden sm:inline">Tanggal</span>
+                {sortKey === "eventDate" && sortDir === "asc" ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                <span className="hidden sm:inline">Urut Tgl</span>
               </button>
 
               <button
                 onClick={() => setShowWilayahFilter((v) => !v)}
-                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[12px] font-bold transition-all ${
                   filterKabupaten
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700"
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : showWilayahFilter
+                    ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                 }`}
               >
-                <MapPin className="h-4 w-4" />
+                <MapPin className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{filterKabupaten || "Wilayah"}</span>
               </button>
 
               {hasFilter && (
                 <button
                   onClick={() => { setSearch(""); setStartDate(""); setEndDate(""); setFilterKabupaten(""); setFilterStatus("all"); setShowDateFilter(false); setShowWilayahFilter(false); }}
-                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm border bg-white text-red-400 border-red-100 hover:bg-red-50 transition-all"
+                  className="flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[12px] font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors"
                   title="Reset filter"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" /> Reset
                 </button>
               )}
 
@@ -405,14 +409,14 @@ export default function EventsPage() {
                     <button
                       key={s}
                       onClick={() => setFilterStatus(s)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border ${
+                      className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${
                         active
                           ? s === "active"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            ? "bg-emerald-500 text-white shadow-sm"
                             : s === "inactive"
-                              ? "bg-slate-100 text-slate-500 border-slate-200"
-                              : "bg-indigo-50 text-indigo-600 border-indigo-100"
-                          : "bg-white text-slate-400 border-slate-200 hover:text-slate-600"
+                              ? "bg-slate-500 text-white shadow-sm"
+                              : "bg-indigo-500 text-white shadow-sm"
+                          : "bg-slate-100 text-slate-400 hover:bg-slate-200"
                       }`}
                     >
                       {labels[s]}
