@@ -92,6 +92,18 @@ function WilayahSelect({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
+const CATEGORIES = [
+  "Kegiatan Sosial",
+  "Pendidikan",
+  "Kesehatan",
+  "Ekonomi",
+  "Olahraga",
+  "Budaya",
+  "Keagamaan",
+  "Pemerintahan",
+  "Lainnya",
+];
+
 const emptyForm = {
   name: "",
   description: "",
@@ -99,7 +111,10 @@ const emptyForm = {
   eventDate: "",
   category: "",
   startTime: "",
+  endTime: "",
   targetParticipants: "",
+  isRsvp: false,
+  status: "active",
 };
 
 function exportExcelEvents(events: any[]) {
@@ -268,7 +283,10 @@ export default function EventsPage() {
       eventDate: form.eventDate,
       category: form.category || undefined,
       startTime: form.startTime || undefined,
+      endTime: form.endTime || undefined,
       targetParticipants: form.targetParticipants ? parseInt(form.targetParticipants) : undefined,
+      isRsvp: form.isRsvp,
+      status: form.status,
       fasilitas: fasilitasCreate.length > 0 ? JSON.stringify(fasilitasCreate) : undefined,
     };
     createEvent.mutate({ data });
@@ -636,8 +654,8 @@ export default function EventsPage() {
       {/* ── Create / Edit Modal ── */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100 flex-shrink-0">
               <div className="font-extrabold text-slate-900 text-[15px]" style={{ letterSpacing: "-0.02em" }}>
                 Tambah Kegiatan Baru
               </div>
@@ -648,7 +666,7 @@ export default function EventsPage() {
                 <X className="h-4 w-4 text-slate-500" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6">
+            <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="col-span-2">
                   <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
@@ -675,16 +693,29 @@ export default function EventsPage() {
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                   />
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
-                    Jam Mulai
-                  </label>
-                  <input
-                    type="time"
-                    value={form.startTime}
-                    onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
-                  />
+                <div className="col-span-2 grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
+                      Jam Mulai
+                    </label>
+                    <input
+                      type="time"
+                      value={form.startTime}
+                      onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
+                      Jam Selesai
+                    </label>
+                    <input
+                      type="time"
+                      value={form.endTime}
+                      onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                    />
+                  </div>
                 </div>
                 <div className="col-span-2">
                   <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
@@ -699,13 +730,16 @@ export default function EventsPage() {
                   <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
                     Kategori
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    placeholder="cth: Sosial, Politik"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
-                  />
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                  >
+                    <option value="">— Pilih kategori —</option>
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
@@ -720,16 +754,41 @@ export default function EventsPage() {
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
                   />
                 </div>
+                <div>
+                  <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
+                    Status
+                  </label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                  >
+                    <option value="active">Aktif</option>
+                    <option value="inactive">Tidak Aktif</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400">
+                    Mode RSVP
+                  </label>
+                  <div
+                    onClick={() => setForm((prev) => ({ ...prev, isRsvp: !prev.isRsvp }))}
+                    className={`relative w-9 h-5 rounded-full cursor-pointer transition-colors flex-shrink-0 ${form.isRsvp ? "bg-indigo-600" : "bg-slate-200"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${form.isRsvp ? "translate-x-4" : "translate-x-0"}`} />
+                  </div>
+                  <span className="text-[11px] text-slate-500">{form.isRsvp ? "Aktif" : "Nonaktif"}</span>
+                </div>
                 <div className="col-span-2">
                   <label className="block text-[11px] font-bold tracking-[0.08em] text-slate-400 mb-1.5">
                     Deskripsi
                   </label>
-                  <input
-                    type="text"
+                  <textarea
+                    rows={2}
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder="Deskripsi singkat"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                    placeholder="Deskripsi singkat tentang kegiatan ini..."
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-medium text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors resize-none"
                   />
                 </div>
               </div>

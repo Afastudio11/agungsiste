@@ -62,8 +62,21 @@ router.get("/", requireAuth, async (req, res) => {
 
 router.post("/", requireAdmin, async (req, res) => {
   try {
-    const body = CreateEventBody.parse(req.body);
-    const [event] = await db.insert(eventsTable).values(body).returning();
+    const { name, description, category, location, eventDate, startTime, endTime, targetParticipants, isRsvp, status, fasilitas } = req.body as Record<string, any>;
+    if (!name || !eventDate) return res.status(400).json({ error: "name and eventDate are required" });
+    const [event] = await db.insert(eventsTable).values({
+      name,
+      description: description ?? null,
+      category: category ?? null,
+      location: location ?? null,
+      eventDate,
+      startTime: startTime ?? null,
+      endTime: endTime ?? null,
+      targetParticipants: targetParticipants ? parseInt(targetParticipants) : null,
+      isRsvp: isRsvp === true || isRsvp === "true",
+      status: status ?? "active",
+      fasilitas: fasilitas ?? null,
+    }).returning();
     res.status(201).json({ ...event, participantCount: 0 });
   } catch (err) {
     req.log.error({ err }, "Error creating event");
