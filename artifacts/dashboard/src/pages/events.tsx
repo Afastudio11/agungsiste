@@ -54,15 +54,23 @@ const emptyForm = {
   status: "active",
 };
 
-function exportExcelEvents(events: any[]) {
-  import("@/lib/exportUtils").then(({ exportExcel }) => {
-    const headers = ["ID", "Nama Kegiatan", "Tanggal", "Lokasi", "Kategori", "Peserta", "Status"];
-    const rows = [headers, ...events.map((e) => [
-      e.id, e.name, e.eventDate, e.location ?? "", e.category ?? "", e.participantCount, e.status ?? "active",
-    ])];
-    exportExcel(rows, `events_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  });
-}
+import { ExportPickerModal, type ExportCol } from "@/components/export-picker-modal";
+
+const EVENT_LIST_EXPORT_COLS: ExportCol[] = [
+  { key: "id",                label: "ID",              section: "Identitas", getValue: (e) => e.id },
+  { key: "name",              label: "Nama Kegiatan",   section: "Identitas", getValue: (e) => e.name },
+  { key: "category",          label: "Kategori",        section: "Identitas", getValue: (e) => e.category ?? "" },
+  { key: "status",            label: "Status",          section: "Identitas", getValue: (e) => e.status ?? "active" },
+  { key: "eventDate",         label: "Tanggal",         section: "Jadwal",    getValue: (e) => e.eventDate ?? "" },
+  { key: "startTime",         label: "Jam Mulai",       section: "Jadwal",    getValue: (e) => e.startTime ?? "" },
+  { key: "endTime",           label: "Jam Selesai",     section: "Jadwal",    getValue: (e) => e.endTime ?? "" },
+  { key: "location",          label: "Lokasi",          section: "Lokasi",    getValue: (e) => e.location ?? "" },
+  { key: "targetParticipants",label: "Target Peserta",  section: "Peserta",   getValue: (e) => e.targetParticipants ?? "" },
+  { key: "participantCount",  label: "Jumlah Peserta",  section: "Peserta",   getValue: (e) => e.participantCount ?? 0 },
+  { key: "isRsvp",            label: "RSVP",            section: "Peserta",   getValue: (e) => e.isRsvp ? "Ya" : "Tidak" },
+];
+
+const EVENT_LIST_DEFAULT_KEYS = ["id", "name", "eventDate", "location", "category", "participantCount", "status"];
 
 function ParticipantPill({ count }: { count: number }) {
   if (count === 0) {
@@ -88,6 +96,7 @@ export default function EventsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("eventDate");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [showForm, setShowForm] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [form, setForm] = useState({ ...emptyForm });
   const [fasilitasCreate, setFasilitasCreate] = useState<string[]>([]);
   const [fasilitasInputCreate, setFasilitasInputCreate] = useState("");
@@ -307,16 +316,16 @@ export default function EventsPage() {
               <div className="h-6 w-px bg-slate-200" />
 
               <button
-                onClick={() => events && exportExcelEvents(events)}
+                onClick={() => setShowExport(true)}
                 disabled={!events || events.length === 0}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Download className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Export Excel</span>
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Export Data</span>
               </button>
               <button
                 onClick={openCreate}
-                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm"
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-full shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm active:scale-95"
               >
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Tambah Kegiatan</span>
@@ -819,6 +828,17 @@ export default function EventsPage() {
           </div>
         </div>
       )}
+
+      <ExportPickerModal
+        open={showExport}
+        onClose={() => setShowExport(false)}
+        cols={EVENT_LIST_EXPORT_COLS}
+        defaultKeys={EVENT_LIST_DEFAULT_KEYS}
+        sections={["Identitas", "Jadwal", "Lokasi", "Peserta"]}
+        rows={(events ?? []) as any[]}
+        filename="events"
+        title="Export Daftar Kegiatan"
+      />
     </Layout>
   );
 }

@@ -5,6 +5,7 @@ import {
   ClipboardList, Plus, Trash2, ChevronRight, Users, Calendar,
   MapPin, Search, X, Pencil, CalendarDays, ChevronUp, ChevronDown, Download,
 } from "@/lib/icons";
+import { ExportPickerModal, type ExportCol } from "@/components/export-picker-modal";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -13,17 +14,20 @@ const KABUPATEN_LIST = ["Pacitan", "Trenggalek", "Magetan", "Ponorogo", "Ngawi"]
 type SortKey = "name" | "tahun" | "registeredCount";
 type SortDir = "asc" | "desc";
 
-function exportExcelPrograms(programs: Program[]) {
-  import("@/lib/exportUtils").then(({ exportExcel }) => {
-    const headers = ["ID", "Nama Program", "Komisi", "Mitra", "Tahun", "Kabupaten Penerima", "Total KTP", "Terdaftar", "Status"];
-    const rows = [headers, ...programs.map((p) => [
-      p.id, p.name, p.komisi ?? "", p.mitra ?? "", p.tahun ?? "",
-      (p.kabupatenPenerima ?? []).join(", "),
-      p.totalKtpPenerima ?? "", p.registeredCount, p.status,
-    ])];
-    exportExcel(rows, `programs_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  });
-}
+const PROGRAM_LIST_EXPORT_COLS: ExportCol[] = [
+  { key: "id",            label: "ID",                  section: "Identitas",   getValue: (p) => p.id },
+  { key: "name",          label: "Nama Program",        section: "Identitas",   getValue: (p) => p.name },
+  { key: "komisi",        label: "Komisi",              section: "Identitas",   getValue: (p) => p.komisi ?? "" },
+  { key: "mitra",         label: "Mitra",               section: "Identitas",   getValue: (p) => p.mitra ?? "" },
+  { key: "tahun",         label: "Tahun",               section: "Identitas",   getValue: (p) => p.tahun ?? "" },
+  { key: "status",        label: "Status",              section: "Identitas",   getValue: (p) => p.status },
+  { key: "kabupatenPenerima", label: "Kabupaten Penerima", section: "Sasaran",  getValue: (p) => (p.kabupatenPenerima ?? []).join(", ") },
+  { key: "totalKtpPenerima",  label: "Total KTP",       section: "Sasaran",     getValue: (p) => p.totalKtpPenerima ?? "" },
+  { key: "registeredCount",   label: "Terdaftar",       section: "Sasaran",     getValue: (p) => p.registeredCount },
+  { key: "createdAt",     label: "Tanggal Dibuat",      section: "Sasaran",     getValue: (p) => p.createdAt ? new Date(p.createdAt).toLocaleDateString("id-ID") : "" },
+];
+
+const PROGRAM_LIST_DEFAULT_KEYS = ["id", "name", "komisi", "mitra", "tahun", "kabupatenPenerima", "totalKtpPenerima", "registeredCount", "status"];
 
 type Program = {
   id: number;
@@ -89,6 +93,7 @@ export default function ProgramsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [showExport, setShowExport] = useState(false);
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -321,17 +326,17 @@ export default function ProgramsPage() {
               <div className="h-6 w-px bg-slate-200" />
 
               <button
-                onClick={() => exportExcelPrograms(filtered)}
+                onClick={() => setShowExport(true)}
                 disabled={filtered.length === 0}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Download className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Export Excel</span>
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">Export Data</span>
               </button>
 
               <button
                 onClick={openCreate}
-                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm"
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-full shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition-all text-sm active:scale-95"
               >
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Tambah Program</span>
@@ -710,6 +715,17 @@ export default function ProgramsPage() {
           )}
         </div>
       </div>
+
+      <ExportPickerModal
+        open={showExport}
+        onClose={() => setShowExport(false)}
+        cols={PROGRAM_LIST_EXPORT_COLS}
+        defaultKeys={PROGRAM_LIST_DEFAULT_KEYS}
+        sections={["Identitas", "Sasaran"]}
+        rows={filtered}
+        filename="programs"
+        title="Export Daftar Program"
+      />
     </Layout>
   );
 }
