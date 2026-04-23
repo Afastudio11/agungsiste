@@ -213,9 +213,9 @@ export default function ProgramDetailPage() {
                   onClick={() => setShowExport(true)}
                   disabled={filtered.length === 0}
                   title="Export Data"
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Download className="h-3.5 w-3.5" />
+                  <Download className="h-4 w-4" />
                   Export Data
                 </button>
               </div>

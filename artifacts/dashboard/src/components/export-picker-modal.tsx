@@ -213,7 +213,7 @@ export function ExportPickerModal<T>({
               <button
                 disabled={rows.length === 0 || !!pdfProgress}
                 onClick={doPdf}
-                className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-sm transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-full text-sm font-bold shadow-sm transition-colors active:scale-95"
               >
                 <FileText className="h-4 w-4" />
                 Export PDF (foto KTP)
@@ -222,7 +222,7 @@ export function ExportPickerModal<T>({
             <button
               disabled={keys.size === 0 || rows.length === 0}
               onClick={doExcel}
-              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-sm transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-full text-sm font-bold shadow-sm transition-colors active:scale-95"
             >
               <Download className="h-4 w-4" />
               Export Excel ({keys.size} kolom)

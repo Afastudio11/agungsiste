@@ -7,7 +7,7 @@ import {
 } from "@workspace/api-client-react";
 import { Search, Download, X, ChevronUp, ChevronDown, ChevronsUpDown, Users, Eye, MapPin, ChevronRight, FileText, Loader2, RefreshCw } from "@/lib/icons";
 import { useQuery } from "@tanstack/react-query";
-import { exportExcel, exportParticipantsPDF } from "@/lib/exportUtils";
+import { ExportPickerModal } from "@/components/export-picker-modal";
 
 type SortKey = "nik" | "fullName" | "gender" | "city" | "province" | "firstRegisteredAt" | "eventCount" | "programCount";
 type SortDir = "asc" | "desc";
@@ -87,13 +87,6 @@ const ALL_EXPORT_COLS: ExportCol[] = [
 
 const DEFAULT_EXPORT_KEYS = new Set(["nik","fullName","gender","birthPlace","birthDate","occupation","address","kelurahan","kecamatan","city","province","eventCount","programCount","firstRegisteredAt"]);
 
-function doExportExcel(participants: any[], selectedKeys: Set<string>) {
-  const cols = ALL_EXPORT_COLS.filter((c) => selectedKeys.has(c.key));
-  const headers = cols.map((c) => c.label);
-  const rows = [headers, ...participants.map((p) => cols.map((c) => c.getValue(p)))];
-  exportExcel(rows, `peserta_${new Date().toISOString().slice(0, 10)}.xlsx`);
-}
-
 export default function ParticipantsPage() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
@@ -106,13 +99,11 @@ export default function ParticipantsPage() {
   const [filterKabupaten, setFilterKabupaten] = useState("");
   const [filterKecamatan, setFilterKecamatan] = useState("");
   const [filterKelurahan, setFilterKelurahan] = useState("");
-  const [pdfProgress, setPdfProgress] = useState<{ current: number; total: number } | null>(null);
   const [filterEventCount, setFilterEventCount] = useState<number | null>(null);
   const [filterProgramCount, setFilterProgramCount] = useState<number | null>(null);
   const [showEventCountFilter, setShowEventCountFilter] = useState(false);
   const [showProgramCountFilter, setShowProgramCountFilter] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportKeys, setExportKeys] = useState<Set<string>>(new Set(DEFAULT_EXPORT_KEYS));
 
   const params: Record<string, string> = {
     ...(search ? { search } : {}),
@@ -214,23 +205,6 @@ export default function ParticipantsPage() {
 
   const goToPage = (p: number) => setCurrentPage(Math.min(Math.max(1, p), totalPages));
 
-  const handleExportPDF = async () => {
-    if (!participants || participants.length === 0 || pdfProgress) return;
-    const list = participants as any[];
-    setPdfProgress({ current: 0, total: list.length });
-    const label = filterKelurahan
-      ? `peserta_${filterKelurahan.replace(/\s+/g, "_")}`
-      : filterKecamatan
-      ? `peserta_${filterKecamatan.replace(/\s+/g, "_")}`
-      : filterKabupaten
-      ? `peserta_${filterKabupaten.replace(/\s+/g, "_")}`
-      : "peserta_semua";
-    try {
-      await exportParticipantsPDF(list, BASE, (current) => setPdfProgress({ current, total: list.length }), label);
-    } finally {
-      setPdfProgress(null);
-    }
-  };
 
   return (
     <Layout>
@@ -328,22 +302,14 @@ export default function ParticipantsPage() {
               <RefreshCw className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`} />
             </button>
 
-            {/* Export buttons */}
+            {/* Export Data button (PDF + Excel di dalam modal) */}
             <button
               onClick={() => setShowExportModal(true)}
               disabled={!participants || participants.length === 0}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-full font-bold text-sm shadow-sm transition-colors active:scale-95"
             >
-              <Download className="h-3.5 w-3.5" />
-              Export Excel
-            </button>
-            <button
-              onClick={handleExportPDF}
-              disabled={!participants || participants.length === 0 || !!pdfProgress}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-full font-bold text-sm shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors active:scale-95"
-            >
-              <FileText className="h-4 w-4" />
-              PDF
+              <Download className="h-4 w-4" />
+              Export Data
             </button>
           </div>
 
@@ -680,163 +646,24 @@ export default function ParticipantsPage() {
         </div>
       </div>
 
-      {/* ── PDF Progress Modal ── */}
-      {pdfProgress && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-7 max-w-sm w-full text-center">
-            <div className="mb-4 flex justify-center">
-              <div className="h-14 w-14 rounded-full bg-blue-50 flex items-center justify-center">
-                <Loader2 className="h-7 w-7 text-blue-600 animate-spin" />
-              </div>
-            </div>
-            <h3 className="text-base font-bold text-slate-800 mb-1">Membuat PDF...</h3>
-            <p className="text-sm text-slate-500 mb-5">
-              Memuat foto KTP peserta {pdfProgress.current} dari {pdfProgress.total}
-            </p>
-            <div className="w-full bg-slate-100 rounded-full h-2.5 mb-2">
-              <div
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                style={{ width: `${pdfProgress.total > 0 ? Math.round((pdfProgress.current / pdfProgress.total) * 100) : 0}%` }}
-              />
-            </div>
-            <p className="text-xs text-slate-400">
-              {pdfProgress.total > 0 ? Math.round((pdfProgress.current / pdfProgress.total) * 100) : 0}% — Jangan tutup jendela ini
-            </p>
-          </div>
-        </div>
-      )}
+      <ExportPickerModal
+        open={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        cols={ALL_EXPORT_COLS as any}
+        defaultKeys={[...DEFAULT_EXPORT_KEYS]}
+        sections={["Identitas", "Alamat", "Aktivitas"]}
+        rows={(participants ?? []) as any[]}
+        filename={
+          filterKelurahan ? `peserta_${filterKelurahan.replace(/\s+/g, "_")}` :
+          filterKecamatan ? `peserta_${filterKecamatan.replace(/\s+/g, "_")}` :
+          filterKabupaten ? `peserta_${filterKabupaten.replace(/\s+/g, "_")}` :
+          "peserta_semua"
+        }
+        pdfMapper={(p) => p}
+        baseUrl={BASE}
+        title="Export Data Peserta"
+      />
 
-      {/* ── Export Column Picker Modal ── */}
-      {showExportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Header */}
-            <div className="px-6 pt-6 pb-4 border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">Pilih Kolom Excel</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {exportKeys.size} dari {ALL_EXPORT_COLS.length} kolom dipilih &bull; {(participants as any[])?.length?.toLocaleString("id-ID") ?? 0} baris data
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowExportModal(false)}
-                  className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              {/* Select all / none */}
-              <div className="flex items-center gap-2 mt-3">
-                <button
-                  onClick={() => setExportKeys(new Set(ALL_EXPORT_COLS.map((c) => c.key)))}
-                  className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-                >Pilih Semua</button>
-                <span className="text-slate-300">|</span>
-                <button
-                  onClick={() => setExportKeys(new Set())}
-                  className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 transition-colors"
-                >Hapus Semua</button>
-                <span className="text-slate-300">|</span>
-                <button
-                  onClick={() => setExportKeys(new Set(DEFAULT_EXPORT_KEYS))}
-                  className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 transition-colors"
-                >Reset Default</button>
-              </div>
-            </div>
-
-            {/* Column list grouped by section */}
-            <div className="overflow-y-auto flex-1 px-6 py-4 space-y-5">
-              {(["Identitas", "Alamat", "Aktivitas"] as const).map((section) => {
-                const cols = ALL_EXPORT_COLS.filter((c) => c.section === section);
-                const allChecked = cols.every((c) => exportKeys.has(c.key));
-                return (
-                  <div key={section}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">{section}</span>
-                      <button
-                        onClick={() => {
-                          setExportKeys((prev) => {
-                            const next = new Set(prev);
-                            if (allChecked) cols.forEach((c) => next.delete(c.key));
-                            else cols.forEach((c) => next.add(c.key));
-                            return next;
-                          });
-                        }}
-                        className="text-[10px] font-semibold text-blue-500 hover:text-blue-700 transition-colors"
-                      >
-                        {allChecked ? "Batal Semua" : "Pilih Semua"}
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-y-2 gap-x-4">
-                      {cols.map((col) => {
-                        const checked = exportKeys.has(col.key);
-                        return (
-                          <label
-                            key={col.key}
-                            className={`flex items-center gap-2.5 cursor-pointer rounded-xl px-3 py-2.5 border transition-all select-none ${
-                              checked
-                                ? "bg-emerald-50 border-emerald-200"
-                                : "bg-slate-50 border-slate-100 hover:bg-slate-100"
-                            }`}
-                          >
-                            <div className={`flex-shrink-0 h-4 w-4 rounded flex items-center justify-center border-2 transition-all ${
-                              checked ? "bg-emerald-500 border-emerald-500" : "bg-white border-slate-300"
-                            }`}>
-                              {checked && (
-                                <svg className="h-2.5 w-2.5 text-white" viewBox="0 0 10 8" fill="none">
-                                  <path d="M1 4l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              )}
-                            </div>
-                            <span className={`text-[12px] font-medium ${checked ? "text-emerald-800" : "text-slate-600"}`}>
-                              {col.label}
-                            </span>
-                            <input
-                              type="checkbox"
-                              className="sr-only"
-                              checked={checked}
-                              onChange={(e) => {
-                                setExportKeys((prev) => {
-                                  const next = new Set(prev);
-                                  if (e.target.checked) next.add(col.key);
-                                  else next.delete(col.key);
-                                  return next;
-                                });
-                              }}
-                            />
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-slate-100 flex items-center gap-3 justify-end bg-slate-50/60">
-              <button
-                onClick={() => setShowExportModal(false)}
-                className="px-4 py-2 rounded-full text-sm font-semibold text-slate-500 hover:bg-slate-200 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                disabled={exportKeys.size === 0}
-                onClick={() => {
-                  doExportExcel(participants as any[], exportKeys);
-                  setShowExportModal(false);
-                }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-sm transition-colors"
-              >
-                <Download className="h-4 w-4" />
-                Export Excel ({exportKeys.size} kolom)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </Layout>
   );
 }
