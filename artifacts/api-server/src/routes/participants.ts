@@ -82,6 +82,7 @@ router.get("/", requireAuth, async (req, res) => {
         province: participantsTable.province,
         rtRw: participantsTable.rtRw,
         bloodType: participantsTable.bloodType,
+        hasKtpImage: sql<boolean>`(${participantsTable.ktpImagePath} is not null and length(${participantsTable.ktpImagePath}) > 0)`,
         eventCount: sql<number>`cast(count(${eventRegistrationsTable.id}) as integer)`,
         programCount: sql<number>`(select cast(count(*) as integer) from program_registrations where participant_id = ${participantsTable.id})`,
         firstRegisteredAt: sql<string>`min(${eventRegistrationsTable.registeredAt})`,

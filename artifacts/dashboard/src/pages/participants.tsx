@@ -516,9 +516,21 @@ export default function ParticipantsPage() {
                         <td className="px-6 py-4">
                           <Link href={`/participants/${p.nik}`}>
                             <div className="flex items-center gap-3 cursor-pointer">
-                              <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${palette}`}>
-                                {initials}
-                              </div>
+                              {(p as any).hasKtpImage ? (
+                                <img
+                                  src={`/api/ktp/image/${p.nik}`}
+                                  alt={`KTP ${p.fullName ?? ""}`}
+                                  loading="lazy"
+                                  className="h-9 w-14 rounded object-cover shrink-0 border border-slate-200 bg-slate-100"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                  }}
+                                />
+                              ) : (
+                                <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${palette}`}>
+                                  {initials}
+                                </div>
+                              )}
                               <div>
                                 <p className="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors leading-tight">{p.fullName}</p>
                                 {(p as any).occupation && (
