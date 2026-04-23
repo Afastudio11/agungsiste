@@ -521,7 +521,7 @@ export default function ParticipantsPage() {
                                   src={`/api/ktp/image/${p.nik}`}
                                   alt={`KTP ${p.fullName ?? ""}`}
                                   loading="lazy"
-                                  className="h-9 w-14 rounded object-cover shrink-0 border border-slate-200 bg-slate-100"
+                                  className="h-14 w-24 rounded-md object-cover shrink-0 border border-slate-200 bg-slate-100 shadow-sm hover:scale-[2] hover:z-20 hover:shadow-xl transition-transform origin-left"
                                   onError={(e) => {
                                     (e.currentTarget as HTMLImageElement).style.display = "none";
                                   }}
