@@ -1,39 +1,38 @@
 import { useState, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
 import Layout from "@/components/layout";
+import { ExportPickerModal, type ExportCol } from "@/components/export-picker-modal";
 import {
   ArrowLeft, ClipboardList, Users, Calendar, MapPin,
   Search, X, FileText, ChevronRight, Download,
 } from "@/lib/icons";
 
-function exportProgramExcel(recipients: Recipient[], programName: string) {
-  import("@/lib/exportUtils").then(({ exportExcel }) => {
-    const headers = [
-      "No", "Nama Lengkap", "NIK", "Jenis Kelamin",
-      "Kabupaten/Kota", "Kecamatan", "Kelurahan/Desa",
-      "No. HP", "Tanggal Daftar", "Petugas", "Catatan",
-    ];
-    const rows = [
-      headers,
-      ...recipients.map((r, i) => [
-        i + 1,
-        r.participantName,
-        r.participantNik,
-        r.participantGender ?? "",
-        r.participantCity ?? "",
-        r.participantKecamatan ?? "",
-        r.participantKelurahan ?? "",
-        r.participantPhone ?? "",
-        new Date(r.registeredAt).toLocaleDateString("id-ID", {
-          day: "numeric", month: "long", year: "numeric",
-        }),
-        r.staffName ?? "",
-        r.notes ?? "",
-      ]),
-    ];
-    const safeName = programName.replace(/[^a-zA-Z0-9_\- ]/g, "").replace(/\s+/g, "_");
-    exportExcel(rows, `penerima_${safeName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  });
+const PROGRAM_EXPORT_COLS: ExportCol[] = [
+  { key: "no",            label: "No",                section: "Identitas",   getValue: (_r, i) => (i ?? 0) + 1 },
+  { key: "nik",           label: "NIK",               section: "Identitas",   getValue: (r) => r.participantNik ?? "" },
+  { key: "name",          label: "Nama Lengkap",      section: "Identitas",   getValue: (r) => r.participantName ?? "" },
+  { key: "gender",        label: "Jenis Kelamin",     section: "Identitas",   getValue: (r) => r.participantGender ?? "" },
+  { key: "phone",         label: "Nomor HP",          section: "Identitas",   getValue: (r) => r.participantPhone ?? "" },
+  { key: "city",          label: "Kabupaten/Kota",    section: "Alamat",      getValue: (r) => r.participantCity ?? "" },
+  { key: "kecamatan",     label: "Kecamatan",         section: "Alamat",      getValue: (r) => r.participantKecamatan ?? "" },
+  { key: "kelurahan",     label: "Kelurahan/Desa",    section: "Alamat",      getValue: (r) => r.participantKelurahan ?? "" },
+  { key: "registeredAt",  label: "Tanggal Daftar",    section: "Pendaftaran", getValue: (r) => r.registeredAt ? new Date(r.registeredAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "" },
+  { key: "staffName",     label: "Petugas",           section: "Pendaftaran", getValue: (r) => r.staffName ?? "" },
+  { key: "notes",         label: "Catatan",           section: "Pendaftaran", getValue: (r) => r.notes ?? "" },
+] as unknown as ExportCol[];
+
+const PROGRAM_DEFAULT_KEYS = ["no", "name", "nik", "gender", "city", "kecamatan", "kelurahan", "phone", "registeredAt", "staffName"];
+
+function recipientToPdf(r: Recipient) {
+  return {
+    nik: r.participantNik,
+    fullName: r.participantName,
+    gender: r.participantGender,
+    city: r.participantCity,
+    kecamatan: r.participantKecamatan,
+    kelurahan: r.participantKelurahan,
+    firstRegisteredAt: r.registeredAt,
+  };
 }
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -72,6 +71,7 @@ export default function ProgramDetailPage() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showExport, setShowExport] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -210,13 +210,13 @@ export default function ProgramDetailPage() {
                   </span>
                 </h2>
                 <button
-                  onClick={() => exportProgramExcel(filtered, program.name)}
+                  onClick={() => setShowExport(true)}
                   disabled={filtered.length === 0}
-                  title="Export ke Excel"
+                  title="Export Data"
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Export Excel
+                  Export Data
                 </button>
               </div>
 
@@ -288,6 +288,22 @@ export default function ProgramDetailPage() {
           </>
         )}
       </div>
+
+      {program && (
+        <ExportPickerModal
+          open={showExport}
+          onClose={() => setShowExport(false)}
+          cols={PROGRAM_EXPORT_COLS}
+          defaultKeys={PROGRAM_DEFAULT_KEYS}
+          sections={["Identitas", "Alamat", "Pendaftaran"]}
+          rows={filtered}
+          filename={`penerima_${program.name.replace(/[^a-zA-Z0-9_\- ]/g, "").replace(/\s+/g, "_")}`}
+          pdfMapper={recipientToPdf}
+          pdfFilenameLabel={`penerima_${program.name.replace(/[^a-zA-Z0-9_\- ]/g, "").replace(/\s+/g, "_")}`}
+          baseUrl={BASE}
+          title="Export Data Penerima Program"
+        />
+      )}
     </Layout>
   );
 }

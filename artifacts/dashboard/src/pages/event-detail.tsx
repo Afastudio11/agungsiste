@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "wouter";
 import Layout from "@/components/layout";
+import { ExportPickerModal, type ExportCol } from "@/components/export-picker-modal";
 import {
   useGetEvent,
   useListEventParticipants,
@@ -30,19 +31,41 @@ import {
 
 type TabType = "rsvp" | "onsite";
 
-function exportExcel(participants: any[], eventName: string, tab: "onsite" | "rsvp") {
-  import("@/lib/exportUtils").then(({ exportExcel: doExport }) => {
-    const label = tab === "onsite" ? "peserta" : "registrasi";
-    const headers = tab === "onsite"
-      ? ["NIK", "Nama", "Jenis Kelamin", "Kabupaten", "Kecamatan", "Desa", "Nomor HP"]
-      : ["NIK", "Nama", "Jenis Kelamin", "Kabupaten", "Nomor HP", "Status Sosial"];
-    const rows = [headers, ...participants.map((p) =>
-      tab === "onsite"
-        ? [p.nik, p.fullName, p.gender ?? "", p.city ?? "", p.kecamatan ?? "", p.kelurahan ?? "", p.phone ?? ""]
-        : [p.nik, p.fullName, p.gender ?? "", p.city ?? "", p.phone ?? "", p.socialStatus ?? ""]
-    )];
-    doExport(rows, `${label}_${eventName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  });
+const EVENT_EXPORT_COLS: ExportCol[] = [
+  { key: "nik",            label: "NIK",              section: "Identitas", getValue: (p) => p.nik ?? "" },
+  { key: "fullName",       label: "Nama Lengkap",     section: "Identitas", getValue: (p) => p.fullName ?? "" },
+  { key: "gender",         label: "Jenis Kelamin",    section: "Identitas", getValue: (p) => p.gender ?? "" },
+  { key: "birthPlace",     label: "Tempat Lahir",     section: "Identitas", getValue: (p) => p.birthPlace ?? "" },
+  { key: "birthDate",      label: "Tanggal Lahir",    section: "Identitas", getValue: (p) => p.birthDate ?? "" },
+  { key: "occupation",     label: "Pekerjaan",        section: "Identitas", getValue: (p) => p.occupation ?? "" },
+  { key: "socialStatus",   label: "Status Sosial",    section: "Identitas", getValue: (p) => p.socialStatus ?? "" },
+  { key: "address",        label: "Alamat",           section: "Alamat",    getValue: (p) => p.address ?? "" },
+  { key: "kelurahan",      label: "Kelurahan/Desa",   section: "Alamat",    getValue: (p) => p.kelurahan ?? "" },
+  { key: "kecamatan",      label: "Kecamatan",        section: "Alamat",    getValue: (p) => p.kecamatan ?? "" },
+  { key: "city",           label: "Kabupaten/Kota",   section: "Alamat",    getValue: (p) => p.city ?? "" },
+  { key: "phone",          label: "Nomor HP",         section: "Registrasi",getValue: (p) => p.phone ?? "" },
+  { key: "registrationType", label: "Tipe Registrasi",section: "Registrasi",getValue: (p) => p.registrationType ?? "" },
+  { key: "staffName",      label: "Petugas",          section: "Registrasi",getValue: (p) => p.staffName ?? "" },
+  { key: "registeredAt",   label: "Tanggal Registrasi", section: "Registrasi", getValue: (p) => p.registeredAt ? new Date(p.registeredAt).toLocaleDateString("id-ID") : "" },
+  { key: "checkedInAt",    label: "Waktu Check-in",   section: "Registrasi",getValue: (p) => p.checkedInAt ? new Date(p.checkedInAt).toLocaleString("id-ID") : "" },
+];
+
+const EVENT_DEFAULT_KEYS = ["nik", "fullName", "gender", "city", "kecamatan", "kelurahan", "phone", "registeredAt", "staffName"];
+
+function eventParticipantToPdf(p: any) {
+  return {
+    nik: p.nik,
+    fullName: p.fullName,
+    birthPlace: p.birthPlace,
+    birthDate: p.birthDate,
+    gender: p.gender,
+    occupation: p.occupation,
+    address: p.address,
+    kelurahan: p.kelurahan,
+    kecamatan: p.kecamatan,
+    city: p.city,
+    firstRegisteredAt: p.registeredAt,
+  };
 }
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -246,6 +269,7 @@ export default function EventDetailPage() {
   const id = parseInt(params.id as string);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("onsite");
+  const [showExport, setShowExport] = useState(false);
 
   const { data: event, isLoading: eventLoading } = useGetEvent(id, {
     query: { enabled: !!id, queryKey: getGetEventQueryKey(id) },
@@ -371,12 +395,12 @@ export default function EventDetailPage() {
                   </Link>
                 )}
                 <button
-                  onClick={() => exportExcel(filteredList, event.name, activeTab)}
+                  onClick={() => setShowExport(true)}
                   disabled={filteredList.length === 0}
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[12px] font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  Export Excel
+                  Export Data
                 </button>
                 <Link href={`/events/${id}/edit`}>
                   <button className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
@@ -552,6 +576,20 @@ export default function EventDetailPage() {
             </div>
           </div>
       </div>
+
+      <ExportPickerModal
+        open={showExport}
+        onClose={() => setShowExport(false)}
+        cols={EVENT_EXPORT_COLS}
+        defaultKeys={EVENT_DEFAULT_KEYS}
+        sections={["Identitas", "Alamat", "Registrasi"]}
+        rows={filteredList}
+        filename={`${activeTab === "onsite" ? "peserta" : "registrasi"}_${event.name.replace(/\s+/g, "_")}`}
+        pdfMapper={eventParticipantToPdf}
+        pdfFilenameLabel={`peserta_${event.name.replace(/\s+/g, "_")}`}
+        baseUrl={BASE}
+        title="Export Data Peserta Kegiatan"
+      />
     </Layout>
   );
 }
